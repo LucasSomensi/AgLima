@@ -7,4 +7,12 @@ router.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../views/index.html'));
 });
 
+router.get('/contato', (req, res) => {
+  res.sendFile(path.join(__dirname, '../views/contact.html'));
+});
+
+router.get('/login', (req, res) => {
+  res.sendFile(path.join(__dirname, '../views/construction.html'));
+});
+
 module.exports = router;
