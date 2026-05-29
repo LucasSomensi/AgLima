@@ -128,26 +128,7 @@ router.post('/contato', async (req, res) => {
   try {
     await sendMailerSendEmail(buildContactEmail({ name, email, subject, message }));
 
-    return res.send(`<!doctype html>
-<html lang="pt-BR">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <title>Mensagem enviada | AgroLima</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" integrity="sha384-xOolHFLEh07PJGoPkLv1IbcEPTNtaed2xpHsD9ESMhqIYd0nLMwNLD69Npy4HI+N" crossorigin="anonymous">
-    <link rel="stylesheet" href="/css/styles.css">
-  </head>
-  <body>
-    <main class="page-shell">
-      <section class="content-card contact-card">
-        <a class="back-link" href="/contato">← Voltar ao contato</a>
-        <span class="eyebrow">Mensagem enviada</span>
-        <h1 class="page-title">Obrigado pelo contato!</h1>
-        <p class="page-description">Recebemos sua mensagem e retornaremos assim que possível.</p>
-      </section>
-    </main>
-  </body>
-</html>`);
+    return res.sendFile(path.join(__dirname, '../views/contact-received.html'));
   } catch (error) {
     console.error('Error sending contact email with MailerSend:', {
       message: error.message,
