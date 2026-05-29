@@ -1,28 +1,119 @@
+:root {
+  --green-950: #123524;
+  --green-850: #1f5137;
+  --green-700: #2f6f4e;
+  --green-100: #eaf6ee;
+  --green-50: #f6fbf7;
+  --accent: #d9b66d;
+}
+
+* {
+  box-sizing: border-box;
+}
+
 html {
-    height: 100%;
-    width: 100%;
+  min-height: 100%;
+  width: 100%;
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  width: 100%;
+  font-family: 'Roboto', Arial, sans-serif;
+  color: var(--green-50);
+  background:
+    radial-gradient(circle at top left, rgba(217, 182, 109, 0.22), transparent 32rem),
+    linear-gradient(135deg, var(--green-950) 0%, var(--green-850) 50%, var(--green-700) 100%);
+}
+
+.home-page {
+  min-height: calc(100vh - 72px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 20px 24px;
+}
+
+.hero-card {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(280px, 1.1fr);
+  gap: 32px;
+  align-items: center;
+  width: min(1120px, 100%);
+  padding: 32px;
+  border: 1px solid rgba(234, 246, 238, 0.24);
+  border-radius: 28px;
+  background: rgba(18, 53, 36, 0.62);
+  box-shadow: 0 24px 80px rgba(10, 31, 21, 0.32);
+  backdrop-filter: blur(10px);
+}
+
+.hero-copy {
+  padding: 12px;
+}
+
+.eyebrow {
+  display: inline-block;
+  margin-bottom: 14px;
+  color: var(--accent);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.h1 {
+  margin: 0;
+  color: #ffffff;
+  font-size: clamp(3rem, 8vw, 5.75rem);
+  font-weight: 700;
+  line-height: 0.95;
+  text-shadow: 0 4px 20px rgba(0, 0, 0, 0.22);
+}
+
+.lead {
+  max-width: 520px;
+  margin: 22px 0 0;
+  color: var(--green-100);
+  font-size: clamp(1.1rem, 2vw, 1.35rem);
+  line-height: 1.6;
+}
+
+.hero-image {
+  display: block;
+  width: 100%;
+  height: min(56vw, 520px);
+  min-height: 320px;
+  object-fit: cover;
+  border-radius: 22px;
+  box-shadow: 0 18px 56px rgba(8, 28, 18, 0.38);
+}
+
+.site-footer {
+  min-height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px 20px;
+  color: rgba(246, 251, 247, 0.78);
+  background: rgba(18, 53, 36, 0.72);
+  text-align: center;
+}
+
+@media (max-width: 800px) {
+  .home-page {
+    align-items: flex-start;
+    padding-top: 28px;
   }
-  
-  body {
-    display: table;
-    height: 100%;
-    margin: 0;
-    padding: 0;
-    width: 100%;
+
+  .hero-card {
+    grid-template-columns: 1fr;
+    padding: 22px;
   }
-  
-  .row {
-    display: table-row;
-    height: 75%;
-    background-color: #282828;
-    text-align: center;
+
+  .hero-image {
+    height: 360px;
+    min-height: 260px;
   }
-  
-  .h1 {
-    font-size: 54px;
-    font-family: 'Roboto', sans-serif;
-    background: linear-gradient(to right, #FFFFFF 0%, #FF6600 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    padding-top: 100px;
-  }
+}
