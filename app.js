@@ -8,6 +8,10 @@ const PORT = process.env.PORT || 3000;
 // Serve static files from the "public" directory
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Parse form submissions and JSON request bodies before routing
+app.use(express.urlencoded({ extended: false }));
+app.use(express.json());
+
 // Use the router for handling routes
 app.use('/', indexRouter);
 
