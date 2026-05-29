@@ -6,7 +6,8 @@
   "author": "alphasec",
   "license": "MIT",
   "dependencies": {
-    "express": "^4.19.2"
+    "express": "^4.19.2",
+    "nodemailer": "^6.9.15"
   },
   "scripts": {
     "start": "node app.js"
