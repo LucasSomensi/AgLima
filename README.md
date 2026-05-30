@@ -37,12 +37,16 @@ Variáveis de ambiente obrigatórias:
 | `DATABASE_URL` | Sim | String de conexão do PostgreSQL usada pela biblioteca `pg`. |
 | `ROOT_PASSWORD` | Sim | Senha que será criptografada e armazenada para o login `root`. Não commit este valor no Git. |
 
-O script espera que a tabela `users` tenha pelo menos estas colunas:
+O script e o login esperam que a tabela `users` tenha pelo menos estas colunas:
 
 ```sql
+id uuid primary key,
 login text unique not null,
 password_hash text not null,
-role text not null
+role text not null,
+disabled boolean not null default false,
+must_change_password boolean not null default false,
+created_at timestamptz not null default now()
 ```
 
 Para executar localmente a partir da raiz do projeto, instale as dependências e rode:
@@ -64,18 +68,20 @@ npm run create-root-user
 
 Se o login `root` já existir, o script termina com sucesso sem alterar o usuário existente.
 
-## Root login setup
+## Login e gerenciamento de usuários
 
-The `/login` page authenticates a single administrative user:
+O `/login` autentica usuários salvos na tabela `users` do PostgreSQL usando `DATABASE_URL`. O usuário com `role = 'root'` é redirecionado para `/admin/usuarios`, onde pode adicionar e remover outros usuários do sistema. Usuários sem o papel `root` são redirecionados para `/area-interna`.
+
+Além de `DATABASE_URL`, configure também:
 
 | Variable | Required | Description |
 | --- | --- | --- |
-| `ROOT_PASSWORD` | Yes | Password for the `root` login. Do not commit this value to Git. |
+| `SESSION_SECRET` | Yes | Secret usado para assinar o cookie de sessão. Use um valor longo e aleatório. |
 
-Example local or Railway variable:
+Example Railway variable:
 
 ```env
-ROOT_PASSWORD=troque-esta-senha
+SESSION_SECRET=troque-por-uma-string-longa-e-aleatoria
 ```
 
-When the login is `root` and the password matches `ROOT_PASSWORD`, the user is redirected to `/area-interna`, which currently shows the construction page.
+As senhas criadas pelo painel root são armazenadas como hash `bcrypt` na coluna `password_hash`; a senha em texto puro nunca é gravada no banco.

@@ -291,3 +291,118 @@ body {
   font-weight: 700;
   line-height: 1.4;
 }
+
+.admin-shell {
+  align-items: flex-start;
+  min-height: auto;
+  padding-top: 42px;
+}
+
+.admin-card {
+  max-width: 1120px;
+  width: 100%;
+}
+
+.admin-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 28px;
+}
+
+.admin-section {
+  margin-top: 28px;
+  padding-top: 24px;
+  border-top: 1px solid rgba(234, 246, 238, 0.16);
+}
+
+.admin-section h2 {
+  margin: 0 0 18px;
+  color: #ffffff;
+  font-size: 1.35rem;
+  font-weight: 700;
+}
+
+.admin-user-form {
+  margin-top: 0;
+}
+
+.admin-table-wrapper {
+  overflow-x: auto;
+  border: 1px solid rgba(234, 246, 238, 0.16);
+  border-radius: 16px;
+}
+
+.admin-table {
+  width: 100%;
+  min-width: 760px;
+  margin: 0;
+  color: #ffffff;
+  border-collapse: collapse;
+}
+
+.admin-table th,
+.admin-table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(234, 246, 238, 0.12);
+  vertical-align: middle;
+}
+
+.admin-table th {
+  color: var(--green-100);
+  background: rgba(5, 48, 25, 0.72);
+  font-size: 0.86rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.admin-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.admin-success {
+  margin: 0 0 20px;
+  padding: 12px 14px;
+  color: #c9ffd8;
+  border: 1px solid rgba(174, 255, 197, 0.42);
+  border-radius: 14px;
+  background: rgba(18, 102, 48, 0.2);
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.admin-muted {
+  color: var(--green-100);
+  font-weight: 700;
+}
+
+.btn-danger-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 10px 16px;
+  color: #ffffff;
+  background: #b42318;
+  border: 0;
+  border-radius: 999px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.btn-danger-action:hover,
+.btn-danger-action:focus {
+  color: #ffffff;
+  background: #912018;
+  box-shadow: 0 12px 24px rgba(180, 35, 24, 0.28);
+  transform: translateY(-1px);
+}
+
+@media (max-width: 800px) {
+  .admin-header {
+    flex-direction: column;
+  }
+}
