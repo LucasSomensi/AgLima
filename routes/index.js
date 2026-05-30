@@ -1,9 +1,45 @@
 const express = require('express');
+const crypto = require('crypto');
+const fs = require('fs');
 const https = require('https');
 const path = require('path');
 const router = express.Router();
 
 const MAILERSEND_API_URL = 'https://api.mailersend.com/v1/email';
+const ROOT_LOGIN = 'root';
+const ROOT_PASSWORD_ENV = 'ROOT_PASSWORD';
+
+function safeCompare(value, expectedValue) {
+  const valueBuffer = Buffer.from(String(value || ''), 'utf8');
+  const expectedBuffer = Buffer.from(String(expectedValue || ''), 'utf8');
+
+  if (valueBuffer.length !== expectedBuffer.length) {
+    return false;
+  }
+
+  return crypto.timingSafeEqual(valueBuffer, expectedBuffer);
+}
+
+function isAuthorizedRootLogin(login, password) {
+  const configuredPassword = process.env[ROOT_PASSWORD_ENV];
+
+  if (!configuredPassword) {
+    console.error(`Missing ${ROOT_PASSWORD_ENV} environment variable for root login.`);
+    return false;
+  }
+
+  return login === ROOT_LOGIN && safeCompare(password, configuredPassword);
+}
+
+function renderLoginPage(res, { unauthorized = false } = {}) {
+  const loginPath = path.join(__dirname, '../views/login.html');
+  const errorMessage = unauthorized
+    ? '<p class="login-error" role="alert">Login não autorizado. Confira o login e a senha e tente novamente.</p>'
+    : '';
+  const loginHtml = fs.readFileSync(loginPath, 'utf8').replace('{{LOGIN_ERROR}}', errorMessage);
+
+  res.status(unauthorized ? 401 : 200).send(loginHtml);
+}
 
 function hasEmailConfig() {
   return Boolean(
@@ -142,6 +178,20 @@ router.post('/contato', async (req, res) => {
 });
 
 router.get('/login', (req, res) => {
+  renderLoginPage(res);
+});
+
+router.post('/login', (req, res) => {
+  const { login, password } = req.body;
+
+  if (!isAuthorizedRootLogin(login, password)) {
+    return renderLoginPage(res, { unauthorized: true });
+  }
+
+  return res.redirect('/area-interna');
+});
+
+router.get('/area-interna', (req, res) => {
   res.sendFile(path.join(__dirname, '../views/construction.html'));
 });
 

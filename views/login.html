@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+      <meta charset="utf-8">
+      <meta name="author" content="Lucas">
+      <meta name="description" content="Login interno da AgroLima">
+      <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+      <title>Login | AgroLima</title>
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" integrity="sha384-xOolHFLEh07PJGoPkLv1IbcEPTNtaed2xpHsD9ESMhqIYd0nLMwNLD69Npy4HI+N" crossorigin="anonymous">
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:400,500,700&display=swap">
+      <link rel="stylesheet" href="/css/styles.css">
+      <link rel="icon" href="/favicon.ico" type="image/x-icon">
+  </head>
+  <body>
+    <main class="page-shell">
+      <section class="content-card login-card" aria-labelledby="login-title">
+        <a class="back-link" href="/" aria-label="Voltar para a página inicial">← Voltar</a>
+        <img class="login-logo" src="/images/logotipo%20agrolima.jpeg" alt="Logotipo da AgroLima">
+        <span class="eyebrow">Acesso interno</span>
+        <h1 id="login-title" class="page-title">Login AgroLima</h1>
+        <p class="page-description">Entre com as credenciais administrativas para acessar a área interna.</p>
+
+        {{LOGIN_ERROR}}
+
+        <form class="contact-form login-form" action="/login" method="post">
+          <div class="form-group">
+            <label for="login">Login</label>
+            <input class="form-control" id="login" name="login" type="text" placeholder="Digite seu login" autocomplete="username" required autofocus>
+          </div>
+          <div class="form-group">
+            <label for="password">Senha</label>
+            <input class="form-control" id="password" name="password" type="password" placeholder="Digite sua senha" autocomplete="current-password" required>
+          </div>
+          <button class="btn-primary-action" type="submit">Entrar</button>
+        </form>
+      </section>
+    </main>
+    <footer class="site-footer">
+      <span>AgroLima © 2026. Todos os direitos reservados.</span>
+    </footer>
+  </body>
+</html>

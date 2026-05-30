@@ -25,3 +25,19 @@ CONTACT_TO_NAME=AgroLima
 ```
 
 After changing variables in Railway, redeploy or restart the service so the Node.js process reads the new values.
+
+## Root login setup
+
+The `/login` page authenticates a single administrative user:
+
+| Variable | Required | Description |
+| --- | --- | --- |
+| `ROOT_PASSWORD` | Yes | Password for the `root` login. Do not commit this value to Git. |
+
+Example local or Railway variable:
+
+```env
+ROOT_PASSWORD=troque-esta-senha
+```
+
+When the login is `root` and the password matches `ROOT_PASSWORD`, the user is redirected to `/area-interna`, which currently shows the construction page.
