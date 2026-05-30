@@ -70,7 +70,7 @@ Se o login `root` já existir, o script termina com sucesso sem alterar o usuár
 
 ## Login e gerenciamento de usuários
 
-O `/login` autentica usuários salvos na tabela `users` do PostgreSQL usando `DATABASE_URL`. O usuário com `role = 'root'` é redirecionado para `/admin/usuarios`, onde pode adicionar e remover outros usuários do sistema. Usuários sem o papel `root` são redirecionados para `/area-interna`.
+O `/login` autentica usuários salvos na tabela `users` do PostgreSQL usando `DATABASE_URL`. O usuário com `role = 'root'` é redirecionado para `/admin/usuarios`, onde pode adicionar e remover outros usuários do sistema. Usuários com `role = 'silo_operator'` são redirecionados para `/secador`. Os perfis `admin`, `client` e `weighbridge_operator` são redirecionados para páginas em construção em `/area-interna`.
 
 Além de `DATABASE_URL`, configure também:
 
@@ -85,3 +85,74 @@ SESSION_SECRET=troque-por-uma-string-longa-e-aleatoria
 ```
 
 As senhas criadas pelo painel root são armazenadas como hash `bcrypt` na coluna `password_hash`; a senha em texto puro nunca é gravada no banco.
+
+## Perfis de usuário
+
+O sistema trabalha com cinco perfis na coluna `users.role`:
+
+| Perfil | Descrição |
+| --- | --- |
+| `root` | Usuário especial criado pelo script `npm run create-root-user`; gerencia as contas dos demais usuários. |
+| `admin` | Sócios/administradores da empresa; por enquanto acessam uma página em construção. |
+| `client` | Clientes; futuramente consultarão volumes de soja e milho armazenados, mas por enquanto acessam uma página em construção. |
+| `weighbridge_operator` | Operadores de balança; futuramente lançarão entradas e saídas de produto, mas por enquanto acessam uma página em construção. |
+| `silo_operator` | Operadores de silo; acessam o dashboard compartilhado do secador em `/secador`. |
+
+O painel do usuário `root` cria apenas usuários dos perfis `admin`, `client`, `weighbridge_operator` e `silo_operator`. O perfil `root` continua reservado ao script de inicialização.
+
+## Dashboard do secador
+
+Todos os usuários com perfil `silo_operator` compartilham o mesmo dashboard em `/secador`, pois a operação considera um único secador de grãos. O dashboard usa as tabelas `dryer_settings`, `dryer_batches` e `dryer_moisture_readings` no PostgreSQL.
+
+Tabelas esperadas:
+
+```sql
+dryer_settings (
+  id boolean primary key,
+  target_moisture numeric(3,1) not null default 14.5,
+  updated_at timestamptz not null default now(),
+  updated_by_user_id uuid references users(id) on delete set null
+)
+
+dryer_batches (
+  id uuid primary key,
+  grain_type text not null default 'corn',
+  status text not null default 'active',
+  started_at timestamptz not null default now(),
+  completed_at timestamptz,
+  started_by_user_id uuid references users(id) on delete set null,
+  completed_by_user_id uuid references users(id) on delete set null,
+  target_moisture numeric(3,1) not null default 14.5,
+  notes text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+)
+
+dryer_moisture_readings (
+  id uuid primary key,
+  batch_id uuid not null references dryer_batches(id) on delete cascade,
+  measured_at timestamptz not null default now(),
+  moisture_percent numeric(3,1) not null,
+  measured_by_user_id uuid references users(id) on delete set null,
+  measured_by_login text not null,
+  created_at timestamptz not null default now()
+)
+```
+
+Fluxo implementado:
+
+1. O operador de silo clica em **Iniciar nova batelada**.
+2. O sistema confirma a data/hora de início, usando o horário atual como padrão.
+3. A batelada ativa anterior é encerrada em uma transação, e uma nova batelada ativa é criada.
+4. A lista visível do dashboard passa a mostrar apenas as medições da nova batelada.
+5. As medições anteriores continuam salvas no banco para consulta posterior.
+6. O operador adiciona medições de umidade entre `7,0%` e `40,0%`, com no máximo uma casa decimal.
+7. Cada medição salva horário, valor, usuário responsável e login do operador.
+
+Como só existe um secador, recomenda-se manter no banco um índice único parcial para impedir mais de uma batelada ativa:
+
+```sql
+CREATE UNIQUE INDEX IF NOT EXISTS dryer_batches_one_active_idx
+ON dryer_batches ((status))
+WHERE status = 'active';
+```

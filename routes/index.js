@@ -9,6 +9,30 @@ const router = express.Router();
 
 const MAILERSEND_API_URL = 'https://api.mailersend.com/v1/email';
 const ROOT_LOGIN = 'root';
+const ROLES = {
+  ROOT: 'root',
+  ADMIN: 'admin',
+  CLIENT: 'client',
+  WEIGHBRIDGE_OPERATOR: 'weighbridge_operator',
+  SILO_OPERATOR: 'silo_operator',
+};
+const MANAGED_ROLES = [
+  ROLES.ADMIN,
+  ROLES.CLIENT,
+  ROLES.WEIGHBRIDGE_OPERATOR,
+  ROLES.SILO_OPERATOR,
+];
+const ROLE_LABELS = {
+  [ROLES.ROOT]: 'Root',
+  [ROLES.ADMIN]: 'Administrador',
+  [ROLES.CLIENT]: 'Cliente',
+  [ROLES.WEIGHBRIDGE_OPERATOR]: 'Operador de balança',
+  [ROLES.SILO_OPERATOR]: 'Operador de silo',
+};
+const GRAIN_LABELS = {
+  corn: 'Milho',
+  soy: 'Soja',
+};
 const BCRYPT_SALT_ROUNDS = 12;
 const SESSION_COOKIE_NAME = 'agrolima_session';
 const SESSION_DURATION_MS = 1000 * 60 * 60 * 8;
@@ -157,11 +181,25 @@ function requireRoot(req, res, next) {
     return res.redirect('/login');
   }
 
-  if (req.sessionUser.role !== 'root') {
+  if (req.sessionUser.role !== ROLES.ROOT) {
     return res.status(403).send('Acesso permitido apenas para o usuário root.');
   }
 
   return next();
+}
+
+function requireRole(...roles) {
+  return (req, res, next) => {
+    if (!req.sessionUser) {
+      return res.redirect('/login');
+    }
+
+    if (!roles.includes(req.sessionUser.role)) {
+      return res.status(403).send('Você não tem permissão para acessar esta área.');
+    }
+
+    return next();
+  };
 }
 
 function ensureDatabaseConfigured() {
@@ -229,6 +267,245 @@ async function deleteManagedUser(userId, currentUserId) {
   );
 }
 
+
+async function updateManagedUserPassword(userId, password) {
+  ensureDatabaseConfigured();
+
+  const passwordHash = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
+
+  await pool.query(
+    `
+      UPDATE users
+      SET password_hash = $1,
+          must_change_password = false
+      WHERE id = $2
+        AND login <> $3
+    `,
+    [passwordHash, userId, ROOT_LOGIN]
+  );
+}
+
+
+function getRoleLabel(role) {
+  return ROLE_LABELS[role] || role;
+}
+
+function getHomePathForRole(role) {
+  if (role === ROLES.ROOT) {
+    return '/admin/usuarios';
+  }
+
+  if (role === ROLES.SILO_OPERATOR) {
+    return '/secador';
+  }
+
+  return '/area-interna';
+}
+
+function parseOptionalDateTime(value) {
+  const rawValue = String(value || '').trim();
+
+  if (!rawValue) {
+    return new Date();
+  }
+
+  const parsedDate = new Date(rawValue);
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return null;
+  }
+
+  return parsedDate;
+}
+
+function toDateTimeLocalValue(value = new Date()) {
+  const date = value instanceof Date ? value : new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return '';
+  }
+
+  const offsetDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return offsetDate.toISOString().slice(0, 16);
+}
+
+function formatDateTime(value) {
+  if (!value) {
+    return '-';
+  }
+
+  return new Intl.DateTimeFormat('pt-BR', {
+    dateStyle: 'short',
+    timeStyle: 'short',
+  }).format(new Date(value));
+}
+
+function formatMoisture(value) {
+  if (value === null || value === undefined || value === '') {
+    return '-';
+  }
+
+  return Number(value).toLocaleString('pt-BR', {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  });
+}
+
+function parseMoisturePercent(rawValue) {
+  const normalizedValue = String(rawValue || '').trim().replace(',', '.');
+
+  if (!/^\d{1,2}(?:\.\d)?$|^40(?:\.0)?$/.test(normalizedValue)) {
+    return null;
+  }
+
+  const value = Number(normalizedValue);
+
+  if (!Number.isFinite(value) || value < 7 || value > 40) {
+    return null;
+  }
+
+  return Number(value.toFixed(1));
+}
+
+function buildDryerRedirect(params) {
+  const searchParams = new URLSearchParams(params);
+
+  return `/secador?${searchParams.toString()}`;
+}
+
+async function getDryerSettings() {
+  ensureDatabaseConfigured();
+
+  const result = await pool.query(
+    `
+      SELECT target_moisture
+      FROM dryer_settings
+      WHERE id = true
+      LIMIT 1
+    `
+  );
+
+  return result.rows[0] || { target_moisture: '14.5' };
+}
+
+async function getActiveDryerBatch() {
+  ensureDatabaseConfigured();
+
+  const result = await pool.query(
+    `
+      SELECT id, grain_type, status, started_at, target_moisture, created_at
+      FROM dryer_batches
+      WHERE status = 'active'
+      ORDER BY started_at DESC
+      LIMIT 1
+    `
+  );
+
+  return result.rows[0] || null;
+}
+
+async function listDryerMoistureReadings(batchId) {
+  ensureDatabaseConfigured();
+
+  if (!batchId) {
+    return [];
+  }
+
+  const result = await pool.query(
+    `
+      SELECT id, measured_at, moisture_percent, measured_by_login, created_at
+      FROM dryer_moisture_readings
+      WHERE batch_id = $1
+      ORDER BY measured_at ASC, created_at ASC
+    `,
+    [batchId]
+  );
+
+  return result.rows;
+}
+
+async function startDryerBatch({ startedAt, grainType, user }) {
+  ensureDatabaseConfigured();
+
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+    await client.query('SELECT pg_advisory_xact_lock(20260530)');
+
+    await client.query(
+      `
+        UPDATE dryer_batches
+        SET status = 'completed',
+            completed_at = $1,
+            completed_by_user_id = $2,
+            updated_at = now()
+        WHERE status = 'active'
+      `,
+      [startedAt, user.userId]
+    );
+
+    const settingsResult = await client.query(
+      `
+        SELECT target_moisture
+        FROM dryer_settings
+        WHERE id = true
+        LIMIT 1
+      `
+    );
+    const targetMoisture = settingsResult.rows[0]?.target_moisture || 14.5;
+
+    const insertResult = await client.query(
+      `
+        INSERT INTO dryer_batches (
+          grain_type,
+          status,
+          started_at,
+          started_by_user_id,
+          target_moisture
+        )
+        VALUES ($1, 'active', $2, $3, $4)
+        RETURNING id
+      `,
+      [grainType, startedAt, user.userId, targetMoisture]
+    );
+
+    await client.query('COMMIT');
+    return insertResult.rows[0];
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+async function addDryerMoistureReading({ measuredAt, moisturePercent, user }) {
+  ensureDatabaseConfigured();
+
+  const activeBatch = await getActiveDryerBatch();
+
+  if (!activeBatch) {
+    const error = new Error('Não há batelada ativa. Inicie uma nova batelada antes de lançar umidade.');
+    error.code = 'NO_ACTIVE_BATCH';
+    throw error;
+  }
+
+  await pool.query(
+    `
+      INSERT INTO dryer_moisture_readings (
+        batch_id,
+        measured_at,
+        moisture_percent,
+        measured_by_user_id,
+        measured_by_login
+      )
+      VALUES ($1, $2, $3, $4, $5)
+    `,
+    [activeBatch.id, measuredAt, moisturePercent, user.userId, user.login]
+  );
+}
+
 function buildAdminRedirect(params) {
   const searchParams = new URLSearchParams(params);
 
@@ -260,28 +537,31 @@ function renderAdminUsersPage(res, { users, message, error }) {
   const adminPath = path.join(__dirname, '../views/admin-users.html');
   const rowsHtml = users
     .map((user) => {
-      const createdAt = user.created_at
-        ? new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(
-            new Date(user.created_at)
-          )
-        : '-';
+      const createdAt = formatDateTime(user.created_at);
       const canDelete = user.login !== ROOT_LOGIN;
-      const deleteAction = canDelete
+      const actions = canDelete
         ? `
-            <form action="/admin/usuarios/${escapeHtml(user.id)}/remover" method="post" onsubmit="return confirm('Remover este usuário do sistema?');">
-              <button class="btn-danger-action" type="submit">Remover</button>
-            </form>
+            <div class="admin-actions-stack">
+              <form class="admin-password-form" action="/admin/usuarios/${escapeHtml(user.id)}/senha" method="post">
+                <label class="sr-only" for="password-${escapeHtml(user.id)}">Nova senha para ${escapeHtml(user.login)}</label>
+                <input class="form-control" id="password-${escapeHtml(user.id)}" name="password" type="password" placeholder="Nova senha" autocomplete="new-password" required>
+                <button class="btn-secondary-action admin-small-action" type="submit">Definir senha</button>
+              </form>
+              <form action="/admin/usuarios/${escapeHtml(user.id)}/remover" method="post" onsubmit="return confirm('Remover este usuário do sistema?');">
+                <button class="btn-danger-action" type="submit">Remover</button>
+              </form>
+            </div>
           `
         : '<span class="admin-muted">Protegido</span>';
 
       return `
         <tr>
           <td>${escapeHtml(user.login)}</td>
-          <td>${escapeHtml(user.role)}</td>
+          <td>${escapeHtml(getRoleLabel(user.role))}</td>
           <td>${user.disabled ? 'Inativo' : 'Ativo'}</td>
           <td>${user.must_change_password ? 'Sim' : 'Não'}</td>
           <td>${escapeHtml(createdAt)}</td>
-          <td>${deleteAction}</td>
+          <td>${actions}</td>
         </tr>
       `;
     })
@@ -297,6 +577,73 @@ function renderAdminUsersPage(res, { users, message, error }) {
     .replace('{{USERS_ROWS}}', rowsHtml || emptyState);
 
   res.send(adminHtml);
+}
+
+function renderConstructionPage(res, role) {
+  const constructionPath = path.join(__dirname, '../views/construction.html');
+  const titleByRole = {
+    [ROLES.ADMIN]: 'Área dos administradores',
+    [ROLES.CLIENT]: 'Área do cliente',
+    [ROLES.WEIGHBRIDGE_OPERATOR]: 'Área da balança',
+  };
+  const descriptionByRole = {
+    [ROLES.ADMIN]: 'O painel dos sócios da AgroLima está em construção e ficará disponível em breve.',
+    [ROLES.CLIENT]: 'Em breve você poderá consultar os volumes de soja e milho armazenados no silo.',
+    [ROLES.WEIGHBRIDGE_OPERATOR]: 'Em breve os operadores de balança poderão registrar entradas e saídas de produto.',
+  };
+  const constructionHtml = fs
+    .readFileSync(constructionPath, 'utf8')
+    .replace('{{CONSTRUCTION_EYEBROW}}', escapeHtml(getRoleLabel(role)))
+    .replace('{{CONSTRUCTION_TITLE}}', escapeHtml(titleByRole[role] || 'Em construção'))
+    .replace(
+      '{{CONSTRUCTION_DESCRIPTION}}',
+      escapeHtml(descriptionByRole[role] || 'A área interna da AgroLima estará disponível em breve.')
+    );
+
+  res.send(constructionHtml);
+}
+
+function renderDryerDashboardPage(res, { batch, readings, settings, message, error }) {
+  const dryerPath = path.join(__dirname, '../views/dryer-dashboard.html');
+  const startedAt = batch ? formatDateTime(batch.started_at) : 'Nenhuma batelada ativa';
+  const grainType = batch ? GRAIN_LABELS[batch.grain_type] || batch.grain_type : '-';
+  const targetMoisture = formatMoisture(batch?.target_moisture || settings.target_moisture);
+  const readingsRows = readings
+    .map(
+      (reading) => `
+        <tr>
+          <td>${escapeHtml(formatDateTime(reading.measured_at))}</td>
+          <td>${escapeHtml(formatMoisture(reading.moisture_percent))}%</td>
+          <td>${escapeHtml(reading.measured_by_login)}</td>
+        </tr>
+      `
+    )
+    .join('');
+  const emptyReadings = '<tr><td colspan="3">Nenhuma medição lançada para a batelada atual.</td></tr>';
+  const nowDateTime = toDateTimeLocalValue();
+  const batchStatusHtml = batch
+    ? `<span class="status-pill status-active">Batelada ativa</span>`
+    : `<span class="status-pill status-empty">Sem batelada ativa</span>`;
+  const moistureFormDisabled = batch ? '' : 'disabled';
+  const moistureHelp = batch
+    ? 'Informe a umidade medida na saída do secador.'
+    : 'Inicie uma batelada para liberar o lançamento de umidades.';
+
+  const dryerHtml = fs
+    .readFileSync(dryerPath, 'utf8')
+    .replace('{{DRYER_MESSAGE}}', buildAlertHtml(message))
+    .replace('{{DRYER_ERROR}}', buildAlertHtml(error, 'error'))
+    .replace('{{BATCH_STATUS}}', batchStatusHtml)
+    .replace('{{BATCH_STARTED_AT}}', escapeHtml(startedAt))
+    .replace('{{BATCH_GRAIN_TYPE}}', escapeHtml(grainType))
+    .replace('{{TARGET_MOISTURE}}', escapeHtml(targetMoisture))
+    .replace('{{READINGS_COUNT}}', String(readings.length))
+    .replace('{{READINGS_ROWS}}', readingsRows || emptyReadings)
+    .replace(/{{NOW_DATETIME}}/g, escapeHtml(nowDateTime))
+    .replace(/{{MOISTURE_FORM_DISABLED}}/g, moistureFormDisabled)
+    .replace('{{MOISTURE_HELP}}', escapeHtml(moistureHelp));
+
+  res.send(dryerHtml);
 }
 
 function hasEmailConfig() {
@@ -430,7 +777,7 @@ router.post('/contato', async (req, res) => {
 
 router.get('/login', (req, res) => {
   if (req.sessionUser) {
-    return res.redirect(req.sessionUser.role === 'root' ? '/admin/usuarios' : '/area-interna');
+    return res.redirect(getHomePathForRole(req.sessionUser.role));
   }
 
   return renderLoginPage(res);
@@ -451,7 +798,7 @@ router.post('/login', async (req, res) => {
     }
 
     setSessionCookie(res, user);
-    return res.redirect(user.role === 'root' ? '/admin/usuarios' : '/area-interna');
+    return res.redirect(getHomePathForRole(user.role));
   } catch (error) {
     console.error('Error authenticating user:', error.message);
     return renderLoginPage(res, { systemError: true });
@@ -464,7 +811,75 @@ router.post('/logout', (req, res) => {
 });
 
 router.get('/area-interna', requireAuth, (req, res) => {
-  res.sendFile(path.join(__dirname, '../views/construction.html'));
+  if (req.sessionUser.role === ROLES.ROOT || req.sessionUser.role === ROLES.SILO_OPERATOR) {
+    return res.redirect(getHomePathForRole(req.sessionUser.role));
+  }
+
+  return renderConstructionPage(res, req.sessionUser.role);
+});
+
+router.get('/secador', requireRole(ROLES.SILO_OPERATOR, ROLES.ROOT), async (req, res) => {
+  try {
+    const [settings, batch] = await Promise.all([getDryerSettings(), getActiveDryerBatch()]);
+    const readings = await listDryerMoistureReadings(batch?.id);
+
+    return renderDryerDashboardPage(res, {
+      batch,
+      readings,
+      settings,
+      message: req.query.started
+        ? 'Nova batelada iniciada com sucesso.'
+        : req.query.reading
+          ? 'Medição de umidade registrada com sucesso.'
+          : '',
+      error: req.query.error || '',
+    });
+  } catch (error) {
+    console.error('Error loading dryer dashboard:', error.message);
+    return res.status(500).send('Não foi possível carregar o painel do secador agora.');
+  }
+});
+
+router.post('/secador/bateladas', requireRole(ROLES.SILO_OPERATOR, ROLES.ROOT), async (req, res) => {
+  const startedAt = parseOptionalDateTime(req.body.started_at);
+  const grainType = ['corn', 'soy'].includes(req.body.grain_type) ? req.body.grain_type : 'corn';
+
+  if (!startedAt) {
+    return res.redirect(buildDryerRedirect({ error: 'Informe uma data e hora válidas para iniciar a batelada.' }));
+  }
+
+  try {
+    await startDryerBatch({ startedAt, grainType, user: req.sessionUser });
+    return res.redirect(buildDryerRedirect({ started: '1' }));
+  } catch (error) {
+    console.error('Error starting dryer batch:', error.message);
+    return res.redirect(buildDryerRedirect({ error: 'Não foi possível iniciar a nova batelada agora.' }));
+  }
+});
+
+router.post('/secador/umidades', requireRole(ROLES.SILO_OPERATOR, ROLES.ROOT), async (req, res) => {
+  const measuredAt = parseOptionalDateTime(req.body.measured_at);
+  const moisturePercent = parseMoisturePercent(req.body.moisture_percent);
+
+  if (!measuredAt) {
+    return res.redirect(buildDryerRedirect({ error: 'Informe uma data e hora válidas para a medição.' }));
+  }
+
+  if (moisturePercent === null) {
+    return res.redirect(buildDryerRedirect({ error: 'Informe uma umidade entre 7,0% e 40,0%, com no máximo uma casa decimal.' }));
+  }
+
+  try {
+    await addDryerMoistureReading({ measuredAt, moisturePercent, user: req.sessionUser });
+    return res.redirect(buildDryerRedirect({ reading: '1' }));
+  } catch (error) {
+    if (error.code === 'NO_ACTIVE_BATCH') {
+      return res.redirect(buildDryerRedirect({ error: error.message }));
+    }
+
+    console.error('Error adding dryer moisture reading:', error.message);
+    return res.redirect(buildDryerRedirect({ error: 'Não foi possível registrar a umidade agora.' }));
+  }
 });
 
 router.get('/admin/usuarios', requireRoot, async (req, res) => {
@@ -472,7 +887,13 @@ router.get('/admin/usuarios', requireRoot, async (req, res) => {
     const users = await listManagedUsers();
     return renderAdminUsersPage(res, {
       users,
-      message: req.query.created ? 'Usuário criado com sucesso.' : req.query.deleted ? 'Usuário removido com sucesso.' : '',
+      message: req.query.created
+        ? 'Usuário criado com sucesso.'
+        : req.query.deleted
+          ? 'Usuário removido com sucesso.'
+          : req.query.password
+            ? 'Senha atualizada com sucesso.'
+            : '',
       error: req.query.error || '',
     });
   } catch (error) {
@@ -484,10 +905,14 @@ router.get('/admin/usuarios', requireRoot, async (req, res) => {
 router.post('/admin/usuarios', requireRoot, async (req, res) => {
   const login = String(req.body.login || '').trim();
   const password = String(req.body.password || '');
-  const role = ['admin', 'user'].includes(req.body.role) ? req.body.role : 'user';
+  const role = String(req.body.role || '').trim();
 
   if (!login || !password) {
     return res.redirect(buildAdminRedirect({ error: 'Informe login e senha para criar o usuário.' }));
+  }
+
+  if (!MANAGED_ROLES.includes(role)) {
+    return res.redirect(buildAdminRedirect({ error: 'Selecione um perfil válido para o usuário.' }));
   }
 
   if (login === ROOT_LOGIN) {
@@ -504,6 +929,23 @@ router.post('/admin/usuarios', requireRoot, async (req, res) => {
 
     console.error('Error creating user:', error.message);
     return res.redirect(buildAdminRedirect({ error: 'Não foi possível criar o usuário agora.' }));
+  }
+});
+
+
+router.post('/admin/usuarios/:id/senha', requireRoot, async (req, res) => {
+  const password = String(req.body.password || '');
+
+  if (!password) {
+    return res.redirect(buildAdminRedirect({ error: 'Informe a nova senha do usuário.' }));
+  }
+
+  try {
+    await updateManagedUserPassword(req.params.id, password);
+    return res.redirect(buildAdminRedirect({ password: '1' }));
+  } catch (error) {
+    console.error('Error updating user password:', error.message);
+    return res.redirect(buildAdminRedirect({ error: 'Não foi possível atualizar a senha agora.' }));
   }
 });
 

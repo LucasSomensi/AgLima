@@ -406,3 +406,144 @@ body {
     flex-direction: column;
   }
 }
+
+.dryer-shell {
+  padding-top: 42px;
+}
+
+.dryer-card {
+  max-width: 1180px;
+}
+
+.dryer-status-grid,
+.dryer-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.dryer-status-card,
+.dryer-form-card {
+  padding: 18px;
+  border: 1px solid rgba(234, 246, 238, 0.16);
+  border-radius: 18px;
+  background: rgba(5, 48, 25, 0.34);
+}
+
+.dryer-status-card {
+  min-height: 118px;
+}
+
+.dryer-status-card strong {
+  display: block;
+  margin-top: 8px;
+  color: #ffffff;
+  font-size: 1.18rem;
+}
+
+.dryer-card-label {
+  display: block;
+  color: var(--green-100);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 12px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.status-active {
+  color: #0f3b24;
+  background: #c9ffd8;
+}
+
+.status-empty {
+  color: #fff2c2;
+  background: rgba(217, 182, 109, 0.22);
+  border: 1px solid rgba(217, 182, 109, 0.38);
+}
+
+.dryer-actions-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.dryer-form-card h2 {
+  margin-top: 0;
+}
+
+.dryer-help-text {
+  min-height: 52px;
+  margin: 0 0 18px;
+  color: var(--green-100);
+  line-height: 1.5;
+}
+
+.dryer-table {
+  min-width: 620px;
+}
+
+.contact-form .form-control:disabled,
+.contact-form .form-control[readonly] {
+  color: rgba(18, 53, 36, 0.78);
+  background: rgba(234, 246, 238, 0.72);
+  cursor: not-allowed;
+}
+
+button:disabled,
+.btn-primary-action:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+@media (max-width: 1020px) {
+  .dryer-status-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .dryer-actions-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 620px) {
+  .dryer-status-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.admin-actions-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.admin-password-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.admin-password-form .form-control {
+  min-width: 160px;
+  min-height: 42px;
+  color: var(--green-950);
+  border: 1px solid rgba(234, 246, 238, 0.32);
+  border-radius: 14px;
+}
+
+.admin-small-action {
+  min-height: 42px;
+  padding: 10px 16px;
+}
