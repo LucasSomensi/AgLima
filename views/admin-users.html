@@ -18,7 +18,7 @@
           <div>
             <span class="eyebrow">Área root</span>
             <h1 id="admin-title" class="page-title">Gerenciar usuários</h1>
-            <p class="page-description">Crie logins para a equipe e remova usuários que não devem mais acessar o sistema.</p>
+            <p class="page-description">Crie logins para administradores, clientes e operadores, ou remova usuários que não devem mais acessar o sistema.</p>
           </div>
           <form action="/logout" method="post">
             <button class="btn-secondary-action" type="submit">Sair</button>
@@ -42,9 +42,11 @@
               </div>
               <div class="form-group col-md-4">
                 <label for="role">Perfil</label>
-                <select class="form-control" id="role" name="role">
-                  <option value="user">Usuário</option>
-                  <option value="admin">Admin</option>
+                <select class="form-control" id="role" name="role" required>
+                  <option value="admin">Administrador</option>
+                  <option value="client">Cliente</option>
+                  <option value="weighbridge_operator">Operador de balança</option>
+                  <option value="silo_operator">Operador de silo</option>
                 </select>
               </div>
             </div>

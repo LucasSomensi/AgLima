@@ -14,10 +14,12 @@
   <body>
     <main class="page-shell">
       <section class="content-card placeholder-card" aria-labelledby="construction-title">
-        <span class="eyebrow">Área interna</span>
-        <h1 id="construction-title" class="page-title">Em construção</h1>
-        <p class="page-description">A área interna da AgroLima estará disponível em breve.</p>
-        <a class="btn-primary-action" href="/">Voltar para a página inicial</a>
+        <span class="eyebrow">{{CONSTRUCTION_EYEBROW}}</span>
+        <h1 id="construction-title" class="page-title">{{CONSTRUCTION_TITLE}}</h1>
+        <p class="page-description">{{CONSTRUCTION_DESCRIPTION}}</p>
+        <form action="/logout" method="post">
+          <button class="btn-primary-action" type="submit">Sair</button>
+        </form>
       </section>
     </main>
     <footer class="site-footer">
