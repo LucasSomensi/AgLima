@@ -36,6 +36,8 @@ const GRAIN_LABELS = {
 const BCRYPT_SALT_ROUNDS = 12;
 const SESSION_COOKIE_NAME = 'agrolima_session';
 const SESSION_DURATION_MS = 1000 * 60 * 60 * 8;
+const APP_TIME_ZONE = 'America/Sao_Paulo';
+const BRASILIA_TIME_OFFSET = '-03:00';
 
 const pool = process.env.DATABASE_URL
   ? new Pool({ connectionString: process.env.DATABASE_URL })
@@ -309,7 +311,8 @@ function parseOptionalDateTime(value) {
     return new Date();
   }
 
-  const parsedDate = new Date(rawValue);
+  const normalizedDateTime = rawValue.length === 16 ? `${rawValue}:00` : rawValue;
+  const parsedDate = new Date(`${normalizedDateTime}${BRASILIA_TIME_OFFSET}`);
 
   if (Number.isNaN(parsedDate.getTime())) {
     return null;
@@ -318,15 +321,40 @@ function parseOptionalDateTime(value) {
   return parsedDate;
 }
 
-function toDateTimeLocalValue(value = new Date()) {
+function getBrasiliaDateTimeParts(value = new Date()) {
   const date = value instanceof Date ? value : new Date(value);
 
   if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: APP_TIME_ZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  })
+    .formatToParts(date)
+    .reduce((parts, part) => {
+      if (part.type !== 'literal') {
+        parts[part.type] = part.value;
+      }
+
+      return parts;
+    }, {});
+}
+
+function toDateTimeLocalValue(value = new Date()) {
+  const parts = getBrasiliaDateTimeParts(value);
+
+  if (!parts) {
     return '';
   }
 
-  const offsetDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
-  return offsetDate.toISOString().slice(0, 16);
+  return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}`;
 }
 
 function formatDateTime(value) {
@@ -335,6 +363,7 @@ function formatDateTime(value) {
   }
 
   return new Intl.DateTimeFormat('pt-BR', {
+    timeZone: APP_TIME_ZONE,
     dateStyle: 'short',
     timeStyle: 'short',
   }).format(new Date(value));
@@ -603,8 +632,8 @@ function renderConstructionPage(res, role) {
   res.send(constructionHtml);
 }
 
-function renderDryerDashboardPage(res, { batch, readings, settings, message, error }) {
-  const dryerPath = path.join(__dirname, '../views/dryer-dashboard.html');
+function renderDryerPanelPage(res, { batch, readings, settings, message, error }) {
+  const dryerPath = path.join(__dirname, '../views/dryer-panel.html');
   const startedAt = batch ? formatDateTime(batch.started_at) : 'Nenhuma batelada ativa';
   const grainType = batch ? GRAIN_LABELS[batch.grain_type] || batch.grain_type : '-';
   const targetMoisture = formatMoisture(batch?.target_moisture || settings.target_moisture);
@@ -823,7 +852,7 @@ router.get('/secador', requireRole(ROLES.SILO_OPERATOR, ROLES.ROOT), async (req,
     const [settings, batch] = await Promise.all([getDryerSettings(), getActiveDryerBatch()]);
     const readings = await listDryerMoistureReadings(batch?.id);
 
-    return renderDryerDashboardPage(res, {
+    return renderDryerPanelPage(res, {
       batch,
       readings,
       settings,
@@ -835,7 +864,7 @@ router.get('/secador', requireRole(ROLES.SILO_OPERATOR, ROLES.ROOT), async (req,
       error: req.query.error || '',
     });
   } catch (error) {
-    console.error('Error loading dryer dashboard:', error.message);
+    console.error('Error loading dryer panel:', error.message);
     return res.status(500).send('Não foi possível carregar o painel do secador agora.');
   }
 });
