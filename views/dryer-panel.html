@@ -3,7 +3,7 @@
   <head>
       <meta charset="utf-8">
       <meta name="author" content="Lucas">
-      <meta name="description" content="Dashboard do secador de grãos da AgroLima">
+      <meta name="description" content="Painel do secador de grãos da AgroLima">
       <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
       <title>Secador | AgroLima</title>
       <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" integrity="sha384-xOolHFLEh07PJGoPkLv1IbcEPTNtaed2xpHsD9ESMhqIYd0nLMwNLD69Npy4HI+N" crossorigin="anonymous">
@@ -18,7 +18,7 @@
           <div>
             <span class="eyebrow">Operação do silo</span>
             <h1 id="dryer-title" class="page-title">Secador de grãos</h1>
-            <p class="page-description">Dashboard compartilhado por todos os operadores de silo para acompanhar a batelada atual.</p>
+            <p class="page-description">Painel compartilhado por todos os operadores de silo para acompanhar a batelada atual.</p>
           </div>
           <form action="/logout" method="post">
             <button class="btn-secondary-action" type="submit">Sair</button>
@@ -54,7 +54,7 @@
         <section class="admin-section dryer-actions-grid" aria-label="Ações do secador">
           <div class="dryer-form-card">
             <h2>Iniciar nova batelada</h2>
-            <p class="dryer-help-text">Ao confirmar, a batelada ativa será encerrada e o dashboard exibirá uma lista vazia para a nova batelada. As medições anteriores permanecem salvas no banco.</p>
+            <p class="dryer-help-text">Ao confirmar, a batelada ativa será encerrada e o painel exibirá uma lista vazia para a nova batelada. As medições anteriores permanecem salvas no banco.</p>
             <form class="contact-form" action="/secador/bateladas" method="post" onsubmit="return confirm('Iniciar uma nova batelada e encerrar a batelada ativa?');">
               <div class="form-group">
                 <label for="started_at">Data e hora de início</label>

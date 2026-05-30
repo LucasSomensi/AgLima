@@ -86,6 +86,10 @@ SESSION_SECRET=troque-por-uma-string-longa-e-aleatoria
 
 As senhas criadas pelo painel root são armazenadas como hash `bcrypt` na coluna `password_hash`; a senha em texto puro nunca é gravada no banco.
 
+## Horário do sistema
+
+As telas e formulários do sistema usam sempre o fuso de Brasília (`America/Sao_Paulo`). Campos `datetime-local` enviados pelo navegador são interpretados como horário de Brasília antes de serem salvos no PostgreSQL, e datas recuperadas do banco também são exibidas nesse mesmo fuso.
+
 ## Perfis de usuário
 
 O sistema trabalha com cinco perfis na coluna `users.role`:
@@ -96,13 +100,13 @@ O sistema trabalha com cinco perfis na coluna `users.role`:
 | `admin` | Sócios/administradores da empresa; por enquanto acessam uma página em construção. |
 | `client` | Clientes; futuramente consultarão volumes de soja e milho armazenados, mas por enquanto acessam uma página em construção. |
 | `weighbridge_operator` | Operadores de balança; futuramente lançarão entradas e saídas de produto, mas por enquanto acessam uma página em construção. |
-| `silo_operator` | Operadores de silo; acessam o dashboard compartilhado do secador em `/secador`. |
+| `silo_operator` | Operadores de silo; acessam o painel compartilhado do secador em `/secador`. |
 
 O painel do usuário `root` cria apenas usuários dos perfis `admin`, `client`, `weighbridge_operator` e `silo_operator`. O perfil `root` continua reservado ao script de inicialização.
 
-## Dashboard do secador
+## Painel do secador
 
-Todos os usuários com perfil `silo_operator` compartilham o mesmo dashboard em `/secador`, pois a operação considera um único secador de grãos. O dashboard usa as tabelas `dryer_settings`, `dryer_batches` e `dryer_moisture_readings` no PostgreSQL.
+Todos os usuários com perfil `silo_operator` compartilham o mesmo painel em `/secador`, pois a operação considera um único secador de grãos. O painel usa as tabelas `dryer_settings`, `dryer_batches` e `dryer_moisture_readings` no PostgreSQL.
 
 Tabelas esperadas:
 
@@ -144,7 +148,7 @@ Fluxo implementado:
 1. O operador de silo clica em **Iniciar nova batelada**.
 2. O sistema confirma a data/hora de início, usando o horário atual como padrão.
 3. A batelada ativa anterior é encerrada em uma transação, e uma nova batelada ativa é criada.
-4. A lista visível do dashboard passa a mostrar apenas as medições da nova batelada.
+4. A lista visível do painel passa a mostrar apenas as medições da nova batelada.
 5. As medições anteriores continuam salvas no banco para consulta posterior.
 6. O operador adiciona medições de umidade entre `7,0%` e `40,0%`, com no máximo uma casa decimal.
 7. Cada medição salva horário, valor, usuário responsável e login do operador.
