@@ -123,6 +123,7 @@ dryer_batches (
   grain_type text not null default 'corn',
   status text not null default 'active',
   started_at timestamptz not null default now(),
+  discharge_started_at timestamptz,
   completed_at timestamptz,
   started_by_user_id uuid references users(id) on delete set null,
   completed_by_user_id uuid references users(id) on delete set null,
@@ -147,11 +148,12 @@ Fluxo implementado:
 
 1. O operador de silo clica em **Iniciar nova batelada**.
 2. O sistema confirma a data/hora de início, usando o horário atual como padrão.
-3. A batelada ativa anterior é encerrada em uma transação, e uma nova batelada ativa é criada.
-4. A lista visível do painel passa a mostrar apenas as medições da nova batelada.
-5. As medições anteriores continuam salvas no banco para consulta posterior.
-6. O operador adiciona medições de umidade entre `7,0%` e `40,0%`, com no máximo uma casa decimal.
-7. Cada medição salva horário, valor, usuário responsável e login do operador.
+3. Antes de iniciar outra batelada, o operador registra **Iniciar descarga**, salvando o horário em que o milho começa a ser enviado para os silos.
+4. A batelada ativa anterior só pode ser encerrada depois de ter o horário de descarga registrado, e então uma nova batelada ativa é criada.
+5. A lista visível do painel passa a mostrar apenas as medições da nova batelada.
+6. As medições anteriores continuam salvas no banco para consulta posterior.
+7. O operador adiciona medições de umidade entre `7,0%` e `40,0%`, com no máximo uma casa decimal.
+8. Cada medição salva horário, valor, usuário responsável e login do operador.
 
 Como só existe um secador, recomenda-se manter no banco um índice único parcial para impedir mais de uma batelada ativa:
 

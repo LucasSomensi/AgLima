@@ -7,6 +7,7 @@ const {
   getDryerSettings,
   listDryerMoistureReadings,
   startDryerBatch,
+  startDryerBatchDischarge,
 } = require('./dryer-service');
 const { renderDryerPanelPage } = require('./renderers');
 const { buildRedirect, parseMoisturePercent } = require('./utils');
@@ -31,7 +32,9 @@ router.get('/secador', canAccessDryer, async (req, res) => {
         ? 'Nova batelada iniciada com sucesso.'
         : req.query.reading
           ? 'Medição de umidade registrada com sucesso.'
-          : '',
+          : req.query.discharge
+            ? 'Início da descarga registrado com sucesso.'
+            : '',
       error: req.query.error || '',
     });
   } catch (error) {
@@ -48,8 +51,28 @@ router.post('/secador/bateladas', canAccessDryer, async (req, res) => {
     await startDryerBatch({ startedAt, grainType, user: req.sessionUser });
     return res.redirect(buildDryerRedirect({ started: '1' }));
   } catch (error) {
+    if (error.code === 'DISCHARGE_NOT_STARTED') {
+      return res.redirect(buildDryerRedirect({ error: error.message }));
+    }
+
     console.error('Error starting dryer batch:', error.message);
     return res.redirect(buildDryerRedirect({ error: 'Não foi possível iniciar a nova batelada agora.' }));
+  }
+});
+
+router.post('/secador/bateladas/descarga', canAccessDryer, async (req, res) => {
+  const dischargeStartedAt = new Date();
+
+  try {
+    await startDryerBatchDischarge({ dischargeStartedAt });
+    return res.redirect(buildDryerRedirect({ discharge: '1' }));
+  } catch (error) {
+    if (error.code === 'NO_ACTIVE_BATCH' || error.code === 'DISCHARGE_ALREADY_STARTED') {
+      return res.redirect(buildDryerRedirect({ error: error.message }));
+    }
+
+    console.error('Error starting dryer discharge:', error.message);
+    return res.redirect(buildDryerRedirect({ error: 'Não foi possível iniciar a descarga agora.' }));
   }
 });
 
