@@ -154,6 +154,7 @@ Fluxo implementado:
 6. As medições anteriores continuam salvas no banco para consulta posterior.
 7. O operador adiciona medições de umidade entre `7,0%` e `40,0%`, com no máximo uma casa decimal.
 8. Cada medição salva horário, valor, usuário responsável e login do operador.
+9. Enquanto a descarga ainda não foi iniciada, o painel calcula a previsão de início da descarga usando a média integrada das umidades das últimas 1h45min (ou desde o início da batelada, se ela for mais recente). Após 1h45min de batelada a previsão parte do horário da última medição; antes disso ela parte do início da batelada mais 90 minutos. Antes da primeira medição a previsão fica vazia; se a previsão calculada já passou, o painel mostra `Descarga imediata`; depois que o operador inicia a descarga, o painel mostra o horário efetivamente registrado.
 
 Como só existe um secador, recomenda-se manter no banco um índice único parcial para impedir mais de uma batelada ativa:
 
