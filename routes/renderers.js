@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { GRAIN_LABELS, ROOT_LOGIN, ROLES } = require('./constants');
+const { ROOT_LOGIN, ROLES } = require('./constants');
 const { calculateDischargeForecast } = require('./dryer-forecast');
 const {
   escapeHtml,
@@ -117,29 +117,23 @@ function formatDischargeForecast(dischargeForecast) {
   return formatDateTime(dischargeForecast.forecastAt);
 }
 
-function formatDryerStatus(batch, dischargeForecast) {
+function formatDryerStatus(batch) {
   if (!batch) {
-    return `<span class="status-pill status-empty">Sem batelada ativa</span>`;
+    return `<span class="status-pill status-empty">Parado</span>`;
   }
 
-  if (dischargeForecast?.status === 'started') {
-    return `<span class="status-pill status-active">Descarga iniciada</span>`;
+  if (batch.discharge_started_at) {
+    return `<span class="status-pill status-active">Descarregando</span>`;
   }
 
-  if (dischargeForecast?.status === 'immediate') {
-    return `<span class="status-pill status-warning">Descarga imediata</span>`;
-  }
-
-  return `<span class="status-pill status-active">Batelada ativa</span>`;
+  return `<span class="status-pill status-active">Secando</span>`;
 }
 
 function renderDryerPanelPage(res, { batch, readings, settings, message, error }) {
   const dryerPath = path.join(__dirname, '../views/dryer-panel.html');
   const dischargeForecast = calculateDischargeForecast({ batch, readings });
   const startedAt = batch ? formatDateTime(batch.started_at) : 'Nenhuma batelada ativa';
-  const grainType = batch ? GRAIN_LABELS[batch.grain_type] || batch.grain_type : '-';
   const dischargeStartedAt = formatDischargeForecast(dischargeForecast);
-  const targetMoisture = formatMoisture(batch?.target_moisture || settings.target_moisture);
   const readingsRows = readings
     .map((reading) => {
       const detailId = `reading-detail-${reading.id}`;
@@ -156,7 +150,7 @@ function renderDryerPanelPage(res, { batch, readings, settings, message, error }
     })
     .join('');
   const emptyReadings = '<tr><td colspan="2">Nenhuma medição lançada.</td></tr>';
-  const batchStatusHtml = formatDryerStatus(batch, dischargeForecast);
+  const batchStatusHtml = formatDryerStatus(batch);
   const moistureFormDisabled = batch ? '' : 'disabled';
   const batchAction = batch && !batch.discharge_started_at
     ? {
@@ -171,6 +165,12 @@ function renderDryerPanelPage(res, { batch, readings, settings, message, error }
         cssClass: batch?.discharge_started_at ? 'btn-new-batch-action' : 'btn-primary-action',
         confirm: batch ? 'Iniciar uma nova batelada e encerrar a batelada ativa?' : 'Iniciar uma nova batelada?',
       };
+  const stopDryerAction = batch
+    ? `
+          <form class="dryer-stop-action" action="/secador/bateladas/parar" method="post" onsubmit="return confirm('Parar o secador e concluir a batelada atual?');">
+            <button class="btn-danger-action" type="submit">Parar secador</button>
+          </form>`
+    : '';
 
   const dryerHtml = fs
     .readFileSync(dryerPath, 'utf8')
@@ -178,15 +178,13 @@ function renderDryerPanelPage(res, { batch, readings, settings, message, error }
     .replace('{{DRYER_ERROR}}', buildAlertHtml(error, 'error'))
     .replace('{{BATCH_STATUS}}', batchStatusHtml)
     .replace('{{BATCH_STARTED_AT}}', escapeHtml(startedAt))
-    .replace('{{BATCH_GRAIN_TYPE}}', escapeHtml(grainType))
     .replace('{{DISCHARGE_STARTED_AT}}', escapeHtml(dischargeStartedAt))
     .replace('{{BATCH_ACTION_URL}}', escapeHtml(batchAction.action))
     .replace('{{BATCH_ACTION_CONFIRM}}', escapeHtml(batchAction.confirm))
     .replace('{{BATCH_ACTION_CLASS}}', escapeHtml(batchAction.cssClass))
     .replace('{{BATCH_ACTION_LABEL}}', escapeHtml(batchAction.label))
-    .replace('{{TARGET_MOISTURE}}', escapeHtml(targetMoisture))
-    .replace('{{READINGS_COUNT}}', String(readings.length))
     .replace('{{READINGS_ROWS}}', readingsRows || emptyReadings)
+    .replace('{{STOP_DRYER_ACTION}}', stopDryerAction)
     .replace(/{{MOISTURE_FORM_DISABLED}}/g, moistureFormDisabled);
 
   res.send(dryerHtml);

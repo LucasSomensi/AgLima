@@ -36,31 +36,19 @@
             <strong>{{BATCH_STARTED_AT}}</strong>
           </article>
           <article class="dryer-status-card">
-            <span class="dryer-card-label">Produto</span>
-            <strong>{{BATCH_GRAIN_TYPE}}</strong>
-          </article>
-          <article class="dryer-status-card">
             <span class="dryer-card-label">Previsão / início da descarga</span>
             <strong>{{DISCHARGE_STARTED_AT}}</strong>
           </article>
-          <article class="dryer-status-card">
-            <span class="dryer-card-label">Meta de umidade média</span>
-            <strong>{{TARGET_MOISTURE}}%</strong>
-          </article>
-          <article class="dryer-status-card">
-            <span class="dryer-card-label">Medições lançadas</span>
-            <strong>{{READINGS_COUNT}}</strong>
-          </article>
         </section>
 
-        <section class="admin-section dryer-actions-grid" aria-label="Ações do secador">
-          <form class="dryer-quick-action" action="{{BATCH_ACTION_URL}}" method="post" onsubmit="return confirm('{{BATCH_ACTION_CONFIRM}}');">
-            <button class="{{BATCH_ACTION_CLASS}}" type="submit">{{BATCH_ACTION_LABEL}}</button>
-          </form>
-
+        <section class="admin-section dryer-actions-stack" aria-label="Ações do secador">
           <form class="dryer-moisture-form" action="/secador/umidades" method="post">
             <input class="form-control" id="moisture_percent" name="moisture_percent" type="number" min="7" max="40" step="0.1" placeholder="Umidade (%)" aria-label="Umidade em porcentagem" inputmode="decimal" required {{MOISTURE_FORM_DISABLED}}>
             <button class="btn-primary-action" type="submit" {{MOISTURE_FORM_DISABLED}}>Registrar</button>
+          </form>
+
+          <form class="dryer-quick-action" action="{{BATCH_ACTION_URL}}" method="post" onsubmit="return confirm('{{BATCH_ACTION_CONFIRM}}');">
+            <button class="{{BATCH_ACTION_CLASS}}" type="submit">{{BATCH_ACTION_LABEL}}</button>
           </form>
         </section>
 
@@ -79,6 +67,7 @@
               </tbody>
             </table>
           </div>
+          {{STOP_DRYER_ACTION}}
         </section>
       </section>
     </main>

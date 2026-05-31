@@ -177,6 +177,44 @@ async function startDryerBatchDischarge({ dischargeStartedAt }) {
   }
 }
 
+async function stopDryerBatch({ stoppedAt, user }) {
+  ensureDatabaseConfigured();
+
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+    await client.query('SELECT pg_advisory_xact_lock(20260530)');
+
+    const updateResult = await client.query(
+      `
+        UPDATE dryer_batches
+        SET status = 'completed',
+            completed_at = $1,
+            completed_by_user_id = $2,
+            updated_at = now()
+        WHERE status = 'active'
+        RETURNING id
+      `,
+      [stoppedAt, user.userId]
+    );
+
+    if (updateResult.rowCount === 0) {
+      const error = new Error('Não há batelada ativa para parar.');
+      error.code = 'NO_ACTIVE_BATCH';
+      throw error;
+    }
+
+    await client.query('COMMIT');
+    return updateResult.rows[0];
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
 async function addDryerMoistureReading({ measuredAt, moisturePercent, user }) {
   ensureDatabaseConfigured();
 
@@ -210,4 +248,5 @@ module.exports = {
   listDryerMoistureReadings,
   startDryerBatch,
   startDryerBatchDischarge,
+  stopDryerBatch,
 };
