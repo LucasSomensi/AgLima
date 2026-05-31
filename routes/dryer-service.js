@@ -20,7 +20,7 @@ async function getActiveDryerBatch() {
 
   const result = await pool.query(
     `
-      SELECT id, grain_type, status, started_at, target_moisture, created_at
+      SELECT id, grain_type, status, started_at, discharge_started_at, target_moisture, created_at
       FROM dryer_batches
       WHERE status = 'active'
       ORDER BY started_at DESC
@@ -59,6 +59,23 @@ async function startDryerBatch({ startedAt, grainType, user }) {
   try {
     await client.query('BEGIN');
     await client.query('SELECT pg_advisory_xact_lock(20260530)');
+
+    const activeBatchResult = await client.query(
+      `
+        SELECT id, discharge_started_at
+        FROM dryer_batches
+        WHERE status = 'active'
+        ORDER BY started_at DESC
+        LIMIT 1
+      `
+    );
+    const activeBatch = activeBatchResult.rows[0];
+
+    if (activeBatch && !activeBatch.discharge_started_at) {
+      const error = new Error('Inicie a descarga da batelada atual antes de iniciar uma nova batelada.');
+      error.code = 'DISCHARGE_NOT_STARTED';
+      throw error;
+    }
 
     await client.query(
       `
@@ -107,6 +124,59 @@ async function startDryerBatch({ startedAt, grainType, user }) {
   }
 }
 
+async function startDryerBatchDischarge({ dischargeStartedAt }) {
+  ensureDatabaseConfigured();
+
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+    await client.query('SELECT pg_advisory_xact_lock(20260530)');
+
+    const activeBatchResult = await client.query(
+      `
+        SELECT id, discharge_started_at
+        FROM dryer_batches
+        WHERE status = 'active'
+        ORDER BY started_at DESC
+        LIMIT 1
+      `
+    );
+    const activeBatch = activeBatchResult.rows[0];
+
+    if (!activeBatch) {
+      const error = new Error('Não há batelada ativa para iniciar descarga.');
+      error.code = 'NO_ACTIVE_BATCH';
+      throw error;
+    }
+
+    if (activeBatch.discharge_started_at) {
+      const error = new Error('A descarga da batelada atual já foi iniciada.');
+      error.code = 'DISCHARGE_ALREADY_STARTED';
+      throw error;
+    }
+
+    const updateResult = await client.query(
+      `
+        UPDATE dryer_batches
+        SET discharge_started_at = $1,
+            updated_at = now()
+        WHERE id = $2
+        RETURNING id, discharge_started_at
+      `,
+      [dischargeStartedAt, activeBatch.id]
+    );
+
+    await client.query('COMMIT');
+    return updateResult.rows[0];
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
 async function addDryerMoistureReading({ measuredAt, moisturePercent, user }) {
   ensureDatabaseConfigured();
 
@@ -139,4 +209,5 @@ module.exports = {
   getDryerSettings,
   listDryerMoistureReadings,
   startDryerBatch,
+  startDryerBatchDischarge,
 };

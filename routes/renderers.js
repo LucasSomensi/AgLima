@@ -104,6 +104,7 @@ function renderDryerPanelPage(res, { batch, readings, settings, message, error }
   const dryerPath = path.join(__dirname, '../views/dryer-panel.html');
   const startedAt = batch ? formatDateTime(batch.started_at) : 'Nenhuma batelada ativa';
   const grainType = batch ? GRAIN_LABELS[batch.grain_type] || batch.grain_type : '-';
+  const dischargeStartedAt = batch?.discharge_started_at ? formatDateTime(batch.discharge_started_at) : '-';
   const targetMoisture = formatMoisture(batch?.target_moisture || settings.target_moisture);
   const readingsRows = readings
     .map((reading) => {
@@ -125,6 +126,19 @@ function renderDryerPanelPage(res, { batch, readings, settings, message, error }
     ? `<span class="status-pill status-active">Batelada ativa</span>`
     : `<span class="status-pill status-empty">Sem batelada ativa</span>`;
   const moistureFormDisabled = batch ? '' : 'disabled';
+  const batchAction = batch && !batch.discharge_started_at
+    ? {
+        action: '/secador/bateladas/descarga',
+        label: 'Iniciar descarga',
+        cssClass: 'btn-primary-action',
+        confirm: 'Registrar início da descarga para os silos?',
+      }
+    : {
+        action: '/secador/bateladas',
+        label: 'Iniciar nova batelada',
+        cssClass: batch?.discharge_started_at ? 'btn-new-batch-action' : 'btn-primary-action',
+        confirm: batch ? 'Iniciar uma nova batelada e encerrar a batelada ativa?' : 'Iniciar uma nova batelada?',
+      };
 
   const dryerHtml = fs
     .readFileSync(dryerPath, 'utf8')
@@ -133,6 +147,11 @@ function renderDryerPanelPage(res, { batch, readings, settings, message, error }
     .replace('{{BATCH_STATUS}}', batchStatusHtml)
     .replace('{{BATCH_STARTED_AT}}', escapeHtml(startedAt))
     .replace('{{BATCH_GRAIN_TYPE}}', escapeHtml(grainType))
+    .replace('{{DISCHARGE_STARTED_AT}}', escapeHtml(dischargeStartedAt))
+    .replace('{{BATCH_ACTION_URL}}', escapeHtml(batchAction.action))
+    .replace('{{BATCH_ACTION_CONFIRM}}', escapeHtml(batchAction.confirm))
+    .replace('{{BATCH_ACTION_CLASS}}', escapeHtml(batchAction.cssClass))
+    .replace('{{BATCH_ACTION_LABEL}}', escapeHtml(batchAction.label))
     .replace('{{TARGET_MOISTURE}}', escapeHtml(targetMoisture))
     .replace('{{READINGS_COUNT}}', String(readings.length))
     .replace('{{READINGS_ROWS}}', readingsRows || emptyReadings)
