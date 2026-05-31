@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { GRAIN_LABELS, ROOT_LOGIN, ROLES } = require('./constants');
+const { calculateDischargeForecast } = require('./dryer-forecast');
 const {
   escapeHtml,
   formatDateTime,
@@ -100,11 +101,44 @@ function renderConstructionPage(res, role) {
   res.send(constructionHtml);
 }
 
+function formatDischargeForecast(dischargeForecast) {
+  if (!dischargeForecast || dischargeForecast.status === 'unavailable') {
+    return '-';
+  }
+
+  if (dischargeForecast.status === 'started') {
+    return `Iniciada em ${formatDateTime(dischargeForecast.dischargeStartedAt)}`;
+  }
+
+  if (dischargeForecast.status === 'immediate') {
+    return 'Descarga imediata';
+  }
+
+  return formatDateTime(dischargeForecast.forecastAt);
+}
+
+function formatDryerStatus(batch, dischargeForecast) {
+  if (!batch) {
+    return `<span class="status-pill status-empty">Sem batelada ativa</span>`;
+  }
+
+  if (dischargeForecast?.status === 'started') {
+    return `<span class="status-pill status-active">Descarga iniciada</span>`;
+  }
+
+  if (dischargeForecast?.status === 'immediate') {
+    return `<span class="status-pill status-warning">Descarga imediata</span>`;
+  }
+
+  return `<span class="status-pill status-active">Batelada ativa</span>`;
+}
+
 function renderDryerPanelPage(res, { batch, readings, settings, message, error }) {
   const dryerPath = path.join(__dirname, '../views/dryer-panel.html');
+  const dischargeForecast = calculateDischargeForecast({ batch, readings });
   const startedAt = batch ? formatDateTime(batch.started_at) : 'Nenhuma batelada ativa';
   const grainType = batch ? GRAIN_LABELS[batch.grain_type] || batch.grain_type : '-';
-  const dischargeStartedAt = batch?.discharge_started_at ? formatDateTime(batch.discharge_started_at) : '-';
+  const dischargeStartedAt = formatDischargeForecast(dischargeForecast);
   const targetMoisture = formatMoisture(batch?.target_moisture || settings.target_moisture);
   const readingsRows = readings
     .map((reading) => {
@@ -122,9 +156,7 @@ function renderDryerPanelPage(res, { batch, readings, settings, message, error }
     })
     .join('');
   const emptyReadings = '<tr><td colspan="2">Nenhuma medição lançada.</td></tr>';
-  const batchStatusHtml = batch
-    ? `<span class="status-pill status-active">Batelada ativa</span>`
-    : `<span class="status-pill status-empty">Sem batelada ativa</span>`;
+  const batchStatusHtml = formatDryerStatus(batch, dischargeForecast);
   const moistureFormDisabled = batch ? '' : 'disabled';
   const batchAction = batch && !batch.discharge_started_at
     ? {

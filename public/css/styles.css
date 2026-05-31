@@ -488,6 +488,11 @@ body {
   border: 1px solid rgba(217, 182, 109, 0.38);
 }
 
+.status-warning {
+  color: #3b2500;
+  background: #ffd17a;
+}
+
 .dryer-actions-grid {
   grid-template-columns: minmax(220px, 0.7fr) minmax(280px, 1.3fr);
 }
