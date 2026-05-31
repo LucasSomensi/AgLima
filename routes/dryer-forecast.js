@@ -136,7 +136,12 @@ function calculateDischargeForecast({ batch, readings, now = new Date() }) {
     return { status: 'unavailable', averageMoisture };
   }
 
-  const forecastAt = new Date(periodEnd + minutesRemaining * MILLISECONDS_PER_MINUTE);
+  const isReadingInInitialWindow = batchStartedAt !== null
+    && periodEnd - batchStartedAt < DISCHARGE_FORECAST_LOOKBACK_MINUTES * MILLISECONDS_PER_MINUTE;
+  const forecastBaseTimestamp = isReadingInInitialWindow
+    ? batchStartedAt + DISCHARGE_FORECAST_OFFSET_MINUTES * MILLISECONDS_PER_MINUTE
+    : periodEnd;
+  const forecastAt = new Date(forecastBaseTimestamp + minutesRemaining * MILLISECONDS_PER_MINUTE);
   const nowTimestamp = toValidTimestamp(now) || Date.now();
 
   if (nowTimestamp > forecastAt.getTime()) {
