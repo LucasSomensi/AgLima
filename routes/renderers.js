@@ -5,8 +5,8 @@ const {
   escapeHtml,
   formatDateTime,
   formatMoisture,
+  formatTime,
   getRoleLabel,
-  toDateTimeLocalValue,
 } = require('./utils');
 
 function buildAlertHtml(message, type = 'success') {
@@ -106,25 +106,25 @@ function renderDryerPanelPage(res, { batch, readings, settings, message, error }
   const grainType = batch ? GRAIN_LABELS[batch.grain_type] || batch.grain_type : '-';
   const targetMoisture = formatMoisture(batch?.target_moisture || settings.target_moisture);
   const readingsRows = readings
-    .map(
-      (reading) => `
-        <tr>
-          <td>${escapeHtml(formatDateTime(reading.measured_at))}</td>
+    .map((reading) => {
+      const detailId = `reading-detail-${reading.id}`;
+
+      return `
+        <tr class="dryer-reading-row" tabindex="0" role="button" aria-expanded="false" data-detail-target="${escapeHtml(detailId)}">
+          <td>${escapeHtml(formatTime(reading.measured_at))}</td>
           <td>${escapeHtml(formatMoisture(reading.moisture_percent))}%</td>
-          <td>${escapeHtml(reading.measured_by_login)}</td>
         </tr>
-      `
-    )
+        <tr class="dryer-reading-detail" id="${escapeHtml(detailId)}" hidden>
+          <td colspan="2">Operador: ${escapeHtml(reading.measured_by_login)}</td>
+        </tr>
+      `;
+    })
     .join('');
-  const emptyReadings = '<tr><td colspan="3">Nenhuma medição lançada para a batelada atual.</td></tr>';
-  const nowDateTime = toDateTimeLocalValue();
+  const emptyReadings = '<tr><td colspan="2">Nenhuma medição lançada.</td></tr>';
   const batchStatusHtml = batch
     ? `<span class="status-pill status-active">Batelada ativa</span>`
     : `<span class="status-pill status-empty">Sem batelada ativa</span>`;
   const moistureFormDisabled = batch ? '' : 'disabled';
-  const moistureHelp = batch
-    ? 'Informe a umidade medida na saída do secador.'
-    : 'Inicie uma batelada para liberar o lançamento de umidades.';
 
   const dryerHtml = fs
     .readFileSync(dryerPath, 'utf8')
@@ -136,9 +136,7 @@ function renderDryerPanelPage(res, { batch, readings, settings, message, error }
     .replace('{{TARGET_MOISTURE}}', escapeHtml(targetMoisture))
     .replace('{{READINGS_COUNT}}', String(readings.length))
     .replace('{{READINGS_ROWS}}', readingsRows || emptyReadings)
-    .replace(/{{NOW_DATETIME}}/g, escapeHtml(nowDateTime))
-    .replace(/{{MOISTURE_FORM_DISABLED}}/g, moistureFormDisabled)
-    .replace('{{MOISTURE_HELP}}', escapeHtml(moistureHelp));
+    .replace(/{{MOISTURE_FORM_DISABLED}}/g, moistureFormDisabled);
 
   res.send(dryerHtml);
 }

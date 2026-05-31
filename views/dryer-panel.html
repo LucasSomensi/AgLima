@@ -16,9 +16,7 @@
       <section class="content-card admin-card dryer-card" aria-labelledby="dryer-title">
         <div class="admin-header">
           <div>
-            <span class="eyebrow">Operação do silo</span>
             <h1 id="dryer-title" class="page-title">Secador de grãos</h1>
-            <p class="page-description">Painel compartilhado por todos os operadores de silo para acompanhar a batelada atual.</p>
           </div>
           <form action="/logout" method="post">
             <button class="btn-secondary-action" type="submit">Sair</button>
@@ -52,40 +50,14 @@
         </section>
 
         <section class="admin-section dryer-actions-grid" aria-label="Ações do secador">
-          <div class="dryer-form-card">
-            <h2>Iniciar nova batelada</h2>
-            <p class="dryer-help-text">Ao confirmar, a batelada ativa será encerrada e o painel exibirá uma lista vazia para a nova batelada. As medições anteriores permanecem salvas no banco.</p>
-            <form class="contact-form" action="/secador/bateladas" method="post" onsubmit="return confirm('Iniciar uma nova batelada e encerrar a batelada ativa?');">
-              <div class="form-group">
-                <label for="started_at">Data e hora de início</label>
-                <input class="form-control" id="started_at" name="started_at" type="datetime-local" value="{{NOW_DATETIME}}" required>
-              </div>
-              <div class="form-group">
-                <label for="grain_type">Produto</label>
-                <select class="form-control" id="grain_type" name="grain_type" required>
-                  <option value="corn">Milho</option>
-                  <option value="soy">Soja</option>
-                </select>
-              </div>
-              <button class="btn-primary-action" type="submit">Iniciar nova batelada</button>
-            </form>
-          </div>
+          <form class="dryer-quick-action" action="/secador/bateladas" method="post" onsubmit="return confirm('Iniciar uma nova batelada e encerrar a batelada ativa?');">
+            <button class="btn-primary-action" type="submit">Iniciar nova batelada</button>
+          </form>
 
-          <div class="dryer-form-card">
-            <h2>Adicionar umidade</h2>
-            <p class="dryer-help-text">{{MOISTURE_HELP}}</p>
-            <form class="contact-form" action="/secador/umidades" method="post">
-              <div class="form-group">
-                <label for="measured_at">Data e hora da medição</label>
-                <input class="form-control" id="measured_at" name="measured_at" type="datetime-local" value="{{NOW_DATETIME}}" required {{MOISTURE_FORM_DISABLED}}>
-              </div>
-              <div class="form-group">
-                <label for="moisture_percent">Umidade (%)</label>
-                <input class="form-control" id="moisture_percent" name="moisture_percent" type="number" min="7" max="40" step="0.1" placeholder="14,5" inputmode="decimal" required {{MOISTURE_FORM_DISABLED}}>
-              </div>
-              <button class="btn-primary-action" type="submit" {{MOISTURE_FORM_DISABLED}}>Registrar umidade</button>
-            </form>
-          </div>
+          <form class="dryer-moisture-form" action="/secador/umidades" method="post">
+            <input class="form-control" id="moisture_percent" name="moisture_percent" type="number" min="7" max="40" step="0.1" placeholder="Umidade (%)" aria-label="Umidade em porcentagem" inputmode="decimal" required {{MOISTURE_FORM_DISABLED}}>
+            <button class="btn-primary-action" type="submit" {{MOISTURE_FORM_DISABLED}}>Registrar</button>
+          </form>
         </section>
 
         <section class="admin-section" aria-labelledby="readings-title">
@@ -96,7 +68,6 @@
                 <tr>
                   <th>Horário</th>
                   <th>Umidade</th>
-                  <th>Operador</th>
                 </tr>
               </thead>
               <tbody>
@@ -107,6 +78,29 @@
         </section>
       </section>
     </main>
+    <script>
+      document.querySelectorAll('.dryer-reading-row').forEach((row) => {
+        row.addEventListener('click', () => {
+          const detailRow = document.getElementById(row.dataset.detailTarget);
+
+          if (!detailRow) {
+            return;
+          }
+
+          const isExpanded = row.getAttribute('aria-expanded') === 'true';
+
+          row.setAttribute('aria-expanded', String(!isExpanded));
+          detailRow.hidden = isExpanded;
+        });
+
+        row.addEventListener('keydown', (event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            row.click();
+          }
+        });
+      });
+    </script>
     <footer class="site-footer">
       <img class="footer-logo" src="/images/logotipo%20agrolima.jpeg" alt="Logotipo da AgroLima">
       <span>AgroLima © 2026. Todos os direitos reservados.</span>
