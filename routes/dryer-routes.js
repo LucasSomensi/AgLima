@@ -9,7 +9,7 @@ const {
   startDryerBatch,
 } = require('./dryer-service');
 const { renderDryerPanelPage } = require('./renderers');
-const { buildRedirect, parseMoisturePercent, parseOptionalDateTime } = require('./utils');
+const { buildRedirect, parseMoisturePercent } = require('./utils');
 
 const router = express.Router();
 const canAccessDryer = requireRole(ROLES.SILO_OPERATOR, ROLES.ROOT);
@@ -41,12 +41,8 @@ router.get('/secador', canAccessDryer, async (req, res) => {
 });
 
 router.post('/secador/bateladas', canAccessDryer, async (req, res) => {
-  const startedAt = parseOptionalDateTime(req.body.started_at);
-  const grainType = ['corn', 'soy'].includes(req.body.grain_type) ? req.body.grain_type : 'corn';
-
-  if (!startedAt) {
-    return res.redirect(buildDryerRedirect({ error: 'Informe uma data e hora válidas para iniciar a batelada.' }));
-  }
+  const startedAt = new Date();
+  const grainType = 'corn';
 
   try {
     await startDryerBatch({ startedAt, grainType, user: req.sessionUser });
@@ -58,12 +54,8 @@ router.post('/secador/bateladas', canAccessDryer, async (req, res) => {
 });
 
 router.post('/secador/umidades', canAccessDryer, async (req, res) => {
-  const measuredAt = parseOptionalDateTime(req.body.measured_at);
+  const measuredAt = new Date();
   const moisturePercent = parseMoisturePercent(req.body.moisture_percent);
-
-  if (!measuredAt) {
-    return res.redirect(buildDryerRedirect({ error: 'Informe uma data e hora válidas para a medição.' }));
-  }
 
   if (moisturePercent === null) {
     return res.redirect(buildDryerRedirect({ error: 'Informe uma umidade entre 7,0% e 40,0%, com no máximo uma casa decimal.' }));

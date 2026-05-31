@@ -90,6 +90,18 @@ function formatDateTime(value) {
   }).format(new Date(value));
 }
 
+function formatTime(value) {
+  if (!value) {
+    return '-';
+  }
+
+  return new Intl.DateTimeFormat('pt-BR', {
+    timeZone: APP_TIME_ZONE,
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(value));
+}
+
 function formatMoisture(value) {
   if (value === null || value === undefined || value === '') {
     return '-';
@@ -128,6 +140,7 @@ module.exports = {
   escapeHtml,
   formatDateTime,
   formatMoisture,
+  formatTime,
   getHomePathForRole,
   getRoleLabel,
   parseMoisturePercent,

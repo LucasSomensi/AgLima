@@ -423,7 +423,8 @@ body {
 }
 
 .dryer-status-card,
-.dryer-form-card {
+.dryer-quick-action,
+.dryer-moisture-form {
   padding: 18px;
   border: 1px solid rgba(234, 246, 238, 0.16);
   border-radius: 18px;
@@ -473,26 +474,53 @@ body {
 }
 
 .dryer-actions-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(220px, 0.7fr) minmax(280px, 1.3fr);
 }
 
-.dryer-form-card h2 {
-  margin-top: 0;
+.dryer-quick-action,
+.dryer-moisture-form {
+  display: flex;
+  gap: 12px;
+  align-items: center;
 }
 
-.dryer-help-text {
-  min-height: 52px;
-  margin: 0 0 18px;
-  color: var(--green-100);
-  line-height: 1.5;
+.dryer-quick-action .btn-primary-action,
+.dryer-moisture-form .btn-primary-action {
+  width: 100%;
+  min-height: 48px;
+}
+
+.dryer-moisture-form .form-control {
+  min-height: 48px;
 }
 
 .dryer-table {
-  min-width: 620px;
+  min-width: 0;
+}
+
+.dryer-table th:last-child,
+.dryer-table td:last-child {
+  text-align: right;
+}
+
+.dryer-reading-row {
+  cursor: pointer;
+}
+
+.dryer-reading-row:hover td,
+.dryer-reading-row:focus td {
+  background: rgba(234, 246, 238, 0.08);
+}
+
+.dryer-reading-detail td {
+  color: var(--green-100);
+  font-size: 0.92rem;
+  padding-top: 0;
 }
 
 .contact-form .form-control:disabled,
-.contact-form .form-control[readonly] {
+.contact-form .form-control[readonly],
+.dryer-moisture-form .form-control:disabled {
   color: rgba(18, 53, 36, 0.78);
   background: rgba(234, 246, 238, 0.72);
   cursor: not-allowed;
@@ -516,6 +544,63 @@ button:disabled,
 }
 
 @media (max-width: 620px) {
+  .dryer-shell {
+    padding: 18px 12px;
+  }
+
+  .dryer-card {
+    padding: 18px 14px;
+    border-radius: 20px;
+  }
+
+  .dryer-card .admin-header {
+    gap: 12px;
+  }
+
+  .dryer-card .page-title {
+    font-size: 1.75rem;
+  }
+
+  .dryer-status-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .dryer-status-card,
+  .dryer-quick-action,
+  .dryer-moisture-form {
+    padding: 12px;
+    border-radius: 14px;
+  }
+
+  .dryer-status-card {
+    min-height: 92px;
+  }
+
+  .dryer-status-card strong {
+    font-size: 1rem;
+  }
+
+  .dryer-card-label {
+    font-size: 0.68rem;
+    letter-spacing: 0.05em;
+  }
+
+  .dryer-actions-grid {
+    gap: 10px;
+  }
+
+  .dryer-moisture-form {
+    flex-direction: column;
+  }
+
+  .dryer-table th,
+  .dryer-table td {
+    padding: 12px 10px;
+  }
+}
+
+@media (max-width: 380px) {
   .dryer-status-grid {
     grid-template-columns: 1fr;
   }
