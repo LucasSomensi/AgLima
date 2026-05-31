@@ -430,16 +430,22 @@ body {
   max-width: 1180px;
 }
 
-.dryer-status-grid,
-.dryer-actions-grid {
+.dryer-status-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.dryer-actions-stack {
+  display: flex;
+  flex-direction: column;
   gap: 16px;
 }
 
 .dryer-status-card,
 .dryer-quick-action,
-.dryer-moisture-form {
+.dryer-moisture-form,
+.dryer-stop-action {
   padding: 18px;
   border: 1px solid rgba(234, 246, 238, 0.16);
   border-radius: 18px;
@@ -493,12 +499,13 @@ body {
   background: #ffd17a;
 }
 
-.dryer-actions-grid {
-  grid-template-columns: minmax(220px, 0.7fr) minmax(280px, 1.3fr);
+.dryer-stop-action {
+  margin-top: 16px;
 }
 
 .dryer-quick-action,
-.dryer-moisture-form {
+.dryer-moisture-form,
+.dryer-stop-action {
   display: flex;
   gap: 12px;
   align-items: center;
@@ -506,7 +513,8 @@ body {
 
 .dryer-quick-action .btn-primary-action,
 .dryer-quick-action .btn-new-batch-action,
-.dryer-moisture-form .btn-primary-action {
+.dryer-moisture-form .btn-primary-action,
+.dryer-stop-action .btn-danger-action {
   width: 100%;
   min-height: 48px;
 }
@@ -559,10 +567,6 @@ button:disabled,
   .dryer-status-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-
-  .dryer-actions-grid {
-    grid-template-columns: 1fr;
-  }
 }
 
 @media (max-width: 620px) {
@@ -590,7 +594,8 @@ button:disabled,
 
   .dryer-status-card,
   .dryer-quick-action,
-  .dryer-moisture-form {
+  .dryer-moisture-form,
+  .dryer-stop-action {
     padding: 12px;
     border-radius: 14px;
   }
@@ -608,8 +613,12 @@ button:disabled,
     letter-spacing: 0.05em;
   }
 
-  .dryer-actions-grid {
+  .dryer-actions-stack {
     gap: 10px;
+  }
+
+  .dryer-stop-action {
+    margin-top: 10px;
   }
 
   .dryer-moisture-form {
