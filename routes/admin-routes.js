@@ -13,7 +13,9 @@ const {
   renderAdminBatchDetailPage,
   renderAdminBatchesPage,
   renderAdminDashboardPage,
+  renderAdminHomePage,
   renderAdminUsersPage,
+  renderConstructionPage,
 } = require('./renderers');
 const {
   createManagedUser,
@@ -28,10 +30,14 @@ const router = express.Router();
 const canAccessAdminPanel = requireRole(ROLES.ADMIN);
 
 function buildAdminPanelRedirect(params) {
-  return buildRedirect('/admin', params);
+  return buildRedirect('/admin/secador', params);
 }
 
-router.get('/admin', canAccessAdminPanel, async (req, res) => {
+router.get('/admin', canAccessAdminPanel, (req, res) => {
+  return renderAdminHomePage(res);
+});
+
+router.get('/admin/secador', canAccessAdminPanel, async (req, res) => {
   try {
     const [settings, batch] = await Promise.all([getDryerSettings(), getActiveDryerBatch()]);
     const readings = await listDryerMoistureReadings(batch?.id);
@@ -44,9 +50,33 @@ router.get('/admin', canAccessAdminPanel, async (req, res) => {
       error: req.query.error || '',
     });
   } catch (error) {
-    console.error('Error loading admin dashboard:', error.message);
-    return res.status(500).send('Não foi possível carregar o painel administrativo agora.');
+    console.error('Error loading admin dryer dashboard:', error.message);
+    return res.status(500).send('Não foi possível carregar o painel do secador agora.');
   }
+});
+
+router.get('/admin/:module(armazenamento|contratos|entradas-e-saidas)', canAccessAdminPanel, (req, res) => {
+  const moduleContent = {
+    armazenamento: {
+      title: 'Armazenamento',
+      description: 'O módulo de armazenamento está em construção e ficará disponível em breve.',
+    },
+    contratos: {
+      title: 'Contratos',
+      description: 'O módulo de contratos está em construção e ficará disponível em breve.',
+    },
+    'entradas-e-saidas': {
+      title: 'Entradas e Saídas',
+      description: 'O módulo de entradas e saídas está em construção e ficará disponível em breve.',
+    },
+  };
+
+  return renderConstructionPage(res, ROLES.ADMIN, {
+    eyebrow: 'Área administrativa',
+    backHref: '/admin',
+    backLabel: '← Voltar à administração',
+    ...moduleContent[req.params.module],
+  });
 });
 
 router.post('/admin/umidade-alvo', canAccessAdminPanel, async (req, res) => {

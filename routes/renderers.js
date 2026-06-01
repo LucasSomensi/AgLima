@@ -108,6 +108,11 @@ function renderReadingsRows(readings, { includeOperator = true } = {}) {
     .join('') || emptyReadings;
 }
 
+function renderAdminHomePage(res) {
+  const adminHomePath = path.join(__dirname, '../views/admin-home.html');
+  res.send(fs.readFileSync(adminHomePath, 'utf8'));
+}
+
 function renderAdminDashboardPage(res, { batch, readings, settings, message, error }) {
   const dashboardPath = path.join(__dirname, '../views/admin-dashboard.html');
   const statusLabel = formatBatchStatusLabel(batch);
@@ -166,7 +171,7 @@ function renderAdminBatchDetailPage(res, { batch, readings }) {
   res.send(detailHtml);
 }
 
-function renderConstructionPage(res, role) {
+function renderConstructionPage(res, role, options = {}) {
   const constructionPath = path.join(__dirname, '../views/construction.html');
   const titleByRole = {
     [ROLES.ADMIN]: 'Área dos administradores',
@@ -178,14 +183,18 @@ function renderConstructionPage(res, role) {
     [ROLES.CLIENT]: 'Em breve você poderá consultar os volumes de soja e milho armazenados no silo.',
     [ROLES.WEIGHBRIDGE_OPERATOR]: 'Em breve os operadores de balança poderão registrar entradas e saídas de produto.',
   };
+  const backLinkHtml = options.backHref
+    ? `<a class="back-link construction-back-link" href="${escapeHtml(options.backHref)}">${escapeHtml(options.backLabel || '← Voltar')}</a>`
+    : '';
   const constructionHtml = fs
     .readFileSync(constructionPath, 'utf8')
-    .replace('{{CONSTRUCTION_EYEBROW}}', escapeHtml(getRoleLabel(role)))
-    .replace('{{CONSTRUCTION_TITLE}}', escapeHtml(titleByRole[role] || 'Em construção'))
+    .replace('{{CONSTRUCTION_EYEBROW}}', escapeHtml(options.eyebrow || getRoleLabel(role)))
+    .replace('{{CONSTRUCTION_TITLE}}', escapeHtml(options.title || titleByRole[role] || 'Em construção'))
     .replace(
       '{{CONSTRUCTION_DESCRIPTION}}',
-      escapeHtml(descriptionByRole[role] || 'A área interna da AgroLima estará disponível em breve.')
-    );
+      escapeHtml(options.description || descriptionByRole[role] || 'A área interna da AgroLima estará disponível em breve.')
+    )
+    .replace('{{CONSTRUCTION_BACK_LINK}}', backLinkHtml);
 
   res.send(constructionHtml);
 }
@@ -283,6 +292,7 @@ module.exports = {
   renderAdminBatchDetailPage,
   renderAdminBatchesPage,
   renderAdminDashboardPage,
+  renderAdminHomePage,
   renderAdminUsersPage,
   renderConstructionPage,
   renderDryerPanelPage,

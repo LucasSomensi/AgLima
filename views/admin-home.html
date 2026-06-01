@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+      <meta charset="utf-8">
+      <meta name="author" content="Lucas">
+      <meta name="description" content="Área administrativa da AgroLima">
+      <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+      <title>Administração | AgroLima</title>
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" integrity="sha384-xOolHFLEh07PJGoPkLv1IbcEPTNtaed2xpHsD9ESMhqIYd0nLMwNLD69Npy4HI+N" crossorigin="anonymous">
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:400,500,700&display=swap">
+      <link rel="stylesheet" href="/css/styles.css">
+      <link rel="icon" href="/favicon.ico" type="image/x-icon">
+  </head>
+  <body>
+    <main class="page-shell admin-shell">
+      <section class="content-card admin-card admin-home-card" aria-labelledby="admin-home-title">
+        <div class="admin-header">
+          <div>
+            <span class="eyebrow">Área administrativa</span>
+            <h1 id="admin-home-title" class="page-title">Administração</h1>
+            <p class="page-description">Escolha qual módulo deseja acessar.</p>
+          </div>
+          <form action="/logout" method="post">
+            <button class="btn-secondary-action" type="submit">Sair</button>
+          </form>
+        </div>
+
+        <nav class="admin-module-grid" aria-label="Módulos administrativos">
+          <a class="admin-module-card" href="/admin/secador">
+            <span class="admin-module-title">Secador</span>
+            <span class="admin-module-description">Acompanhar o secador de grãos e ajustar a umidade alvo.</span>
+          </a>
+          <a class="admin-module-card" href="/admin/armazenamento">
+            <span class="admin-module-title">Armazenamento</span>
+            <span class="admin-module-description">Módulo de acompanhamento dos silos.</span>
+          </a>
+          <a class="admin-module-card" href="/admin/contratos">
+            <span class="admin-module-title">Contratos</span>
+            <span class="admin-module-description">Módulo para gestão de contratos.</span>
+          </a>
+          <a class="admin-module-card" href="/admin/entradas-e-saidas">
+            <span class="admin-module-title">Entradas e Saídas</span>
+            <span class="admin-module-description">Módulo para movimentações de produtos.</span>
+          </a>
+        </nav>
+      </section>
+    </main>
+    <footer class="site-footer">
+      <img class="footer-logo" src="/images/logotipo%20agrolima.jpeg" alt="Logotipo da AgroLima">
+      <span>AgroLima © 2026. Todos os direitos reservados.</span>
+    </footer>
+  </body>
+</html>
