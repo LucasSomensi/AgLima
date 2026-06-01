@@ -663,3 +663,58 @@ button:disabled,
   min-height: 42px;
   padding: 10px 16px;
 }
+
+.admin-dashboard-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.admin-section-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.admin-section-header h2 {
+  margin-bottom: 0;
+}
+
+.admin-target-form {
+  max-width: 540px;
+}
+
+.admin-table-link {
+  color: #ffffff;
+  font-weight: 700;
+  text-decoration: underline;
+  text-decoration-color: rgba(217, 182, 109, 0.78);
+  text-underline-offset: 4px;
+}
+
+.admin-table-link:hover,
+.admin-table-link:focus {
+  color: var(--accent);
+}
+
+@media (max-width: 1020px) {
+  .admin-dashboard-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 620px) {
+  .admin-dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-section-header {
+    align-items: stretch;
+  }
+
+  .admin-section-header .btn-secondary-action,
+  .admin-target-form .btn-primary-action {
+    width: 100%;
+  }
+}

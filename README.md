@@ -70,7 +70,7 @@ Se o login `root` já existir, o script termina com sucesso sem alterar o usuár
 
 ## Login e gerenciamento de usuários
 
-O `/login` autentica usuários salvos na tabela `users` do PostgreSQL usando `DATABASE_URL`. O usuário com `role = 'root'` é redirecionado para `/admin/usuarios`, onde pode adicionar e remover outros usuários do sistema. Usuários com `role = 'silo_operator'` são redirecionados para `/secador`. Os perfis `admin`, `client` e `weighbridge_operator` são redirecionados para páginas em construção em `/area-interna`.
+O `/login` autentica usuários salvos na tabela `users` do PostgreSQL usando `DATABASE_URL`. O usuário com `role = 'root'` é redirecionado para `/admin/usuarios`, onde pode adicionar e remover outros usuários do sistema. Usuários com `role = 'admin'` são redirecionados para `/admin`, onde acompanham a batelada atual, alteram a umidade alvo e consultam bateladas anteriores. Usuários com `role = 'silo_operator'` são redirecionados para `/secador`. Os perfis `client` e `weighbridge_operator` são redirecionados para páginas em construção em `/area-interna`.
 
 Além de `DATABASE_URL`, configure também:
 
@@ -97,12 +97,19 @@ O sistema trabalha com cinco perfis na coluna `users.role`:
 | Perfil | Descrição |
 | --- | --- |
 | `root` | Usuário especial criado pelo script `npm run create-root-user`; gerencia as contas dos demais usuários. |
-| `admin` | Sócios/administradores da empresa; por enquanto acessam uma página em construção. |
+| `admin` | Sócios/administradores da empresa; acessam o painel administrativo do secador em modo consulta e podem ajustar a umidade alvo. |
 | `client` | Clientes; futuramente consultarão volumes de soja e milho armazenados, mas por enquanto acessam uma página em construção. |
 | `weighbridge_operator` | Operadores de balança; futuramente lançarão entradas e saídas de produto, mas por enquanto acessam uma página em construção. |
 | `silo_operator` | Operadores de silo; acessam o painel compartilhado do secador em `/secador`. |
 
 O painel do usuário `root` cria apenas usuários dos perfis `admin`, `client`, `weighbridge_operator` e `silo_operator`. O perfil `root` continua reservado ao script de inicialização.
+
+
+## Painel administrativo do secador
+
+Usuários com perfil `admin` acessam `/admin`. A tela inicial mostra a batelada ativa com status, data e hora de início, produto, umidade alvo e medições de umidade, sem botões operacionais de registrar umidade, iniciar descarga, iniciar nova batelada ou parar o secador. A mesma tela permite alterar a umidade alvo salva em `dryer_settings`; novas bateladas passam a usar esse valor no momento em que são iniciadas.
+
+O botão **Ver bateladas anteriores** abre `/admin/bateladas`, com as bateladas concluídas em ordem cronológica reversa. Cada linha abre `/admin/bateladas/:id`, exibindo as informações salvas e medições daquela batelada.
 
 ## Painel do secador
 

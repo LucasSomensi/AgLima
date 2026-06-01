@@ -18,6 +18,10 @@ function getHomePathForRole(role) {
     return '/admin/usuarios';
   }
 
+  if (role === ROLES.ADMIN) {
+    return '/admin';
+  }
+
   if (role === ROLES.SILO_OPERATOR) {
     return '/secador';
   }

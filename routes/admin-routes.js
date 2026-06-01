@@ -1,16 +1,95 @@
 const express = require('express');
-const { requireRoot } = require('./auth');
-const { MANAGED_ROLES, ROOT_LOGIN } = require('./constants');
-const { renderAdminUsersPage } = require('./renderers');
+const { requireRole, requireRoot } = require('./auth');
+const { MANAGED_ROLES, ROOT_LOGIN, ROLES } = require('./constants');
+const {
+  getActiveDryerBatch,
+  getDryerBatchById,
+  getDryerSettings,
+  listCompletedDryerBatches,
+  listDryerMoistureReadings,
+  updateDryerTargetMoisture,
+} = require('./dryer-service');
+const {
+  renderAdminBatchDetailPage,
+  renderAdminBatchesPage,
+  renderAdminDashboardPage,
+  renderAdminUsersPage,
+} = require('./renderers');
 const {
   createManagedUser,
   deleteManagedUser,
   listManagedUsers,
   updateManagedUserPassword,
 } = require('./user-service');
-const { buildRedirect } = require('./utils');
+const { buildRedirect, parseMoisturePercent } = require('./utils');
 
 const router = express.Router();
+
+const canAccessAdminPanel = requireRole(ROLES.ADMIN);
+
+function buildAdminPanelRedirect(params) {
+  return buildRedirect('/admin', params);
+}
+
+router.get('/admin', canAccessAdminPanel, async (req, res) => {
+  try {
+    const [settings, batch] = await Promise.all([getDryerSettings(), getActiveDryerBatch()]);
+    const readings = await listDryerMoistureReadings(batch?.id);
+
+    return renderAdminDashboardPage(res, {
+      batch,
+      readings,
+      settings,
+      message: req.query.target ? 'Umidade alvo atualizada com sucesso.' : '',
+      error: req.query.error || '',
+    });
+  } catch (error) {
+    console.error('Error loading admin dashboard:', error.message);
+    return res.status(500).send('Não foi possível carregar o painel administrativo agora.');
+  }
+});
+
+router.post('/admin/umidade-alvo', canAccessAdminPanel, async (req, res) => {
+  const targetMoisture = parseMoisturePercent(req.body.target_moisture);
+
+  if (targetMoisture === null) {
+    return res.redirect(buildAdminPanelRedirect({ error: 'Informe uma umidade alvo entre 7,0% e 40,0%, com no máximo uma casa decimal.' }));
+  }
+
+  try {
+    await updateDryerTargetMoisture({ targetMoisture, user: req.sessionUser });
+    return res.redirect(buildAdminPanelRedirect({ target: '1' }));
+  } catch (error) {
+    console.error('Error updating dryer target moisture:', error.message);
+    return res.redirect(buildAdminPanelRedirect({ error: 'Não foi possível atualizar a umidade alvo agora.' }));
+  }
+});
+
+router.get('/admin/bateladas', canAccessAdminPanel, async (req, res) => {
+  try {
+    const batches = await listCompletedDryerBatches();
+    return renderAdminBatchesPage(res, { batches });
+  } catch (error) {
+    console.error('Error listing dryer batches:', error.message);
+    return res.status(500).send('Não foi possível carregar as bateladas anteriores agora.');
+  }
+});
+
+router.get('/admin/bateladas/:id', canAccessAdminPanel, async (req, res) => {
+  try {
+    const batch = await getDryerBatchById(req.params.id);
+
+    if (!batch || batch.status === 'active') {
+      return res.status(404).send('Batelada não encontrada.');
+    }
+
+    const readings = await listDryerMoistureReadings(batch.id);
+    return renderAdminBatchDetailPage(res, { batch, readings });
+  } catch (error) {
+    console.error('Error loading dryer batch detail:', error.message);
+    return res.status(500).send('Não foi possível carregar a batelada agora.');
+  }
+});
 
 function buildAdminRedirect(params) {
   return buildRedirect('/admin/usuarios', params);

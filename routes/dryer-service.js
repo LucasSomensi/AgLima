@@ -15,12 +15,31 @@ async function getDryerSettings() {
   return result.rows[0] || { target_moisture: '14.5' };
 }
 
+async function updateDryerTargetMoisture({ targetMoisture, user }) {
+  ensureDatabaseConfigured();
+
+  const result = await pool.query(
+    `
+      INSERT INTO dryer_settings (id, target_moisture, updated_at, updated_by_user_id)
+      VALUES (true, $1, now(), $2)
+      ON CONFLICT (id)
+      DO UPDATE SET target_moisture = EXCLUDED.target_moisture,
+                    updated_at = now(),
+                    updated_by_user_id = EXCLUDED.updated_by_user_id
+      RETURNING target_moisture
+    `,
+    [targetMoisture, user.userId]
+  );
+
+  return result.rows[0];
+}
+
 async function getActiveDryerBatch() {
   ensureDatabaseConfigured();
 
   const result = await pool.query(
     `
-      SELECT id, grain_type, status, started_at, discharge_started_at, target_moisture, created_at
+      SELECT id, grain_type, status, started_at, discharge_started_at, completed_at, target_moisture, created_at
       FROM dryer_batches
       WHERE status = 'active'
       ORDER BY started_at DESC
@@ -29,6 +48,37 @@ async function getActiveDryerBatch() {
   );
 
   return result.rows[0] || null;
+}
+
+async function getDryerBatchById(batchId) {
+  ensureDatabaseConfigured();
+
+  const result = await pool.query(
+    `
+      SELECT id, grain_type, status, started_at, discharge_started_at, completed_at, target_moisture, created_at
+      FROM dryer_batches
+      WHERE id = $1
+      LIMIT 1
+    `,
+    [batchId]
+  );
+
+  return result.rows[0] || null;
+}
+
+async function listCompletedDryerBatches() {
+  ensureDatabaseConfigured();
+
+  const result = await pool.query(
+    `
+      SELECT id, grain_type, status, started_at, discharge_started_at, completed_at, target_moisture, created_at
+      FROM dryer_batches
+      WHERE status <> 'active'
+      ORDER BY started_at DESC, created_at DESC
+    `
+  );
+
+  return result.rows;
 }
 
 async function listDryerMoistureReadings(batchId) {
@@ -244,9 +294,12 @@ async function addDryerMoistureReading({ measuredAt, moisturePercent, user }) {
 module.exports = {
   addDryerMoistureReading,
   getActiveDryerBatch,
+  getDryerBatchById,
   getDryerSettings,
+  listCompletedDryerBatches,
   listDryerMoistureReadings,
   startDryerBatch,
   startDryerBatchDischarge,
   stopDryerBatch,
+  updateDryerTargetMoisture,
 };
