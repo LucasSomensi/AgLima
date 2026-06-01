@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+      <meta charset="utf-8">
+      <meta name="author" content="Lucas">
+      <meta name="description" content="Bateladas anteriores da AgroLima">
+      <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+      <title>Bateladas anteriores | AgroLima</title>
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" integrity="sha384-xOolHFLEh07PJGoPkLv1IbcEPTNtaed2xpHsD9ESMhqIYd0nLMwNLD69Npy4HI+N" crossorigin="anonymous">
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:400,500,700&display=swap">
+      <link rel="stylesheet" href="/css/styles.css">
+      <link rel="icon" href="/favicon.ico" type="image/x-icon">
+  </head>
+  <body>
+    <main class="page-shell admin-shell dryer-shell">
+      <section class="content-card admin-card dryer-card" aria-labelledby="admin-batches-title">
+        <div class="admin-header">
+          <div>
+            <a class="back-link" href="/admin">← Voltar ao painel</a>
+            <h1 id="admin-batches-title" class="page-title">Bateladas anteriores</h1>
+            <p class="page-description">Lista em ordem cronológica reversa, da batelada mais recente para a mais antiga.</p>
+          </div>
+          <form action="/logout" method="post">
+            <button class="btn-secondary-action" type="submit">Sair</button>
+          </form>
+        </div>
+
+        <section class="admin-section" aria-labelledby="batches-list-title">
+          <h2 id="batches-list-title">Histórico de bateladas</h2>
+          <div class="admin-table-wrapper">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Início</th>
+                  <th>Produto</th>
+                  <th>Status</th>
+                  <th>Conclusão</th>
+                  <th>Umidade alvo</th>
+                </tr>
+              </thead>
+              <tbody>
+                {{BATCHES_ROWS}}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+    </main>
+    <footer class="site-footer">
+      <img class="footer-logo" src="/images/logotipo%20agrolima.jpeg" alt="Logotipo da AgroLima">
+      <span>AgroLima © 2026. Todos os direitos reservados.</span>
+    </footer>
+  </body>
+</html>

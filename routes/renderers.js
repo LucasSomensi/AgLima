@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { ROOT_LOGIN, ROLES } = require('./constants');
+const { GRAIN_LABELS, ROOT_LOGIN, ROLES } = require('./constants');
 const { calculateDischargeForecast } = require('./dryer-forecast');
 const {
   escapeHtml,
@@ -75,6 +75,95 @@ function renderAdminUsersPage(res, { users, message, error }) {
     .replace('{{USERS_ROWS}}', rowsHtml || emptyState);
 
   res.send(adminHtml);
+}
+
+function getGrainLabel(grainType) {
+  return GRAIN_LABELS[grainType] || grainType || '-';
+}
+
+function formatBatchStatusLabel(batch) {
+  if (!batch) {
+    return 'Parado';
+  }
+
+  if (batch.status !== 'active') {
+    return 'Concluída';
+  }
+
+  return batch.discharge_started_at ? 'Descarregando' : 'Secando';
+}
+
+function renderReadingsRows(readings, { includeOperator = true } = {}) {
+  const colSpan = includeOperator ? 3 : 2;
+  const emptyReadings = `<tr><td colspan="${colSpan}">Nenhuma medição lançada.</td></tr>`;
+
+  return readings
+    .map((reading) => `
+        <tr>
+          <td>${escapeHtml(formatDateTime(reading.measured_at))}</td>
+          <td>${escapeHtml(formatMoisture(reading.moisture_percent))}%</td>
+          ${includeOperator ? `<td>${escapeHtml(reading.measured_by_login)}</td>` : ''}
+        </tr>
+      `)
+    .join('') || emptyReadings;
+}
+
+function renderAdminDashboardPage(res, { batch, readings, settings, message, error }) {
+  const dashboardPath = path.join(__dirname, '../views/admin-dashboard.html');
+  const statusLabel = formatBatchStatusLabel(batch);
+  const currentTargetMoisture = formatMoisture(settings?.target_moisture);
+  const batchTargetMoisture = batch ? formatMoisture(batch.target_moisture) : currentTargetMoisture;
+  const readingsRows = renderReadingsRows(readings);
+  const dashboardHtml = fs
+    .readFileSync(dashboardPath, 'utf8')
+    .replace('{{ADMIN_PANEL_MESSAGE}}', buildAlertHtml(message))
+    .replace('{{ADMIN_PANEL_ERROR}}', buildAlertHtml(error, 'error'))
+    .replace('{{CURRENT_TARGET_MOISTURE}}', escapeHtml(currentTargetMoisture))
+    .replace('{{TARGET_MOISTURE_VALUE}}', escapeHtml(formatMoisture(settings?.target_moisture).replace(',', '.')))
+    .replace('{{BATCH_STATUS}}', escapeHtml(statusLabel))
+    .replace('{{BATCH_STARTED_AT}}', escapeHtml(batch ? formatDateTime(batch.started_at) : 'Nenhuma batelada ativa'))
+    .replace('{{BATCH_DISCHARGE_STARTED_AT}}', escapeHtml(batch?.discharge_started_at ? formatDateTime(batch.discharge_started_at) : '-'))
+    .replace('{{BATCH_TARGET_MOISTURE}}', escapeHtml(batchTargetMoisture))
+    .replace('{{BATCH_PRODUCT}}', escapeHtml(batch ? getGrainLabel(batch.grain_type) : '-'))
+    .replace('{{READINGS_ROWS}}', readingsRows);
+
+  res.send(dashboardHtml);
+}
+
+function renderAdminBatchesPage(res, { batches }) {
+  const batchesPath = path.join(__dirname, '../views/admin-batches.html');
+  const rowsHtml = batches
+    .map((batch) => `
+        <tr>
+          <td><a class="admin-table-link" href="/admin/bateladas/${escapeHtml(batch.id)}">${escapeHtml(formatDateTime(batch.started_at))}</a></td>
+          <td>${escapeHtml(getGrainLabel(batch.grain_type))}</td>
+          <td>${escapeHtml(formatBatchStatusLabel(batch))}</td>
+          <td>${escapeHtml(batch.completed_at ? formatDateTime(batch.completed_at) : '-')}</td>
+          <td>${escapeHtml(formatMoisture(batch.target_moisture))}%</td>
+        </tr>
+      `)
+    .join('');
+  const emptyState = '<tr><td colspan="5">Nenhuma batelada anterior encontrada.</td></tr>';
+  const batchesHtml = fs
+    .readFileSync(batchesPath, 'utf8')
+    .replace('{{BATCHES_ROWS}}', rowsHtml || emptyState);
+
+  res.send(batchesHtml);
+}
+
+function renderAdminBatchDetailPage(res, { batch, readings }) {
+  const batchPath = path.join(__dirname, '../views/admin-batch-detail.html');
+  const detailHtml = fs
+    .readFileSync(batchPath, 'utf8')
+    .replace('{{BATCH_STATUS}}', escapeHtml(formatBatchStatusLabel(batch)))
+    .replace('{{BATCH_STARTED_AT}}', escapeHtml(formatDateTime(batch.started_at)))
+    .replace('{{BATCH_DISCHARGE_STARTED_AT}}', escapeHtml(batch.discharge_started_at ? formatDateTime(batch.discharge_started_at) : '-'))
+    .replace('{{BATCH_COMPLETED_AT}}', escapeHtml(batch.completed_at ? formatDateTime(batch.completed_at) : '-'))
+    .replace('{{BATCH_TARGET_MOISTURE}}', escapeHtml(formatMoisture(batch.target_moisture)))
+    .replace('{{BATCH_PRODUCT}}', escapeHtml(getGrainLabel(batch.grain_type)))
+    .replace('{{READINGS_ROWS}}', renderReadingsRows(readings));
+
+  res.send(detailHtml);
 }
 
 function renderConstructionPage(res, role) {
@@ -191,6 +280,9 @@ function renderDryerPanelPage(res, { batch, readings, settings, message, error }
 }
 
 module.exports = {
+  renderAdminBatchDetailPage,
+  renderAdminBatchesPage,
+  renderAdminDashboardPage,
   renderAdminUsersPage,
   renderConstructionPage,
   renderDryerPanelPage,
