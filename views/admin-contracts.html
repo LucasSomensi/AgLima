@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+      <meta charset="utf-8">
+      <meta name="author" content="Lucas">
+      <meta name="description" content="Painel administrativo de contratos da AgroLima">
+      <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+      <title>Contratos | AgroLima</title>
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" integrity="sha384-xOolHFLEh07PJGoPkLv1IbcEPTNtaed2xpHsD9ESMhqIYd0nLMwNLD69Npy4HI+N" crossorigin="anonymous">
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:400,500,700&display=swap">
+      <link rel="stylesheet" href="/css/styles.css">
+      <link rel="icon" href="/favicon.ico" type="image/x-icon">
+  </head>
+  <body>
+    <main class="page-shell admin-shell contracts-shell">
+      <section class="content-card admin-card contracts-card" aria-labelledby="contracts-title">
+        <div class="admin-header">
+          <div>
+            <span class="eyebrow">Área administrativa</span>
+            <h1 id="contracts-title" class="page-title">Contratos</h1>
+            <p class="page-description">Gerencie compradores, vendedores e contratos de milho e soja.</p>
+            <a class="back-link admin-back-link" href="/admin">← Voltar à administração</a>
+          </div>
+          <form action="/logout" method="post">
+            <button class="btn-secondary-action" type="submit">Sair</button>
+          </form>
+        </div>
+
+        {{CONTRACTS_MESSAGE}}
+        {{CONTRACTS_ERROR}}
+
+        <nav class="contracts-anchor-nav" aria-label="Atalhos da página de contratos">
+          <a class="btn-secondary-action" href="#compradores">Compradores</a>
+          <a class="btn-secondary-action" href="#vendedores">Vendedores</a>
+          <a class="btn-secondary-action" href="#contratos">Contratos</a>
+        </nav>
+
+        <section class="admin-section" id="compradores" aria-labelledby="buyers-title">
+          <div class="admin-section-header">
+            <h2 id="buyers-title">Compradores</h2>
+          </div>
+          <form class="contact-form contracts-form" action="{{BUYER_FORM_ACTION}}" method="post">
+            <h3>{{BUYER_FORM_TITLE}}</h3>
+            <div class="contracts-form-grid">
+              <label>Nome
+                <input class="form-control" name="nome" type="text" value="{{BUYER_NOME}}" placeholder="Semegrão" required>
+              </label>
+              <label>Nome completo
+                <input class="form-control" name="nome_completo" type="text" value="{{BUYER_NOME_COMPLETO}}" placeholder="SEMEGRAO COMERCIAL AGRICOLA LTDA" required>
+              </label>
+              <label>Endereço
+                <input class="form-control" name="endereco" type="text" value="{{BUYER_ENDERECO}}" placeholder="Rodovia BR-376" required>
+              </label>
+              <label>Número
+                <input class="form-control" name="numero" type="text" value="{{BUYER_NUMERO}}" placeholder="258 ou SN" required>
+              </label>
+              <label>CEP
+                <input class="form-control" name="cep" type="text" inputmode="numeric" value="{{BUYER_CEP}}" placeholder="84043450" required>
+              </label>
+              <label>Inscrição Estadual
+                <input class="form-control" name="inscricao_estadual" type="text" inputmode="numeric" value="{{BUYER_INSCRICAO_ESTADUAL}}" placeholder="9090884295" required>
+              </label>
+              <label>CPF ou CNPJ
+                <input class="form-control" name="cpf_cnpj" type="text" inputmode="numeric" value="{{BUYER_CPF_CNPJ}}" placeholder="11 ou 14 dígitos" required>
+              </label>
+            </div>
+            <div class="contracts-form-actions">
+              <button class="btn-primary-action" type="submit">{{BUYER_FORM_BUTTON}}</button>
+              {{BUYER_CANCEL_LINK}}
+            </div>
+          </form>
+
+          <div class="admin-table-wrapper contracts-table-wrapper">
+            <table class="admin-table contracts-table">
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>Nome completo</th>
+                  <th>Endereço</th>
+                  <th>CEP</th>
+                  <th>Inscrição Estadual</th>
+                  <th>CPF/CNPJ</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {{BUYERS_ROWS}}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="admin-section" id="vendedores" aria-labelledby="sellers-title">
+          <div class="admin-section-header">
+            <h2 id="sellers-title">Vendedores</h2>
+          </div>
+          <form class="contact-form contracts-form" action="{{SELLER_FORM_ACTION}}" method="post">
+            <h3>{{SELLER_FORM_TITLE}}</h3>
+            <div class="contracts-form-grid contracts-form-grid-two">
+              <label>Nome
+                <input class="form-control" name="nome" type="text" value="{{SELLER_NOME}}" placeholder="Paulo" required>
+              </label>
+              <label>Nome completo
+                <input class="form-control" name="nome_completo" type="text" value="{{SELLER_NOME_COMPLETO}}" placeholder="Paulo Roberto de Lima" required>
+              </label>
+            </div>
+            <div class="contracts-form-actions">
+              <button class="btn-primary-action" type="submit">{{SELLER_FORM_BUTTON}}</button>
+              {{SELLER_CANCEL_LINK}}
+            </div>
+          </form>
+
+          <div class="admin-table-wrapper contracts-table-wrapper">
+            <table class="admin-table contracts-table contracts-table-compact">
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>Nome completo</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {{SELLERS_ROWS}}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="admin-section" id="contratos" aria-labelledby="contracts-list-title">
+          <div class="admin-section-header">
+            <h2 id="contracts-list-title">Contratos</h2>
+          </div>
+          <form class="contact-form contracts-form" action="{{CONTRACT_FORM_ACTION}}" method="post">
+            <h3>{{CONTRACT_FORM_TITLE}}</h3>
+            <div class="contracts-form-grid">
+              <label>Data do contrato
+                <input class="form-control" name="data_contrato" type="date" value="{{CONTRACT_DATA_CONTRATO}}" required>
+              </label>
+              <label>Produto
+                <select class="form-control" name="produto" required>
+                  <option value="">Selecione</option>
+                  <option value="milho"{{PRODUCT_MILHO_SELECTED}}>Milho</option>
+                  <option value="soja"{{PRODUCT_SOJA_SELECTED}}>Soja</option>
+                </select>
+              </label>
+              <label>Preço por saca
+                <input class="form-control" name="preco_por_saca" type="number" min="0" step="0.01" inputmode="decimal" value="{{CONTRACT_PRECO_POR_SACA}}" placeholder="60.30" required>
+              </label>
+              <label>Comprador
+                <select class="form-control" name="comprador_id" required>
+                  <option value="">Selecione</option>
+                  {{BUYER_OPTIONS}}
+                </select>
+              </label>
+              <label>Vendedor
+                <select class="form-control" name="vendedor_id" required>
+                  <option value="">Selecione</option>
+                  {{SELLER_OPTIONS}}
+                </select>
+              </label>
+              <label>Quantidade em kg
+                <input class="form-control" name="quantidade_kg" type="number" min="0" step="0.01" inputmode="decimal" value="{{CONTRACT_QUANTIDADE_KG}}" placeholder="600000" required>
+              </label>
+              <label>Data de recebimento
+                <input class="form-control" name="data_recebimento" type="date" value="{{CONTRACT_DATA_RECEBIMENTO}}">
+              </label>
+              <label>Corretor
+                <input class="form-control" name="corretor" type="text" value="{{CONTRACT_CORRETOR}}" placeholder="ResultAgro">
+              </label>
+              <label>Valor da corretagem (%)
+                <input class="form-control" name="valor_corretagem_percentual" type="number" min="0" step="0.01" inputmode="decimal" value="{{CONTRACT_VALOR_CORRETAGEM}}" placeholder="0.3">
+              </label>
+            </div>
+            <div class="contracts-check-grid">
+              <label class="contracts-checkbox"><input name="contrato_embarcado" type="checkbox"{{CONTRACT_EMBARCADO_CHECKED}}> Contrato embarcado</label>
+              <label class="contracts-checkbox"><input name="contrato_recebido" type="checkbox"{{CONTRACT_RECEBIDO_CHECKED}}> Contrato recebido</label>
+              <label class="contracts-checkbox"><input name="corretagem_paga" type="checkbox"{{CONTRACT_CORRETAGEM_PAGA_CHECKED}}> Corretagem paga</label>
+            </div>
+            <label>Observações
+              <textarea class="form-control" name="observacoes" rows="3" placeholder="contrato negociado por Lucas">{{CONTRACT_OBSERVACOES}}</textarea>
+            </label>
+            <div class="contracts-form-actions">
+              <button class="btn-primary-action" type="submit">{{CONTRACT_FORM_BUTTON}}</button>
+              {{CONTRACT_CANCEL_LINK}}
+            </div>
+          </form>
+
+          <div class="admin-table-wrapper contracts-table-wrapper">
+            <table class="admin-table contracts-table contracts-main-table">
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Produto</th>
+                  <th>Preço/saca</th>
+                  <th>Comprador</th>
+                  <th>Vendedor</th>
+                  <th>Quantidade</th>
+                  <th>Embarcado</th>
+                  <th>Recebimento</th>
+                  <th>Recebido</th>
+                  <th>Corretor</th>
+                  <th>Corretagem</th>
+                  <th>Paga</th>
+                  <th>Observações</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {{CONTRACTS_ROWS}}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+    </main>
+    <footer class="site-footer">
+      <img class="footer-logo" src="/images/logotipo%20agrolima.jpeg" alt="Logotipo da AgroLima">
+      <span>AgroLima © 2026. Todos os direitos reservados.</span>
+    </footer>
+  </body>
+</html>

@@ -4,10 +4,12 @@ const { GRAIN_LABELS, ROOT_LOGIN, ROLES } = require('./constants');
 const { calculateDischargeForecast } = require('./dryer-forecast');
 const {
   escapeHtml,
+  formatDate,
   formatDateTime,
   formatMoisture,
   formatTime,
   getRoleLabel,
+  toDateInputValue,
 } = require('./utils');
 
 function buildAlertHtml(message, type = 'success') {
@@ -171,6 +173,133 @@ function renderAdminBatchDetailPage(res, { batch, readings }) {
   res.send(detailHtml);
 }
 
+
+function formatMoney(value) {
+  if (value === null || value === undefined || value === '') {
+    return '-';
+  }
+
+  return Number(value).toLocaleString('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
+function formatDecimalInput(value) {
+  if (value === null || value === undefined || value === '') {
+    return '';
+  }
+
+  return String(value).replace(',', '.');
+}
+
+function formatBooleanLabel(value) {
+  return value ? 'Sim' : 'Não';
+}
+
+function buildOption(value, label, selectedValue) {
+  const selected = String(value) === String(selectedValue || '') ? ' selected' : '';
+  return `<option value="${escapeHtml(value)}"${selected}>${escapeHtml(label)}</option>`;
+}
+
+function renderAdminContractsPage(res, { buyers, sellers, contracts, selectedBuyer, selectedSeller, selectedContract, message, error }) {
+  const contractsPath = path.join(__dirname, '../views/admin-contracts.html');
+  const buyerFormAction = selectedBuyer ? `/admin/contratos/compradores/${escapeHtml(selectedBuyer.id)}` : '/admin/contratos/compradores';
+  const sellerFormAction = selectedSeller ? `/admin/contratos/vendedores/${escapeHtml(selectedSeller.id)}` : '/admin/contratos/vendedores';
+  const contractFormAction = selectedContract ? `/admin/contratos/contratos/${escapeHtml(selectedContract.id)}` : '/admin/contratos/contratos';
+  const buyerRows = buyers
+    .map((buyer) => `
+        <tr>
+          <td>${escapeHtml(buyer.nome)}</td>
+          <td>${escapeHtml(buyer.nome_completo)}</td>
+          <td>${escapeHtml(`${buyer.endereco}, ${buyer.numero}`)}</td>
+          <td>${escapeHtml(buyer.cep)}</td>
+          <td>${escapeHtml(buyer.inscricao_estadual)}</td>
+          <td>${escapeHtml(buyer.cpf_cnpj)}</td>
+          <td><a class="admin-table-link" href="/admin/contratos?comprador_id=${escapeHtml(buyer.id)}#compradores">Editar</a></td>
+        </tr>
+      `)
+    .join('') || '<tr><td colspan="7">Nenhum comprador cadastrado.</td></tr>';
+  const sellerRows = sellers
+    .map((seller) => `
+        <tr>
+          <td>${escapeHtml(seller.nome)}</td>
+          <td>${escapeHtml(seller.nome_completo)}</td>
+          <td><a class="admin-table-link" href="/admin/contratos?vendedor_id=${escapeHtml(seller.id)}#vendedores">Editar</a></td>
+        </tr>
+      `)
+    .join('') || '<tr><td colspan="3">Nenhum vendedor cadastrado.</td></tr>';
+  const contractRows = contracts
+    .map((contract) => `
+        <tr>
+          <td>${escapeHtml(formatDate(contract.data_contrato))}</td>
+          <td>${escapeHtml(contract.produto)}</td>
+          <td>${escapeHtml(formatMoney(contract.preco_por_saca))}</td>
+          <td>${escapeHtml(contract.comprador_nome)}</td>
+          <td>${escapeHtml(contract.vendedor_nome)}</td>
+          <td>${escapeHtml(Number(contract.quantidade_kg).toLocaleString('pt-BR'))} kg</td>
+          <td>${escapeHtml(formatBooleanLabel(contract.contrato_embarcado))}</td>
+          <td>${escapeHtml(formatDate(contract.data_recebimento))}</td>
+          <td>${escapeHtml(formatBooleanLabel(contract.contrato_recebido))}</td>
+          <td>${escapeHtml(contract.corretor || '-')}</td>
+          <td>${contract.valor_corretagem_percentual === null || contract.valor_corretagem_percentual === undefined ? '-' : `${escapeHtml(Number(contract.valor_corretagem_percentual).toLocaleString('pt-BR'))}%`}</td>
+          <td>${escapeHtml(formatBooleanLabel(contract.corretagem_paga))}</td>
+          <td>${escapeHtml(contract.observacoes || '-')}</td>
+          <td><a class="admin-table-link" href="/admin/contratos?contrato_id=${escapeHtml(contract.id)}#contratos">Editar</a></td>
+        </tr>
+      `)
+    .join('') || '<tr><td colspan="14">Nenhum contrato cadastrado.</td></tr>';
+  const buyerOptions = buyers.map((buyer) => buildOption(buyer.id, buyer.nome, selectedContract?.comprador_id)).join('');
+  const sellerOptions = sellers.map((seller) => buildOption(seller.id, seller.nome, selectedContract?.vendedor_id)).join('');
+
+  const contractsHtml = fs
+    .readFileSync(contractsPath, 'utf8')
+    .replace('{{CONTRACTS_MESSAGE}}', buildAlertHtml(message))
+    .replace('{{CONTRACTS_ERROR}}', buildAlertHtml(error, 'error'))
+    .replace(/{{BUYER_FORM_ACTION}}/g, buyerFormAction)
+    .replace('{{BUYER_FORM_TITLE}}', selectedBuyer ? 'Editar comprador' : 'Adicionar comprador')
+    .replace('{{BUYER_FORM_BUTTON}}', selectedBuyer ? 'Salvar comprador' : 'Adicionar comprador')
+    .replace('{{BUYER_CANCEL_LINK}}', selectedBuyer ? '<a class="btn-secondary-action" href="/admin/contratos#compradores">Cancelar edição</a>' : '')
+    .replace(/{{BUYER_NOME}}/g, escapeHtml(selectedBuyer?.nome || ''))
+    .replace(/{{BUYER_NOME_COMPLETO}}/g, escapeHtml(selectedBuyer?.nome_completo || ''))
+    .replace(/{{BUYER_ENDERECO}}/g, escapeHtml(selectedBuyer?.endereco || ''))
+    .replace(/{{BUYER_NUMERO}}/g, escapeHtml(selectedBuyer?.numero || ''))
+    .replace(/{{BUYER_CEP}}/g, escapeHtml(selectedBuyer?.cep || ''))
+    .replace(/{{BUYER_INSCRICAO_ESTADUAL}}/g, escapeHtml(selectedBuyer?.inscricao_estadual || ''))
+    .replace(/{{BUYER_CPF_CNPJ}}/g, escapeHtml(selectedBuyer?.cpf_cnpj || ''))
+    .replace('{{BUYERS_ROWS}}', buyerRows)
+    .replace(/{{SELLER_FORM_ACTION}}/g, sellerFormAction)
+    .replace('{{SELLER_FORM_TITLE}}', selectedSeller ? 'Editar vendedor' : 'Adicionar vendedor')
+    .replace('{{SELLER_FORM_BUTTON}}', selectedSeller ? 'Salvar vendedor' : 'Adicionar vendedor')
+    .replace('{{SELLER_CANCEL_LINK}}', selectedSeller ? '<a class="btn-secondary-action" href="/admin/contratos#vendedores">Cancelar edição</a>' : '')
+    .replace(/{{SELLER_NOME}}/g, escapeHtml(selectedSeller?.nome || ''))
+    .replace(/{{SELLER_NOME_COMPLETO}}/g, escapeHtml(selectedSeller?.nome_completo || ''))
+    .replace('{{SELLERS_ROWS}}', sellerRows)
+    .replace(/{{CONTRACT_FORM_ACTION}}/g, contractFormAction)
+    .replace('{{CONTRACT_FORM_TITLE}}', selectedContract ? 'Editar contrato' : 'Adicionar contrato')
+    .replace('{{CONTRACT_FORM_BUTTON}}', selectedContract ? 'Salvar contrato' : 'Adicionar contrato')
+    .replace('{{CONTRACT_CANCEL_LINK}}', selectedContract ? '<a class="btn-secondary-action" href="/admin/contratos#contratos">Cancelar edição</a>' : '')
+    .replace(/{{CONTRACT_DATA_CONTRATO}}/g, escapeHtml(toDateInputValue(selectedContract?.data_contrato)))
+    .replace('{{PRODUCT_MILHO_SELECTED}}', selectedContract?.produto === 'milho' ? ' selected' : '')
+    .replace('{{PRODUCT_SOJA_SELECTED}}', selectedContract?.produto === 'soja' ? ' selected' : '')
+    .replace(/{{CONTRACT_PRECO_POR_SACA}}/g, escapeHtml(formatDecimalInput(selectedContract?.preco_por_saca)))
+    .replace('{{BUYER_OPTIONS}}', buyerOptions)
+    .replace('{{SELLER_OPTIONS}}', sellerOptions)
+    .replace(/{{CONTRACT_QUANTIDADE_KG}}/g, escapeHtml(formatDecimalInput(selectedContract?.quantidade_kg)))
+    .replace('{{CONTRACT_EMBARCADO_CHECKED}}', selectedContract?.contrato_embarcado ? ' checked' : '')
+    .replace(/{{CONTRACT_DATA_RECEBIMENTO}}/g, escapeHtml(toDateInputValue(selectedContract?.data_recebimento)))
+    .replace('{{CONTRACT_RECEBIDO_CHECKED}}', selectedContract?.contrato_recebido ? ' checked' : '')
+    .replace(/{{CONTRACT_CORRETOR}}/g, escapeHtml(selectedContract?.corretor || ''))
+    .replace(/{{CONTRACT_VALOR_CORRETAGEM}}/g, escapeHtml(formatDecimalInput(selectedContract?.valor_corretagem_percentual)))
+    .replace('{{CONTRACT_CORRETAGEM_PAGA_CHECKED}}', selectedContract?.corretagem_paga ? ' checked' : '')
+    .replace(/{{CONTRACT_OBSERVACOES}}/g, escapeHtml(selectedContract?.observacoes || ''))
+    .replace('{{CONTRACTS_ROWS}}', contractRows);
+
+  res.send(contractsHtml);
+}
+
 function renderConstructionPage(res, role, options = {}) {
   const constructionPath = path.join(__dirname, '../views/construction.html');
   const titleByRole = {
@@ -291,6 +420,7 @@ function renderDryerPanelPage(res, { batch, readings, settings, message, error }
 module.exports = {
   renderAdminBatchDetailPage,
   renderAdminBatchesPage,
+  renderAdminContractsPage,
   renderAdminDashboardPage,
   renderAdminHomePage,
   renderAdminUsersPage,

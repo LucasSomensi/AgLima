@@ -783,3 +783,127 @@ button:disabled,
     min-height: 140px;
   }
 }
+
+.contracts-card {
+  max-width: 1380px;
+}
+
+.contracts-anchor-nav,
+.contracts-form-actions,
+.contracts-check-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.contracts-anchor-nav {
+  margin-bottom: 8px;
+}
+
+.contracts-form {
+  margin-bottom: 22px;
+  padding: 18px;
+  border: 1px solid rgba(234, 246, 238, 0.16);
+  border-radius: 18px;
+  background: rgba(5, 48, 25, 0.34);
+}
+
+.contracts-form h3 {
+  margin: 0 0 16px;
+  color: #ffffff;
+  font-size: 1.08rem;
+  font-weight: 700;
+}
+
+.contracts-form-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.contracts-form-grid-two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.contracts-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+}
+
+.contracts-form .form-control {
+  width: 100%;
+}
+
+.contracts-form-actions {
+  align-items: center;
+  margin-top: 18px;
+}
+
+.contracts-check-grid {
+  margin: 16px 0;
+}
+
+.contracts-checkbox {
+  display: inline-flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  gap: 8px !important;
+  min-height: 42px;
+  padding: 10px 14px;
+  color: #ffffff;
+  border: 1px solid rgba(234, 246, 238, 0.16);
+  border-radius: 999px;
+  background: rgba(246, 251, 247, 0.1);
+  font-weight: 700;
+}
+
+.contracts-checkbox input {
+  width: 18px;
+  height: 18px;
+}
+
+.contracts-table-wrapper {
+  margin-top: 16px;
+}
+
+.contracts-table {
+  min-width: 1080px;
+}
+
+.contracts-table-compact {
+  min-width: 600px;
+}
+
+.contracts-main-table {
+  min-width: 1720px;
+}
+
+@media (max-width: 980px) {
+  .contracts-form-grid,
+  .contracts-form-grid-two {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 620px) {
+  .contracts-shell {
+    padding: 18px 12px;
+  }
+
+  .contracts-card {
+    padding: 18px 14px;
+  }
+
+  .contracts-form-grid,
+  .contracts-form-grid-two {
+    grid-template-columns: 1fr;
+  }
+
+  .contracts-anchor-nav .btn-secondary-action,
+  .contracts-form-actions .btn-primary-action,
+  .contracts-form-actions .btn-secondary-action {
+    width: 100%;
+  }
+}
