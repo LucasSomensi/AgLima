@@ -94,6 +94,55 @@ function formatDateTime(value) {
   }).format(new Date(value));
 }
 
+function getDateOnlyParts(value) {
+  if (typeof value === 'string') {
+    const dateMatch = value.match(/^(\d{4})-(\d{2})-(\d{2})/);
+
+    if (dateMatch) {
+      return { year: dateMatch[1], month: dateMatch[2], day: dateMatch[3] };
+    }
+  }
+
+  return null;
+}
+
+function formatDate(value) {
+  if (!value) {
+    return '-';
+  }
+
+  const dateOnlyParts = getDateOnlyParts(value);
+
+  if (dateOnlyParts) {
+    return `${dateOnlyParts.day}/${dateOnlyParts.month}/${dateOnlyParts.year}`;
+  }
+
+  return new Intl.DateTimeFormat('pt-BR', {
+    timeZone: APP_TIME_ZONE,
+    dateStyle: 'short',
+  }).format(new Date(value));
+}
+
+function toDateInputValue(value) {
+  if (!value) {
+    return '';
+  }
+
+  const dateOnlyParts = getDateOnlyParts(value);
+
+  if (dateOnlyParts) {
+    return `${dateOnlyParts.year}-${dateOnlyParts.month}-${dateOnlyParts.day}`;
+  }
+
+  const parts = getBrasiliaDateTimeParts(value);
+
+  if (!parts) {
+    return '';
+  }
+
+  return `${parts.year}-${parts.month}-${parts.day}`;
+}
+
 function formatTime(value) {
   if (!value) {
     return '-';
@@ -142,6 +191,7 @@ function buildRedirect(path, params) {
 module.exports = {
   buildRedirect,
   escapeHtml,
+  formatDate,
   formatDateTime,
   formatMoisture,
   formatTime,
@@ -149,5 +199,6 @@ module.exports = {
   getRoleLabel,
   parseMoisturePercent,
   parseOptionalDateTime,
+  toDateInputValue,
   toDateTimeLocalValue,
 };
