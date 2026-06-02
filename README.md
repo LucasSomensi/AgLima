@@ -77,11 +77,14 @@ Além de `DATABASE_URL`, configure também:
 | Variable | Required | Description |
 | --- | --- | --- |
 | `SESSION_SECRET` | Yes | Secret usado para assinar o cookie de sessão. Use um valor longo e aleatório. |
+| `SESSION_DURATION_DAYS` | No | Duração da sessão em dias. Use um número positivo; valores inválidos, zero ou negativos voltam ao padrão de 8 horas. |
+| `SESSION_DURATION_HOURS` | No | Alternativa para configurar a duração da sessão em horas quando `SESSION_DURATION_DAYS` não estiver definida. Use um número positivo. |
 
 Example Railway variable:
 
 ```env
 SESSION_SECRET=troque-por-uma-string-longa-e-aleatoria
+SESSION_DURATION_DAYS=30
 ```
 
 As senhas criadas pelo painel root são armazenadas como hash `bcrypt` na coluna `password_hash`; a senha em texto puro nunca é gravada no banco.
