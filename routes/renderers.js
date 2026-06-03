@@ -204,11 +204,21 @@ function buildOption(value, label, selectedValue) {
   return `<option value="${escapeHtml(value)}"${selected}>${escapeHtml(label)}</option>`;
 }
 
-function renderAdminContractsPage(res, { buyers, sellers, contracts, selectedBuyer, selectedSeller, selectedContract, message, error }) {
+function buildContractsPageHref(params = {}) {
+  const searchParams = new URLSearchParams(params);
+  const queryString = searchParams.toString();
+
+  return queryString ? `/admin/contratos?${queryString}` : '/admin/contratos';
+}
+
+function renderAdminContractsPage(res, { buyers, sellers, contracts, selectedBuyer, selectedSeller, selectedContract, contractStatusFilter = 'abertos', message, error }) {
   const contractsPath = path.join(__dirname, '../views/admin-contracts.html');
   const buyerFormAction = selectedBuyer ? `/admin/contratos/compradores/${escapeHtml(selectedBuyer.id)}` : '/admin/contratos/compradores';
   const sellerFormAction = selectedSeller ? `/admin/contratos/vendedores/${escapeHtml(selectedSeller.id)}` : '/admin/contratos/vendedores';
   const contractFormAction = selectedContract ? `/admin/contratos/contratos/${escapeHtml(selectedContract.id)}` : '/admin/contratos/contratos';
+  const contractEditStatusParam = contractStatusFilter === 'todos' ? { status: 'todos' } : {};
+  const openContractsActiveClass = contractStatusFilter === 'abertos' ? ' is-active' : '';
+  const allContractsActiveClass = contractStatusFilter === 'todos' ? ' is-active' : '';
   const buyerRows = buyers
     .map((buyer) => `
         <tr>
@@ -218,7 +228,7 @@ function renderAdminContractsPage(res, { buyers, sellers, contracts, selectedBuy
           <td>${escapeHtml(buyer.cep)}</td>
           <td>${escapeHtml(buyer.inscricao_estadual)}</td>
           <td>${escapeHtml(buyer.cpf_cnpj)}</td>
-          <td><a class="admin-table-link" href="/admin/contratos?comprador_id=${escapeHtml(buyer.id)}#compradores">Editar</a></td>
+          <td><a class="admin-table-link" href="${escapeHtml(buildContractsPageHref({ comprador_id: buyer.id }))}#compradores">Editar</a></td>
         </tr>
       `)
     .join('') || '<tr><td colspan="7">Nenhum comprador cadastrado.</td></tr>';
@@ -227,7 +237,7 @@ function renderAdminContractsPage(res, { buyers, sellers, contracts, selectedBuy
         <tr>
           <td>${escapeHtml(seller.nome)}</td>
           <td>${escapeHtml(seller.nome_completo)}</td>
-          <td><a class="admin-table-link" href="/admin/contratos?vendedor_id=${escapeHtml(seller.id)}#vendedores">Editar</a></td>
+          <td><a class="admin-table-link" href="${escapeHtml(buildContractsPageHref({ vendedor_id: seller.id }))}#vendedores">Editar</a></td>
         </tr>
       `)
     .join('') || '<tr><td colspan="3">Nenhum vendedor cadastrado.</td></tr>';
@@ -247,7 +257,7 @@ function renderAdminContractsPage(res, { buyers, sellers, contracts, selectedBuy
           <td>${contract.valor_corretagem_percentual === null || contract.valor_corretagem_percentual === undefined ? '-' : `${escapeHtml(Number(contract.valor_corretagem_percentual).toLocaleString('pt-BR'))}%`}</td>
           <td>${escapeHtml(formatBooleanLabel(contract.corretagem_paga))}</td>
           <td>${escapeHtml(contract.observacoes || '-')}</td>
-          <td><a class="admin-table-link" href="/admin/contratos?contrato_id=${escapeHtml(contract.id)}#contratos">Editar</a></td>
+          <td><a class="admin-table-link" href="${escapeHtml(buildContractsPageHref({ ...contractEditStatusParam, contrato_id: contract.id }))}#contratos">Editar</a></td>
         </tr>
       `)
     .join('') || '<tr><td colspan="14">Nenhum contrato cadastrado.</td></tr>';
@@ -258,6 +268,8 @@ function renderAdminContractsPage(res, { buyers, sellers, contracts, selectedBuy
     .readFileSync(contractsPath, 'utf8')
     .replace('{{CONTRACTS_MESSAGE}}', buildAlertHtml(message))
     .replace('{{CONTRACTS_ERROR}}', buildAlertHtml(error, 'error'))
+    .replace('{{OPEN_CONTRACTS_ACTIVE_CLASS}}', openContractsActiveClass)
+    .replace('{{ALL_CONTRACTS_ACTIVE_CLASS}}', allContractsActiveClass)
     .replace(/{{BUYER_FORM_ACTION}}/g, buyerFormAction)
     .replace('{{BUYER_FORM_TITLE}}', selectedBuyer ? 'Editar comprador' : 'Adicionar comprador')
     .replace('{{BUYER_FORM_BUTTON}}', selectedBuyer ? 'Salvar comprador' : 'Adicionar comprador')

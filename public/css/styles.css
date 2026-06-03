@@ -800,6 +800,24 @@ button:disabled,
   margin-bottom: 8px;
 }
 
+.contracts-filter-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.contracts-filter-link.is-active {
+  border-color: rgba(217, 182, 109, 0.82);
+  background: rgba(217, 182, 109, 0.18);
+  color: #ffffff;
+}
+
+.contracts-filter-help {
+  margin: -6px 0 18px;
+  color: var(--green-100);
+  line-height: 1.5;
+}
+
 .contracts-form {
   margin-bottom: 22px;
   padding: 18px;
@@ -902,6 +920,7 @@ button:disabled,
   }
 
   .contracts-anchor-nav .btn-secondary-action,
+  .contracts-filter-nav .btn-secondary-action,
   .contracts-form-actions .btn-primary-action,
   .contracts-form-actions .btn-secondary-action {
     width: 100%;

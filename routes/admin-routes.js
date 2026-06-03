@@ -97,11 +97,16 @@ function buildContractsRedirect(params = {}) {
   return buildRedirect('/admin/contratos', params);
 }
 
+function normalizeContractStatusFilter(value) {
+  return value === 'todos' ? 'todos' : 'abertos';
+}
+
 async function loadContractsPage(req, res, overrides = {}) {
+  const contractStatusFilter = normalizeContractStatusFilter(req.query.status);
   const [buyers, sellers, contracts, selectedBuyer, selectedSeller, selectedContract] = await Promise.all([
     listBuyers(),
     listSellers(),
-    listContracts(),
+    listContracts({ status: contractStatusFilter }),
     req.query.comprador_id ? getBuyerById(req.query.comprador_id) : null,
     req.query.vendedor_id ? getSellerById(req.query.vendedor_id) : null,
     req.query.contrato_id ? getContractById(req.query.contrato_id) : null,
@@ -114,6 +119,7 @@ async function loadContractsPage(req, res, overrides = {}) {
     selectedBuyer,
     selectedSeller,
     selectedContract,
+    contractStatusFilter,
     message: overrides.message || req.query.message || '',
     error: overrides.error || req.query.error || '',
   });
