@@ -269,8 +269,13 @@ async function updateSeller(id, payload) {
   );
 }
 
-async function listContracts() {
+async function listContracts(options = {}) {
   ensureDatabaseConfigured();
+
+  const listOnlyOpen = options.status !== 'todos';
+  const openContractsWhereClause = listOnlyOpen
+    ? 'WHERE (c.contrato_embarcado IS NOT TRUE OR c.contrato_recebido IS NOT TRUE OR c.corretagem_paga IS NOT TRUE)'
+    : '';
 
   const result = await pool.query(
     `
@@ -293,6 +298,7 @@ async function listContracts() {
       FROM contratos c
       JOIN compradores comp ON comp.id = c.comprador_id
       JOIN vendedores vend ON vend.id = c.vendedor_id
+      ${openContractsWhereClause}
       ORDER BY c.data_contrato DESC, c.id DESC
     `
   );

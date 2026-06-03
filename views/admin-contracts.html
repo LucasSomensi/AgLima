@@ -129,7 +129,12 @@
         <section class="admin-section" id="contratos" aria-labelledby="contracts-list-title">
           <div class="admin-section-header">
             <h2 id="contracts-list-title">Contratos</h2>
+            <nav class="contracts-filter-nav" aria-label="Filtro de contratos">
+              <a class="btn-secondary-action contracts-filter-link{{OPEN_CONTRACTS_ACTIVE_CLASS}}" href="/admin/contratos#contratos">Em aberto</a>
+              <a class="btn-secondary-action contracts-filter-link{{ALL_CONTRACTS_ACTIVE_CLASS}}" href="/admin/contratos?status=todos#contratos">Todos</a>
+            </nav>
           </div>
+          <p class="contracts-filter-help">Por padrão, contratos fechados ficam ocultos. Contratos em aberto são aqueles que ainda não embarcaram, não foram recebidos ou cuja corretagem ainda não foi paga.</p>
           <form class="contact-form contracts-form" action="{{CONTRACT_FORM_ACTION}}" method="post">
             <h3>{{CONTRACT_FORM_TITLE}}</h3>
             <div class="contracts-form-grid">
