@@ -6,7 +6,9 @@ const {
   escapeHtml,
   formatDate,
   formatDateTime,
+  formatDigitsOnly,
   formatMoisture,
+  formatPlainDecimal,
   formatTime,
   getRoleLabel,
   toDateInputValue,
@@ -433,14 +435,17 @@ function renderScaleOutputDetailPage(res, { invoiceInfo }) {
     .replace('{{DATA_SAIDA}}', escapeHtml(formatDateTime(invoiceInfo.data_saida)))
     .replace('{{PLACA_CAMINHAO}}', escapeHtml(invoiceInfo.placa_caminhao))
     .replace('{{PRODUTO}}', escapeHtml(formatProductLabel(invoiceInfo.produto)))
-    .replace('{{PESO_LIQUIDO_KG}}', escapeHtml(formatKg(invoiceInfo.peso_liquido_kg)))
+    .replace('{{PESO_LIQUIDO_KG}}', escapeHtml(formatPlainDecimal(invoiceInfo.peso_liquido_kg)))
     .replace('{{CONTRATO_ID}}', escapeHtml(invoiceInfo.contrato_id))
     .replace('{{VENDEDOR_NOME_COMPLETO}}', escapeHtml(invoiceInfo.vendedor_nome_completo))
     .replace('{{COMPRADOR_NOME_COMPLETO}}', escapeHtml(invoiceInfo.comprador_nome_completo))
     .replace('{{COMPRADOR_CPF_CNPJ}}', escapeHtml(invoiceInfo.comprador_cpf_cnpj))
     .replace('{{COMPRADOR_INSCRICAO_ESTADUAL}}', escapeHtml(invoiceInfo.comprador_inscricao_estadual))
-    .replace('{{PRECO_POR_SACA}}', escapeHtml(formatMoney(invoiceInfo.preco_por_saca)))
-    .replace('{{PRECO_POR_KG}}', escapeHtml(`R$ ${Number(invoiceInfo.preco_por_kg).toLocaleString('pt-BR', { minimumFractionDigits: 8, maximumFractionDigits: 8 })}`))
+    .replace('{{COMPRADOR_ENDERECO}}', escapeHtml(invoiceInfo.comprador_endereco))
+    .replace('{{COMPRADOR_NUMERO}}', escapeHtml(invoiceInfo.comprador_numero))
+    .replace('{{COMPRADOR_CEP}}', escapeHtml(formatDigitsOnly(invoiceInfo.comprador_cep)))
+    .replace('{{PRECO_POR_SACA}}', escapeHtml(formatPlainDecimal(invoiceInfo.preco_por_saca)))
+    .replace('{{PRECO_POR_KG}}', escapeHtml(formatPlainDecimal(invoiceInfo.preco_por_kg)))
     .replace('{{OBSERVACOES}}', escapeHtml(invoiceInfo.observacoes || '-'));
 
   res.send(html);

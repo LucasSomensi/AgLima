@@ -328,7 +328,10 @@ async function getScaleOutputInvoiceInfo(outputId) {
              vend.nome_completo AS vendedor_nome_completo,
              comp.nome_completo AS comprador_nome_completo,
              comp.cpf_cnpj AS comprador_cpf_cnpj,
-             comp.inscricao_estadual AS comprador_inscricao_estadual
+             comp.inscricao_estadual AS comprador_inscricao_estadual,
+             comp.endereco AS comprador_endereco,
+             comp.numero AS comprador_numero,
+             comp.cep AS comprador_cep
       FROM saidas_balanca s
       JOIN contratos c ON c.id = s.contrato_id
       JOIN vendedores vend ON vend.id = c.vendedor_id
