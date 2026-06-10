@@ -309,7 +309,156 @@ async function associateScaleOutputToContract(outputId, buyerId, contractId, use
   }
 }
 
-async function getScaleOutputInvoiceInfo(outputId) {
+
+async function refreshContractShippedStatus(client, contractId) {
+  if (!contractId) {
+    return;
+  }
+
+  await client.query(
+    `
+      UPDATE contratos c
+      SET contrato_embarcado = shipped.quantidade_embarcada_kg >= c.quantidade_kg,
+          atualizado_em = now()
+      FROM (
+        SELECT COALESCE(SUM(peso_liquido_kg), 0) AS quantidade_embarcada_kg
+        FROM saidas_balanca
+        WHERE contrato_id = $1
+      ) shipped
+      WHERE c.id = $1
+    `,
+    [contractId]
+  );
+}
+
+async function deleteScaleOutput(outputId) {
+  ensureDatabaseConfigured();
+
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    const outputResult = await client.query(
+      `
+        SELECT id, contrato_id
+        FROM saidas_balanca
+        WHERE id = $1
+        FOR UPDATE
+      `,
+      [outputId]
+    );
+    const output = outputResult.rows[0];
+
+    if (!output) {
+      throw new Error('Saída não encontrada.');
+    }
+
+    await client.query('DELETE FROM saidas_balanca WHERE id = $1', [outputId]);
+    await refreshContractShippedStatus(client, output.contrato_id);
+
+    await client.query('COMMIT');
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+async function splitScaleOutput(outputId, firstNetWeightKg, userId) {
+  ensureDatabaseConfigured();
+
+  const normalizedFirstNetWeightKg = normalizeDecimal(firstNetWeightKg);
+
+  if (!normalizedFirstNetWeightKg) {
+    throw new Error('Informe um peso líquido válido para a primeira saída.');
+  }
+
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    const outputResult = await client.query(
+      `
+        SELECT id,
+               data_saida,
+               placa_caminhao,
+               produto,
+               peso_tara_kg,
+               peso_bruto_kg,
+               peso_liquido_kg,
+               contrato_id
+        FROM saidas_balanca
+        WHERE id = $1
+        FOR UPDATE
+      `,
+      [outputId]
+    );
+    const output = outputResult.rows[0];
+
+    if (!output) {
+      throw new Error('Saída não encontrada.');
+    }
+
+    const firstNetWeight = Number(normalizedFirstNetWeightKg);
+    const originalTareWeight = Number(output.peso_tara_kg);
+    const originalGrossWeight = Number(output.peso_bruto_kg);
+    const originalNetWeight = Number(output.peso_liquido_kg);
+
+    if (firstNetWeight >= originalNetWeight) {
+      throw new Error('O peso líquido da primeira saída precisa ser menor que o peso líquido original.');
+    }
+
+    const firstGrossWeight = originalTareWeight + firstNetWeight;
+
+    await client.query(
+      `
+        UPDATE saidas_balanca
+        SET peso_bruto_kg = $1,
+            atualizado_em = now()
+        WHERE id = $2
+      `,
+      [firstGrossWeight, outputId]
+    );
+
+    const newOutputResult = await client.query(
+      `
+        INSERT INTO saidas_balanca (
+          data_saida,
+          placa_caminhao,
+          produto,
+          peso_tara_kg,
+          peso_bruto_kg,
+          criado_por_user_id
+        )
+        VALUES ($1, $2, $3, $4, $5, $6)
+        RETURNING id
+      `,
+      [
+        output.data_saida,
+        output.placa_caminhao,
+        output.produto,
+        firstGrossWeight,
+        originalGrossWeight,
+        userId,
+      ]
+    );
+
+    await refreshContractShippedStatus(client, output.contrato_id);
+
+    await client.query('COMMIT');
+    return newOutputResult.rows[0];
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+async function getScaleOutputDetailInfo(outputId) {
   ensureDatabaseConfigured();
 
   const result = await pool.query(
@@ -333,9 +482,9 @@ async function getScaleOutputInvoiceInfo(outputId) {
              comp.numero AS comprador_numero,
              comp.cep AS comprador_cep
       FROM saidas_balanca s
-      JOIN contratos c ON c.id = s.contrato_id
-      JOIN vendedores vend ON vend.id = c.vendedor_id
-      JOIN compradores comp ON comp.id = c.comprador_id
+      LEFT JOIN contratos c ON c.id = s.contrato_id
+      LEFT JOIN vendedores vend ON vend.id = c.vendedor_id
+      LEFT JOIN compradores comp ON comp.id = c.comprador_id
       WHERE s.id = $1
       LIMIT 1
     `,
@@ -349,9 +498,11 @@ module.exports = {
   associateScaleOutputToContract,
   buildScaleOutputPayload,
   createScaleOutput,
+  deleteScaleOutput,
   getScaleOutputById,
-  getScaleOutputInvoiceInfo,
+  getScaleOutputDetailInfo,
   listEligibleBuyersForOutput,
   listEligibleContractsForOutput,
   listScaleOutputs,
+  splitScaleOutput,
 };

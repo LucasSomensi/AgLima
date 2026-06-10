@@ -5,11 +5,13 @@ const {
   associateScaleOutputToContract,
   buildScaleOutputPayload,
   createScaleOutput,
+  deleteScaleOutput,
   getScaleOutputById,
-  getScaleOutputInvoiceInfo,
+  getScaleOutputDetailInfo,
   listEligibleBuyersForOutput,
   listEligibleContractsForOutput,
   listScaleOutputs,
+  splitScaleOutput,
 } = require('./weighbridge-service');
 const {
   renderConstructionPage,
@@ -36,9 +38,13 @@ router.get('/balanca', canAccessWeighbridge, async (req, res) => {
       outputs,
       message: req.query.saida_criada
         ? 'Saída adicionada com sucesso.'
-        : req.query.saida_associada
-          ? 'Saída associada ao contrato com sucesso.'
-          : '',
+        : req.query.saida_deletada
+          ? 'Saída deletada com sucesso.'
+          : req.query.saida_dividida
+            ? 'Saída dividida com sucesso.'
+            : req.query.saida_associada
+              ? 'Saída associada ao contrato com sucesso.'
+              : '',
       error: req.query.error || '',
     });
   } catch (error) {
@@ -150,15 +156,42 @@ router.post('/balanca/saidas/:id/associar', canAccessWeighbridge, async (req, re
   }
 });
 
+
+router.post('/balanca/saidas/:id/deletar', canAccessWeighbridge, async (req, res) => {
+  try {
+    await deleteScaleOutput(req.params.id);
+    return res.redirect(buildWeighbridgeRedirect({ saida_deletada: '1' }));
+  } catch (error) {
+    console.error('Error deleting scale output:', error.message);
+    return res.redirect(buildRedirect(`/balanca/saidas/${req.params.id}`, {
+      error: error.message || 'Não foi possível deletar a saída agora.',
+    }));
+  }
+});
+
+router.post('/balanca/saidas/:id/dividir', canAccessWeighbridge, async (req, res) => {
+  try {
+    await splitScaleOutput(req.params.id, req.body.peso_liquido_primeira_kg, req.sessionUser.userId);
+    return res.redirect(buildWeighbridgeRedirect({ saida_dividida: '1' }));
+  } catch (error) {
+    return res.redirect(buildRedirect(`/balanca/saidas/${req.params.id}`, {
+      error: error.message || 'Não foi possível dividir a saída agora.',
+    }));
+  }
+});
+
 router.get('/balanca/saidas/:id', canAccessWeighbridge, async (req, res) => {
   try {
-    const invoiceInfo = await getScaleOutputInvoiceInfo(req.params.id);
+    const outputInfo = await getScaleOutputDetailInfo(req.params.id);
 
-    if (!invoiceInfo) {
-      return res.redirect(buildWeighbridgeRedirect({ error: 'Associe a saída a um contrato para ver as informações da nota fiscal.' }));
+    if (!outputInfo) {
+      return res.redirect(buildWeighbridgeRedirect({ error: 'Saída não encontrada.' }));
     }
 
-    return renderScaleOutputDetailPage(res, { invoiceInfo });
+    return renderScaleOutputDetailPage(res, {
+      outputInfo,
+      error: req.query.error || '',
+    });
   } catch (error) {
     console.error('Error loading scale output detail:', error.message);
     return res.redirect(buildWeighbridgeRedirect({ error: 'Não foi possível carregar os dados da saída agora.' }));

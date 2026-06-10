@@ -348,18 +348,16 @@ function buildScaleOutputRows(outputs, { showAllLink = false } = {}) {
 
       return `
         <tr>
-          <td>${escapeHtml(formatDateTime(output.data_saida))}</td>
+          <td><a class="admin-table-link" href="/balanca/saidas/${escapeHtml(output.id)}">${escapeHtml(formatDateTime(output.data_saida))}</a></td>
           <td>${escapeHtml(output.placa_caminhao)}</td>
           <td>${escapeHtml(formatProductLabel(output.produto))}</td>
-          <td>${escapeHtml(formatKg(output.peso_tara_kg))}</td>
-          <td>${escapeHtml(formatKg(output.peso_bruto_kg))}</td>
           <td>${escapeHtml(formatKg(output.peso_liquido_kg))}</td>
           <td>${escapeHtml(contractLabel)}</td>
           <td>${action}</td>
         </tr>
       `;
     })
-    .join('') || `<tr><td colspan="8">${showAllLink ? 'Nenhuma saída cadastrada.' : 'Nenhuma saída recente cadastrada.'}</td></tr>`;
+    .join('') || `<tr><td colspan="6">${showAllLink ? 'Nenhuma saída cadastrada.' : 'Nenhuma saída recente cadastrada.'}</td></tr>`;
 }
 
 function renderWeighbridgeHomePage(res, { outputs, message, error }) {
@@ -427,26 +425,50 @@ function renderScaleOutputAssociationPage(res, { output, buyers, contracts, sele
   res.send(html);
 }
 
-function renderScaleOutputDetailPage(res, { invoiceInfo }) {
+function buildScaleOutputContractDetailHtml(outputInfo) {
+  if (!outputInfo.contrato_id) {
+    return `
+        <section class="admin-section">
+          <h2>Contrato</h2>
+          <p class="admin-muted">Saída ainda não associada a contrato.</p>
+          <a class="btn-secondary-action" href="/balanca/saidas/${escapeHtml(outputInfo.saida_id)}/associar">Associar contrato</a>
+        </section>
+    `;
+  }
+
+  return `
+        <section class="admin-section">
+          <h2>Contrato #${escapeHtml(outputInfo.contrato_id)}</h2>
+          <dl class="weighbridge-detail-grid">
+            <div><dt>Nome completo do vendedor</dt><dd><span class="copy-field-value">${escapeHtml(outputInfo.vendedor_nome_completo)}</span><button class="copy-field-button" type="button" aria-label="Copiar Nome completo do vendedor">Copiar</button></dd></div>
+            <div><dt>Nome completo do comprador</dt><dd><span class="copy-field-value">${escapeHtml(outputInfo.comprador_nome_completo)}</span><button class="copy-field-button" type="button" aria-label="Copiar Nome completo do comprador">Copiar</button></dd></div>
+            <div><dt>CPF/CNPJ do comprador</dt><dd><span class="copy-field-value">${escapeHtml(outputInfo.comprador_cpf_cnpj)}</span><button class="copy-field-button" type="button" aria-label="Copiar CPF/CNPJ do comprador">Copiar</button></dd></div>
+            <div><dt>Inscrição Estadual do comprador</dt><dd><span class="copy-field-value">${escapeHtml(outputInfo.comprador_inscricao_estadual)}</span><button class="copy-field-button" type="button" aria-label="Copiar Inscrição Estadual do comprador">Copiar</button></dd></div>
+            <div><dt>Endereço do comprador</dt><dd><span class="copy-field-value">${escapeHtml(outputInfo.comprador_endereco)}</span><button class="copy-field-button" type="button" aria-label="Copiar Endereço do comprador">Copiar</button></dd></div>
+            <div><dt>Número do comprador</dt><dd><span class="copy-field-value">${escapeHtml(outputInfo.comprador_numero)}</span><button class="copy-field-button" type="button" aria-label="Copiar Número do comprador">Copiar</button></dd></div>
+            <div><dt>CEP do comprador</dt><dd><span class="copy-field-value">${escapeHtml(formatDigitsOnly(outputInfo.comprador_cep))}</span><button class="copy-field-button" type="button" aria-label="Copiar CEP do comprador">Copiar</button></dd></div>
+            <div><dt>Preço por saca</dt><dd><span class="copy-field-value">${escapeHtml(formatPlainDecimal(outputInfo.preco_por_saca))}</span><button class="copy-field-button" type="button" aria-label="Copiar Preço por saca">Copiar</button></dd></div>
+            <div><dt>Preço por kg</dt><dd><span class="copy-field-value">${escapeHtml(formatPlainDecimal(outputInfo.preco_por_kg))}</span><button class="copy-field-button" type="button" aria-label="Copiar Preço por kg">Copiar</button></dd></div>
+            <div class="weighbridge-detail-full"><dt>Observações do contrato</dt><dd><span class="copy-field-value">${escapeHtml(outputInfo.observacoes || '-')}</span><button class="copy-field-button" type="button" aria-label="Copiar Observações do contrato">Copiar</button></dd></div>
+          </dl>
+        </section>
+  `;
+}
+
+function renderScaleOutputDetailPage(res, { outputInfo, error }) {
   const pagePath = path.join(__dirname, '../views/weighbridge-output-detail.html');
   const html = fs
     .readFileSync(pagePath, 'utf8')
-    .replace(/{{SAIDA_ID}}/g, escapeHtml(invoiceInfo.saida_id))
-    .replace('{{DATA_SAIDA}}', escapeHtml(formatDateTime(invoiceInfo.data_saida)))
-    .replace('{{PLACA_CAMINHAO}}', escapeHtml(invoiceInfo.placa_caminhao))
-    .replace('{{PRODUTO}}', escapeHtml(formatProductLabel(invoiceInfo.produto)))
-    .replace('{{PESO_LIQUIDO_KG}}', escapeHtml(formatPlainDecimal(invoiceInfo.peso_liquido_kg)))
-    .replace('{{CONTRATO_ID}}', escapeHtml(invoiceInfo.contrato_id))
-    .replace('{{VENDEDOR_NOME_COMPLETO}}', escapeHtml(invoiceInfo.vendedor_nome_completo))
-    .replace('{{COMPRADOR_NOME_COMPLETO}}', escapeHtml(invoiceInfo.comprador_nome_completo))
-    .replace('{{COMPRADOR_CPF_CNPJ}}', escapeHtml(invoiceInfo.comprador_cpf_cnpj))
-    .replace('{{COMPRADOR_INSCRICAO_ESTADUAL}}', escapeHtml(invoiceInfo.comprador_inscricao_estadual))
-    .replace('{{COMPRADOR_ENDERECO}}', escapeHtml(invoiceInfo.comprador_endereco))
-    .replace('{{COMPRADOR_NUMERO}}', escapeHtml(invoiceInfo.comprador_numero))
-    .replace('{{COMPRADOR_CEP}}', escapeHtml(formatDigitsOnly(invoiceInfo.comprador_cep)))
-    .replace('{{PRECO_POR_SACA}}', escapeHtml(formatPlainDecimal(invoiceInfo.preco_por_saca)))
-    .replace('{{PRECO_POR_KG}}', escapeHtml(formatPlainDecimal(invoiceInfo.preco_por_kg)))
-    .replace('{{OBSERVACOES}}', escapeHtml(invoiceInfo.observacoes || '-'));
+    .replace('{{SCALE_OUTPUT_ERROR}}', buildAlertHtml(error, 'error'))
+    .replace(/{{SAIDA_ID}}/g, escapeHtml(outputInfo.saida_id))
+    .replace('{{DATA_SAIDA}}', escapeHtml(formatDateTime(outputInfo.data_saida)))
+    .replace('{{PLACA_CAMINHAO}}', escapeHtml(outputInfo.placa_caminhao))
+    .replace('{{PRODUTO}}', escapeHtml(formatProductLabel(outputInfo.produto)))
+    .replace('{{PESO_TARA_KG}}', escapeHtml(formatPlainDecimal(outputInfo.peso_tara_kg)))
+    .replace('{{PESO_BRUTO_KG}}', escapeHtml(formatPlainDecimal(outputInfo.peso_bruto_kg)))
+    .replace(/{{PESO_LIQUIDO_KG}}/g, escapeHtml(formatPlainDecimal(outputInfo.peso_liquido_kg)))
+    .replace(/{{PESO_LIQUIDO_INPUT_MAX}}/g, escapeHtml(formatDecimalInput(outputInfo.peso_liquido_kg)))
+    .replace('{{CONTRACT_DETAIL_SECTION}}', buildScaleOutputContractDetailHtml(outputInfo));
 
   res.send(html);
 }
