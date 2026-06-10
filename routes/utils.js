@@ -170,6 +170,39 @@ function formatMoisture(value) {
   });
 }
 
+function formatDigitsOnly(value) {
+  if (value === null || value === undefined || value === '') {
+    return '-';
+  }
+
+  const digits = String(value).replace(/\D/g, '');
+
+  return digits || '-';
+}
+
+function formatPlainDecimal(value) {
+  if (value === null || value === undefined || value === '') {
+    return '-';
+  }
+
+  const rawValue = String(value).trim();
+
+  if (!rawValue) {
+    return '-';
+  }
+
+  const normalizedValue = rawValue.replace(',', '.');
+
+  if (!/^-?\d+(?:\.\d+)?$/.test(normalizedValue)) {
+    return rawValue.replace('.', ',');
+  }
+
+  const [integerPart, decimalPart = ''] = normalizedValue.split('.');
+  const trimmedDecimalPart = decimalPart.replace(/0+$/, '');
+
+  return trimmedDecimalPart ? `${integerPart},${trimmedDecimalPart}` : integerPart;
+}
+
 function parseMoisturePercent(rawValue) {
   const normalizedValue = String(rawValue || '').trim().replace(',', '.');
 
@@ -197,7 +230,9 @@ module.exports = {
   escapeHtml,
   formatDate,
   formatDateTime,
+  formatDigitsOnly,
   formatMoisture,
+  formatPlainDecimal,
   formatTime,
   getHomePathForRole,
   getRoleLabel,
