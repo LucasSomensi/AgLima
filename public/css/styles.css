@@ -936,7 +936,7 @@ button:disabled,
 }
 
 .weighbridge-table {
-  min-width: 1080px;
+  min-width: 860px;
 }
 
 .weighbridge-detail-grid {
@@ -999,6 +999,27 @@ button:disabled,
 
 .weighbridge-detail-full {
   grid-column: 1 / -1;
+}
+
+.weighbridge-output-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 22px;
+}
+
+.weighbridge-split-form {
+  padding: 18px;
+  border: 1px solid rgba(234, 246, 238, 0.16);
+  border-radius: 18px;
+  background: rgba(5, 48, 25, 0.2);
+}
+
+.weighbridge-split-form h3 {
+  margin: 0 0 10px;
+  color: #ffffff;
+  font-size: 1.05rem;
+  font-weight: 800;
 }
 
 @media (max-width: 720px) {
