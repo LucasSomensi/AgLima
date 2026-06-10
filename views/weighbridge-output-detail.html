@@ -18,7 +18,7 @@
           <div>
             <span class="eyebrow">Área da balança</span>
             <h1 id="output-detail-title" class="page-title">Detalhes da saída</h1>
-            <a class="back-link admin-back-link" href="/balanca">← Voltar à balança</a>
+            <a class="back-link admin-back-link" href="/balanca">← Voltar à página inicial da balança</a>
           </div>
         </div>
 
@@ -39,15 +39,8 @@
 
         <section class="admin-section">
           <h2>Ações da saída</h2>
-          <div class="weighbridge-output-actions">
-            <form action="/balanca/saidas/{{SAIDA_ID}}/deletar" method="post" onsubmit="return confirm('Tem certeza que quer deletar essa saída? Essa operação não pode ser desfeita.');">
-              <button class="btn-danger-action" type="submit">Deletar saída</button>
-            </form>
-          </div>
-
           <form class="weighbridge-split-form" action="/balanca/saidas/{{SAIDA_ID}}/dividir" method="post">
             <h3>Dividir saída</h3>
-            <p class="admin-muted">Informe o peso líquido desejado para a primeira saída. O sistema calcula automaticamente o líquido da segunda saída e usa o peso bruto da primeira como tara da segunda.</p>
             <div class="form-row">
               <div class="form-group col-md-6">
                 <label for="peso-liquido-primeira">Peso líquido da primeira saída (kg)</label>
@@ -60,6 +53,12 @@
             </div>
             <button class="btn-secondary-action" type="submit">Dividir saída</button>
           </form>
+
+          <div class="weighbridge-output-actions">
+            <form action="/balanca/saidas/{{SAIDA_ID}}/deletar" method="post" onsubmit="return confirm('Tem certeza que quer deletar essa saída? Essa operação não pode ser desfeita.');">
+              <button class="btn-danger-action" type="submit">Deletar saída</button>
+            </form>
+          </div>
         </section>
       </section>
     </main>
