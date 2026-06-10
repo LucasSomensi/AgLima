@@ -6,15 +6,19 @@ const {
   buildScaleOutputPayload,
   createScaleOutput,
   deleteScaleOutput,
+  getOpenContractDetailForWeighbridge,
   getScaleOutputById,
   getScaleOutputDetailInfo,
   listEligibleBuyersForOutput,
   listEligibleContractsForOutput,
+  listOpenContractsForWeighbridge,
   listScaleOutputs,
   splitScaleOutput,
   unlinkScaleOutputFromContract,
 } = require('./weighbridge-service');
 const {
+  renderScaleContractDetailPage,
+  renderScaleContractsListPage,
   renderConstructionPage,
   renderScaleOutputAssociationPage,
   renderScaleOutputDetailPage,
@@ -65,13 +69,30 @@ router.get('/balanca/entradas/nova', canAccessWeighbridge, (req, res) => renderC
   backLabel: '← Voltar à balança',
 }));
 
-router.get('/balanca/contratos', canAccessWeighbridge, (req, res) => renderConstructionPage(res, ROLES.WEIGHBRIDGE_OPERATOR, {
-  eyebrow: 'Área da balança',
-  title: 'Visualizar contratos',
-  description: 'A consulta de contratos pela balança está em construção e ficará disponível em breve.',
-  backHref: '/balanca',
-  backLabel: '← Voltar à balança',
-}));
+router.get('/balanca/contratos', canAccessWeighbridge, async (req, res) => {
+  try {
+    const contracts = await listOpenContractsForWeighbridge();
+    return renderScaleContractsListPage(res, { contracts });
+  } catch (error) {
+    console.error('Error listing weighbridge contracts:', error.message);
+    return res.status(500).send('Não foi possível listar os contratos agora.');
+  }
+});
+
+router.get('/balanca/contratos/:id', canAccessWeighbridge, async (req, res) => {
+  try {
+    const contractInfo = await getOpenContractDetailForWeighbridge(req.params.id);
+
+    if (!contractInfo) {
+      return res.redirect(buildWeighbridgeRedirect({ error: 'Contrato não encontrado ou já finalizado.' }));
+    }
+
+    return renderScaleContractDetailPage(res, contractInfo);
+  } catch (error) {
+    console.error('Error loading weighbridge contract:', error.message);
+    return res.redirect(buildWeighbridgeRedirect({ error: 'Não foi possível carregar os dados do contrato agora.' }));
+  }
+});
 
 router.get('/balanca/saidas', canAccessWeighbridge, async (req, res) => {
   try {
