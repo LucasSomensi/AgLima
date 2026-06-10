@@ -12,12 +12,14 @@ const {
   listEligibleContractsForOutput,
   listScaleOutputs,
   splitScaleOutput,
+  unlinkScaleOutputFromContract,
 } = require('./weighbridge-service');
 const {
   renderConstructionPage,
   renderScaleOutputAssociationPage,
   renderScaleOutputDetailPage,
   renderScaleOutputFormPage,
+  renderScaleOutputInvoicePage,
   renderScaleOutputsListPage,
   renderWeighbridgeHomePage,
 } = require('./renderers');
@@ -44,7 +46,9 @@ router.get('/balanca', canAccessWeighbridge, async (req, res) => {
             ? 'Saída dividida com sucesso.'
             : req.query.saida_associada
               ? 'Saída associada ao contrato com sucesso.'
-              : '',
+              : req.query.contrato_desvinculado
+                ? 'Contrato desvinculado da saída com sucesso.'
+                : '',
       error: req.query.error || '',
     });
   } catch (error) {
@@ -177,6 +181,36 @@ router.post('/balanca/saidas/:id/dividir', canAccessWeighbridge, async (req, res
     return res.redirect(buildRedirect(`/balanca/saidas/${req.params.id}`, {
       error: error.message || 'Não foi possível dividir a saída agora.',
     }));
+  }
+});
+
+router.post('/balanca/saidas/:id/desvincular-contrato', canAccessWeighbridge, async (req, res) => {
+  try {
+    await unlinkScaleOutputFromContract(req.params.id);
+    return res.redirect(buildRedirect(`/balanca/saidas/${req.params.id}/nf`, { contrato_desvinculado: '1' }));
+  } catch (error) {
+    return res.redirect(buildRedirect(`/balanca/saidas/${req.params.id}/nf`, {
+      error: error.message || 'Não foi possível desvincular o contrato agora.',
+    }));
+  }
+});
+
+router.get('/balanca/saidas/:id/nf', canAccessWeighbridge, async (req, res) => {
+  try {
+    const outputInfo = await getScaleOutputDetailInfo(req.params.id);
+
+    if (!outputInfo) {
+      return res.redirect(buildWeighbridgeRedirect({ error: 'Saída não encontrada.' }));
+    }
+
+    return renderScaleOutputInvoicePage(res, {
+      outputInfo,
+      message: req.query.contrato_desvinculado ? 'Contrato desvinculado da saída com sucesso.' : '',
+      error: req.query.error || '',
+    });
+  } catch (error) {
+    console.error('Error loading scale output invoice info:', error.message);
+    return res.redirect(buildWeighbridgeRedirect({ error: 'Não foi possível carregar as informações da NF agora.' }));
   }
 });
 
