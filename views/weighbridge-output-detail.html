@@ -3,9 +3,9 @@
   <head>
       <meta charset="utf-8">
       <meta name="author" content="Lucas">
-      <meta name="description" content="Dados para nota fiscal da saída AgroLima">
+      <meta name="description" content="Informações NF da saída AgroLima">
       <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-      <title>Dados da nota fiscal | AgroLima</title>
+      <title>Informações NF | AgroLima</title>
       <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" integrity="sha384-xOolHFLEh07PJGoPkLv1IbcEPTNtaed2xpHsD9ESMhqIYd0nLMwNLD69Npy4HI+N" crossorigin="anonymous">
       <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:400,500,700&display=swap">
       <link rel="stylesheet" href="/css/styles.css">
@@ -17,7 +17,7 @@
         <div class="admin-header">
           <div>
             <span class="eyebrow">Área da balança</span>
-            <h1 id="invoice-title" class="page-title">Dados para nota fiscal</h1>
+            <h1 id="invoice-title" class="page-title">Informações NF</h1>
             <a class="back-link admin-back-link" href="/balanca">← Voltar à balança</a>
           </div>
         </div>
@@ -25,28 +25,75 @@
         <section class="admin-section">
           <h2>Saída #{{SAIDA_ID}}</h2>
           <dl class="weighbridge-detail-grid">
-            <div><dt>Data/hora</dt><dd>{{DATA_SAIDA}}</dd></div>
-            <div><dt>Placa</dt><dd>{{PLACA_CAMINHAO}}</dd></div>
-            <div><dt>Produto</dt><dd>{{PRODUTO}}</dd></div>
-            <div><dt>Peso tara</dt><dd>{{PESO_TARA_KG}}</dd></div>
-            <div><dt>Peso bruto</dt><dd>{{PESO_BRUTO_KG}}</dd></div>
-            <div><dt>Peso líquido</dt><dd>{{PESO_LIQUIDO_KG}}</dd></div>
+            <div><dt>Data/hora</dt><dd><span class="copy-field-value">{{DATA_SAIDA}}</span><button class="copy-field-button" type="button" aria-label="Copiar Data/hora">Copiar</button></dd></div>
+            <div><dt>Placa</dt><dd><span class="copy-field-value">{{PLACA_CAMINHAO}}</span><button class="copy-field-button" type="button" aria-label="Copiar Placa">Copiar</button></dd></div>
+            <div><dt>Produto</dt><dd><span class="copy-field-value">{{PRODUTO}}</span><button class="copy-field-button" type="button" aria-label="Copiar Produto">Copiar</button></dd></div>
+            <div><dt>Peso líquido</dt><dd><span class="copy-field-value">{{PESO_LIQUIDO_KG}}</span><button class="copy-field-button" type="button" aria-label="Copiar Peso líquido">Copiar</button></dd></div>
           </dl>
         </section>
 
         <section class="admin-section">
           <h2>Contrato #{{CONTRATO_ID}}</h2>
           <dl class="weighbridge-detail-grid">
-            <div><dt>Nome completo do vendedor</dt><dd>{{VENDEDOR_NOME_COMPLETO}}</dd></div>
-            <div><dt>Nome completo do comprador</dt><dd>{{COMPRADOR_NOME_COMPLETO}}</dd></div>
-            <div><dt>CPF/CNPJ do comprador</dt><dd>{{COMPRADOR_CPF_CNPJ}}</dd></div>
-            <div><dt>Inscrição Estadual do comprador</dt><dd>{{COMPRADOR_INSCRICAO_ESTADUAL}}</dd></div>
-            <div><dt>Preço por saca</dt><dd>{{PRECO_POR_SACA}}</dd></div>
-            <div><dt>Preço por kg</dt><dd>{{PRECO_POR_KG}}</dd></div>
-            <div class="weighbridge-detail-full"><dt>Observações do contrato</dt><dd>{{OBSERVACOES}}</dd></div>
+            <div><dt>Nome completo do vendedor</dt><dd><span class="copy-field-value">{{VENDEDOR_NOME_COMPLETO}}</span><button class="copy-field-button" type="button" aria-label="Copiar Nome completo do vendedor">Copiar</button></dd></div>
+            <div><dt>Nome completo do comprador</dt><dd><span class="copy-field-value">{{COMPRADOR_NOME_COMPLETO}}</span><button class="copy-field-button" type="button" aria-label="Copiar Nome completo do comprador">Copiar</button></dd></div>
+            <div><dt>CPF/CNPJ do comprador</dt><dd><span class="copy-field-value">{{COMPRADOR_CPF_CNPJ}}</span><button class="copy-field-button" type="button" aria-label="Copiar CPF/CNPJ do comprador">Copiar</button></dd></div>
+            <div><dt>Inscrição Estadual do comprador</dt><dd><span class="copy-field-value">{{COMPRADOR_INSCRICAO_ESTADUAL}}</span><button class="copy-field-button" type="button" aria-label="Copiar Inscrição Estadual do comprador">Copiar</button></dd></div>
+            <div><dt>Preço por saca</dt><dd><span class="copy-field-value">{{PRECO_POR_SACA}}</span><button class="copy-field-button" type="button" aria-label="Copiar Preço por saca">Copiar</button></dd></div>
+            <div><dt>Preço por kg</dt><dd><span class="copy-field-value">{{PRECO_POR_KG}}</span><button class="copy-field-button" type="button" aria-label="Copiar Preço por kg">Copiar</button></dd></div>
+            <div class="weighbridge-detail-full"><dt>Observações do contrato</dt><dd><span class="copy-field-value">{{OBSERVACOES}}</span><button class="copy-field-button" type="button" aria-label="Copiar Observações do contrato">Copiar</button></dd></div>
           </dl>
         </section>
       </section>
     </main>
+    <script>
+      function copyTextToClipboard(text) {
+        if (navigator.clipboard && window.isSecureContext) {
+          return navigator.clipboard.writeText(text);
+        }
+
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.setAttribute('readonly', '');
+        textarea.style.position = 'absolute';
+        textarea.style.left = '-9999px';
+        document.body.appendChild(textarea);
+        textarea.select();
+
+        try {
+          document.execCommand('copy');
+          return Promise.resolve();
+        } catch (error) {
+          return Promise.reject(error);
+        } finally {
+          document.body.removeChild(textarea);
+        }
+      }
+
+      document.querySelectorAll('.copy-field-button').forEach((button) => {
+        button.addEventListener('click', async () => {
+          const fieldValue = button.parentElement.querySelector('.copy-field-value');
+
+          if (!fieldValue) {
+            return;
+          }
+
+          const textToCopy = fieldValue.textContent.trim();
+
+          try {
+            await copyTextToClipboard(textToCopy);
+            button.textContent = 'Copiado';
+            window.setTimeout(() => {
+              button.textContent = 'Copiar';
+            }, 1600);
+          } catch (error) {
+            button.textContent = 'Erro';
+            window.setTimeout(() => {
+              button.textContent = 'Copiar';
+            }, 1600);
+          }
+        });
+      });
+    </script>
   </body>
 </html>
