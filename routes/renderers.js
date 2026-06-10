@@ -380,6 +380,73 @@ function renderScaleOutputsListPage(res, { outputs }) {
   res.send(html);
 }
 
+
+function buildScaleContractsRows(contracts) {
+  return contracts
+    .map((contract) => `
+        <tr>
+          <td><a class="admin-table-link" href="/balanca/contratos/${escapeHtml(contract.id)}">Contrato #${escapeHtml(contract.id)}</a></td>
+          <td>${escapeHtml(formatDate(contract.data_contrato))}</td>
+          <td>${escapeHtml(contract.comprador_nome)}</td>
+          <td>${escapeHtml(formatProductLabel(contract.produto))}</td>
+          <td>${escapeHtml(formatKg(contract.quantidade_kg))}</td>
+          <td>${escapeHtml(formatKg(contract.quantidade_embarcada_kg))}</td>
+          <td>${escapeHtml(formatKg(contract.saldo_kg))}</td>
+        </tr>
+      `)
+    .join('') || '<tr><td colspan="7">Nenhum contrato com embarque pendente.</td></tr>';
+}
+
+function renderScaleContractsListPage(res, { contracts }) {
+  const pagePath = path.join(__dirname, '../views/weighbridge-contracts.html');
+  const html = fs
+    .readFileSync(pagePath, 'utf8')
+    .replace('{{CONTRACT_ROWS}}', buildScaleContractsRows(contracts));
+
+  res.send(html);
+}
+
+function buildScaleContractOutputRows(outputs) {
+  return outputs
+    .map((output) => `
+        <tr>
+          <td><a class="admin-table-link" href="/balanca/saidas/${escapeHtml(output.id)}">${escapeHtml(formatDateTime(output.data_saida))}</a></td>
+          <td>${escapeHtml(output.placa_caminhao)}</td>
+          <td>${escapeHtml(formatProductLabel(output.produto))}</td>
+          <td>${escapeHtml(formatPlainDecimal(output.peso_tara_kg))}</td>
+          <td>${escapeHtml(formatPlainDecimal(output.peso_bruto_kg))}</td>
+          <td>${escapeHtml(formatPlainDecimal(output.peso_liquido_kg))}</td>
+          <td><a class="admin-table-link" href="/balanca/saidas/${escapeHtml(output.id)}/nf">Informações NF</a></td>
+        </tr>
+      `)
+    .join('') || '<tr><td colspan="7">Nenhuma saída associada a este contrato.</td></tr>';
+}
+
+function renderScaleContractDetailPage(res, { contract, outputs }) {
+  const pagePath = path.join(__dirname, '../views/weighbridge-contract-detail.html');
+  const html = fs
+    .readFileSync(pagePath, 'utf8')
+    .replace(/{{CONTRATO_ID}}/g, escapeHtml(contract.contrato_id))
+    .replace('{{DATA_CONTRATO}}', escapeHtml(formatDate(contract.data_contrato)))
+    .replace('{{PRODUTO}}', escapeHtml(formatProductLabel(contract.produto)))
+    .replace('{{QUANTIDADE_KG}}', escapeHtml(formatPlainDecimal(contract.quantidade_kg)))
+    .replace('{{QUANTIDADE_EMBARCADA_KG}}', escapeHtml(formatPlainDecimal(contract.quantidade_embarcada_kg)))
+    .replace('{{SALDO_KG}}', escapeHtml(formatPlainDecimal(contract.saldo_kg)))
+    .replace('{{VENDEDOR_NOME_COMPLETO}}', escapeHtml(contract.vendedor_nome_completo))
+    .replace('{{COMPRADOR_NOME_COMPLETO}}', escapeHtml(contract.comprador_nome_completo))
+    .replace('{{COMPRADOR_CPF_CNPJ}}', escapeHtml(contract.comprador_cpf_cnpj))
+    .replace('{{COMPRADOR_INSCRICAO_ESTADUAL}}', escapeHtml(contract.comprador_inscricao_estadual))
+    .replace('{{COMPRADOR_ENDERECO}}', escapeHtml(contract.comprador_endereco))
+    .replace('{{COMPRADOR_NUMERO}}', escapeHtml(contract.comprador_numero))
+    .replace('{{COMPRADOR_CEP}}', escapeHtml(formatDigitsOnly(contract.comprador_cep)))
+    .replace('{{PRECO_POR_SACA}}', escapeHtml(formatPlainDecimal(contract.preco_por_saca)))
+    .replace('{{PRECO_POR_KG}}', escapeHtml(formatPlainDecimal(contract.preco_por_kg)))
+    .replace('{{OBSERVACOES}}', escapeHtml(contract.observacoes || '-'))
+    .replace('{{OUTPUT_ROWS}}', buildScaleContractOutputRows(outputs));
+
+  res.send(html);
+}
+
 function renderScaleOutputFormPage(res, { formValues = {}, error }) {
   const pagePath = path.join(__dirname, '../views/weighbridge-output-form.html');
   const html = fs
@@ -631,6 +698,8 @@ module.exports = {
   renderConstructionPage,
   renderDryerPanelPage,
   renderLoginPage,
+  renderScaleContractDetailPage,
+  renderScaleContractsListPage,
   renderScaleOutputAssociationPage,
   renderScaleOutputDetailPage,
   renderScaleOutputInvoicePage,

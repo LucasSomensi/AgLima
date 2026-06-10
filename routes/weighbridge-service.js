@@ -509,6 +509,97 @@ async function splitScaleOutput(outputId, firstNetWeightKg, userId) {
   }
 }
 
+async function listOpenContractsForWeighbridge() {
+  ensureDatabaseConfigured();
+
+  const result = await pool.query(
+    `
+      SELECT c.id,
+             c.data_contrato,
+             c.produto,
+             c.quantidade_kg,
+             comp.nome AS comprador_nome,
+             COALESCE(SUM(s.peso_liquido_kg), 0) AS quantidade_embarcada_kg,
+             c.quantidade_kg - COALESCE(SUM(s.peso_liquido_kg), 0) AS saldo_kg
+      FROM contratos c
+      JOIN compradores comp ON comp.id = c.comprador_id
+      LEFT JOIN saidas_balanca s ON s.contrato_id = c.id
+      WHERE c.contrato_embarcado IS NOT TRUE
+      GROUP BY c.id, c.data_contrato, c.produto, c.quantidade_kg, comp.nome
+      HAVING c.quantidade_kg - COALESCE(SUM(s.peso_liquido_kg), 0) > 0
+      ORDER BY c.data_contrato ASC, c.id ASC
+    `
+  );
+
+  return result.rows;
+}
+
+async function getOpenContractDetailForWeighbridge(contractId) {
+  ensureDatabaseConfigured();
+
+  const contractResult = await pool.query(
+    `
+      SELECT c.id AS contrato_id,
+             c.data_contrato,
+             c.produto,
+             c.preco_por_saca,
+             trunc(c.preco_por_saca / 60, 8) AS preco_por_kg,
+             c.quantidade_kg,
+             COALESCE(shipped.quantidade_embarcada_kg, 0) AS quantidade_embarcada_kg,
+             c.quantidade_kg - COALESCE(shipped.quantidade_embarcada_kg, 0) AS saldo_kg,
+             c.observacoes,
+             vend.nome_completo AS vendedor_nome_completo,
+             comp.nome AS comprador_nome,
+             comp.nome_completo AS comprador_nome_completo,
+             comp.cpf_cnpj AS comprador_cpf_cnpj,
+             comp.inscricao_estadual AS comprador_inscricao_estadual,
+             comp.endereco AS comprador_endereco,
+             comp.numero AS comprador_numero,
+             comp.cep AS comprador_cep
+      FROM contratos c
+      JOIN vendedores vend ON vend.id = c.vendedor_id
+      JOIN compradores comp ON comp.id = c.comprador_id
+      LEFT JOIN (
+        SELECT contrato_id, COALESCE(SUM(peso_liquido_kg), 0) AS quantidade_embarcada_kg
+        FROM saidas_balanca
+        WHERE contrato_id = $1
+        GROUP BY contrato_id
+      ) shipped ON shipped.contrato_id = c.id
+      WHERE c.id = $1
+        AND c.contrato_embarcado IS NOT TRUE
+        AND c.quantidade_kg - COALESCE(shipped.quantidade_embarcada_kg, 0) > 0
+      LIMIT 1
+    `,
+    [contractId]
+  );
+  const contract = contractResult.rows[0] || null;
+
+  if (!contract) {
+    return null;
+  }
+
+  const outputsResult = await pool.query(
+    `
+      SELECT id,
+             data_saida,
+             placa_caminhao,
+             produto,
+             peso_tara_kg,
+             peso_bruto_kg,
+             peso_liquido_kg
+      FROM saidas_balanca
+      WHERE contrato_id = $1
+      ORDER BY data_saida DESC, id DESC
+    `,
+    [contractId]
+  );
+
+  return {
+    contract,
+    outputs: outputsResult.rows,
+  };
+}
+
 async function getScaleOutputDetailInfo(outputId) {
   ensureDatabaseConfigured();
 
@@ -552,10 +643,12 @@ module.exports = {
   buildScaleOutputPayload,
   createScaleOutput,
   deleteScaleOutput,
+  getOpenContractDetailForWeighbridge,
   getScaleOutputById,
   getScaleOutputDetailInfo,
   listEligibleBuyersForOutput,
   listEligibleContractsForOutput,
+  listOpenContractsForWeighbridge,
   listScaleOutputs,
   splitScaleOutput,
   unlinkScaleOutputFromContract,
