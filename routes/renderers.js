@@ -10,6 +10,7 @@ const {
   formatTime,
   getRoleLabel,
   toDateInputValue,
+  toDateTimeLocalValue,
 } = require('./utils');
 
 function buildAlertHtml(message, type = 'success') {
@@ -312,6 +313,141 @@ function renderAdminContractsPage(res, { buyers, sellers, contracts, selectedBuy
   res.send(contractsHtml);
 }
 
+
+function formatProductLabel(value) {
+  const labels = {
+    milho: 'Milho',
+    soja: 'Soja',
+  };
+
+  return labels[value] || value || '-';
+}
+
+function formatKg(value) {
+  if (value === null || value === undefined || value === '') {
+    return '-';
+  }
+
+  return `${Number(value).toLocaleString('pt-BR', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 3,
+  })} kg`;
+}
+
+function buildScaleOutputRows(outputs, { showAllLink = false } = {}) {
+  return outputs
+    .map((output) => {
+      const action = output.contrato_id
+        ? `<a class="admin-table-link" href="/balanca/saidas/${escapeHtml(output.id)}">Ver nota fiscal</a>`
+        : `<a class="admin-table-link" href="/balanca/saidas/${escapeHtml(output.id)}/associar">Associar contrato</a>`;
+      const contractLabel = output.contrato_id
+        ? `Contrato #${output.contrato_id}${output.comprador_nome ? ` · ${output.comprador_nome}` : ''}`
+        : 'Pendente';
+
+      return `
+        <tr>
+          <td>${escapeHtml(formatDateTime(output.data_saida))}</td>
+          <td>${escapeHtml(output.placa_caminhao)}</td>
+          <td>${escapeHtml(formatProductLabel(output.produto))}</td>
+          <td>${escapeHtml(formatKg(output.peso_tara_kg))}</td>
+          <td>${escapeHtml(formatKg(output.peso_bruto_kg))}</td>
+          <td>${escapeHtml(formatKg(output.peso_liquido_kg))}</td>
+          <td>${escapeHtml(contractLabel)}</td>
+          <td>${action}</td>
+        </tr>
+      `;
+    })
+    .join('') || `<tr><td colspan="8">${showAllLink ? 'Nenhuma saída cadastrada.' : 'Nenhuma saída recente cadastrada.'}</td></tr>`;
+}
+
+function renderWeighbridgeHomePage(res, { outputs, message, error }) {
+  const pagePath = path.join(__dirname, '../views/weighbridge-home.html');
+  const html = fs
+    .readFileSync(pagePath, 'utf8')
+    .replace('{{WEIGHBRIDGE_MESSAGE}}', buildAlertHtml(message))
+    .replace('{{WEIGHBRIDGE_ERROR}}', buildAlertHtml(error, 'error'))
+    .replace('{{SCALE_OUTPUT_ROWS}}', buildScaleOutputRows(outputs));
+
+  res.send(html);
+}
+
+function renderScaleOutputsListPage(res, { outputs }) {
+  const pagePath = path.join(__dirname, '../views/weighbridge-outputs.html');
+  const html = fs
+    .readFileSync(pagePath, 'utf8')
+    .replace('{{SCALE_OUTPUT_ROWS}}', buildScaleOutputRows(outputs, { showAllLink: true }));
+
+  res.send(html);
+}
+
+function renderScaleOutputFormPage(res, { formValues = {}, error }) {
+  const pagePath = path.join(__dirname, '../views/weighbridge-output-form.html');
+  const html = fs
+    .readFileSync(pagePath, 'utf8')
+    .replace('{{SCALE_OUTPUT_ERROR}}', buildAlertHtml(error, 'error'))
+    .replace(/{{DATA_SAIDA}}/g, escapeHtml(formValues.data_saida || toDateTimeLocalValue()))
+    .replace(/{{PLACA_CAMINHAO}}/g, escapeHtml(formValues.placa_caminhao || ''))
+    .replace('{{PRODUCT_MILHO_SELECTED}}', formValues.produto === 'milho' ? ' selected' : '')
+    .replace('{{PRODUCT_SOJA_SELECTED}}', formValues.produto === 'soja' ? ' selected' : '')
+    .replace(/{{PESO_TARA_KG}}/g, escapeHtml(formatDecimalInput(formValues.peso_tara_kg)))
+    .replace(/{{PESO_BRUTO_KG}}/g, escapeHtml(formatDecimalInput(formValues.peso_bruto_kg)));
+
+  res.send(html);
+}
+
+function renderScaleOutputAssociationPage(res, { output, buyers, contracts, selectedBuyerId, error }) {
+  const pagePath = path.join(__dirname, '../views/weighbridge-associate-output.html');
+  const buyerOptions = buyers.map((buyer) => buildOption(buyer.id, buyer.nome, selectedBuyerId)).join('');
+  const contractOptions = contracts.map((contract) => {
+    const label = `Contrato #${contract.id} · ${formatDate(contract.data_contrato)} · saldo ${formatKg(contract.saldo_kg)} · ${formatMoney(contract.preco_por_saca)}/saca`;
+    return buildOption(contract.id, label, contracts.length === 1 ? contract.id : '');
+  }).join('');
+  const contractHelp = !selectedBuyerId
+    ? 'Escolha primeiro o comprador para carregar os contratos disponíveis deste produto.'
+    : contracts.length === 0
+      ? 'Não há contratos com embarque pendente para este comprador e produto.'
+      : contracts.length === 1
+        ? 'Há apenas um contrato disponível; ele foi selecionado automaticamente.'
+        : 'Escolha qual contrato deve receber esta saída.';
+  const submitDisabled = contracts.length === 0 ? 'disabled' : '';
+
+  const html = fs
+    .readFileSync(pagePath, 'utf8')
+    .replace('{{ASSOCIATION_ERROR}}', buildAlertHtml(error, 'error'))
+    .replace(/{{OUTPUT_ID}}/g, escapeHtml(output.id))
+    .replace('{{OUTPUT_SUMMARY}}', escapeHtml(`${formatDateTime(output.data_saida)} · ${output.placa_caminhao} · ${formatProductLabel(output.produto)} · líquido ${formatKg(output.peso_liquido_kg)}`))
+    .replace('{{BUYER_OPTIONS}}', buyerOptions)
+    .replace('{{CONTRACT_OPTIONS}}', contractOptions)
+    .replace('{{CONTRACT_HELP}}', escapeHtml(contractHelp))
+    .replace(/{{SELECTED_BUYER_ID}}/g, escapeHtml(selectedBuyerId || ''))
+    .replace(/{{ASSOCIATE_DISABLED}}/g, submitDisabled);
+
+  res.send(html);
+}
+
+function renderScaleOutputDetailPage(res, { invoiceInfo }) {
+  const pagePath = path.join(__dirname, '../views/weighbridge-output-detail.html');
+  const html = fs
+    .readFileSync(pagePath, 'utf8')
+    .replace(/{{SAIDA_ID}}/g, escapeHtml(invoiceInfo.saida_id))
+    .replace('{{DATA_SAIDA}}', escapeHtml(formatDateTime(invoiceInfo.data_saida)))
+    .replace('{{PLACA_CAMINHAO}}', escapeHtml(invoiceInfo.placa_caminhao))
+    .replace('{{PRODUTO}}', escapeHtml(formatProductLabel(invoiceInfo.produto)))
+    .replace('{{PESO_TARA_KG}}', escapeHtml(formatKg(invoiceInfo.peso_tara_kg)))
+    .replace('{{PESO_BRUTO_KG}}', escapeHtml(formatKg(invoiceInfo.peso_bruto_kg)))
+    .replace('{{PESO_LIQUIDO_KG}}', escapeHtml(formatKg(invoiceInfo.peso_liquido_kg)))
+    .replace('{{CONTRATO_ID}}', escapeHtml(invoiceInfo.contrato_id))
+    .replace('{{VENDEDOR_NOME_COMPLETO}}', escapeHtml(invoiceInfo.vendedor_nome_completo))
+    .replace('{{COMPRADOR_NOME_COMPLETO}}', escapeHtml(invoiceInfo.comprador_nome_completo))
+    .replace('{{COMPRADOR_CPF_CNPJ}}', escapeHtml(invoiceInfo.comprador_cpf_cnpj))
+    .replace('{{COMPRADOR_INSCRICAO_ESTADUAL}}', escapeHtml(invoiceInfo.comprador_inscricao_estadual))
+    .replace('{{PRECO_POR_SACA}}', escapeHtml(formatMoney(invoiceInfo.preco_por_saca)))
+    .replace('{{PRECO_POR_KG}}', escapeHtml(`R$ ${Number(invoiceInfo.preco_por_kg).toLocaleString('pt-BR', { minimumFractionDigits: 8, maximumFractionDigits: 8 })}`))
+    .replace('{{OBSERVACOES}}', escapeHtml(invoiceInfo.observacoes || '-'));
+
+  res.send(html);
+}
+
 function renderConstructionPage(res, role, options = {}) {
   const constructionPath = path.join(__dirname, '../views/construction.html');
   const titleByRole = {
@@ -439,4 +575,9 @@ module.exports = {
   renderConstructionPage,
   renderDryerPanelPage,
   renderLoginPage,
+  renderScaleOutputAssociationPage,
+  renderScaleOutputDetailPage,
+  renderScaleOutputFormPage,
+  renderScaleOutputsListPage,
+  renderWeighbridgeHomePage,
 };
