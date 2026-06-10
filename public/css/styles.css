@@ -926,3 +926,54 @@ button:disabled,
     width: 100%;
   }
 }
+
+.weighbridge-card {
+  max-width: 1380px;
+}
+
+.weighbridge-actions {
+  margin-bottom: 26px;
+}
+
+.weighbridge-table {
+  min-width: 1080px;
+}
+
+.weighbridge-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+}
+
+.weighbridge-detail-grid > div {
+  padding: 14px;
+  border: 1px solid rgba(234, 246, 238, 0.16);
+  border-radius: 16px;
+  background: rgba(5, 48, 25, 0.28);
+}
+
+.weighbridge-detail-grid dt {
+  margin-bottom: 6px;
+  color: var(--accent);
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.weighbridge-detail-grid dd {
+  margin: 0;
+  color: #ffffff;
+  font-weight: 700;
+  word-break: break-word;
+}
+
+.weighbridge-detail-full {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 720px) {
+  .weighbridge-detail-grid {
+    grid-template-columns: 1fr;
+  }
+}

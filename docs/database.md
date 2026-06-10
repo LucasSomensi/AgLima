@@ -2,7 +2,7 @@
 
 Este documento descreve o schema `public` do banco PostgreSQL usado pela aplicação AgroLima. Ele foi criado a partir dos arquivos `columns.txt` e `constraints.txt`, que contêm consultas ao `information_schema` do banco, e complementado com o comportamento observado no código da aplicação.
 
-> **Uso para manutenção:** consulte este arquivo antes de alterar queries, telas administrativas, serviços do secador, contratos ou autenticação. Se o banco for alterado, gere novamente `columns.txt` e `constraints.txt` e atualize esta documentação.
+> **Uso para manutenção:** consulte este arquivo antes de alterar queries, telas administrativas, serviços do secador, contratos, saídas da balança ou autenticação. Se o banco for alterado, gere novamente `columns.txt` e `constraints.txt` e atualize esta documentação.
 
 ## Visão geral
 
@@ -12,6 +12,7 @@ Este documento descreve o schema `public` do banco PostgreSQL usado pela aplica�
   - [`compradores`](#compradores)
   - [`vendedores`](#vendedores)
   - [`contratos`](#contratos)
+  - [`saidas_balanca`](#saidas_balanca)
   - [`users`](#users)
   - [`dryer_settings`](#dryer_settings)
   - [`dryer_batches`](#dryer_batches)
@@ -23,6 +24,9 @@ Este documento descreve o schema `public` do banco PostgreSQL usado pela aplica�
 | --- | --- | --- | --- | --- |
 | `contratos` | `comprador_id` | `compradores` | `id` | Vincula cada contrato a um comprador. |
 | `contratos` | `vendedor_id` | `vendedores` | `id` | Vincula cada contrato a um vendedor. |
+| `saidas_balanca` | `contrato_id` | `contratos` | `id` | Associação opcional da saída da balança ao contrato embarcado. |
+| `saidas_balanca` | `criado_por_user_id` | `users` | `id` | Registra o operador que lançou a saída. |
+| `saidas_balanca` | `associado_por_user_id` | `users` | `id` | Registra o operador que associou a saída ao contrato. |
 | `dryer_batches` | `started_by_user_id` | `users` | `id` | Registra o usuário que iniciou a batelada. |
 | `dryer_batches` | `completed_by_user_id` | `users` | `id` | Registra o usuário que concluiu/parou a batelada. |
 | `dryer_moisture_readings` | `batch_id` | `dryer_batches` | `id` | Vincula medições de umidade a uma batelada. |
@@ -121,6 +125,54 @@ Armazena contratos comerciais de compra/venda de grãos.
 | Foreign key | `contratos_vendedor_id_fk` | `vendedor_id` → `vendedores.id` |
 | Check / not null | constraints `contratos_*_not_null` | `id`, `data_contrato`, `produto`, `preco_por_saca`, `comprador_id`, `vendedor_id`, `quantidade_kg`, `contrato_embarcado`, `contrato_recebido`, `corretagem_paga`, `criado_em`, `atualizado_em` |
 
+
+---
+
+## `saidas_balanca`
+
+Armazena as saídas registradas pelo operador de balança. Cada saída nasce sem contrato (`contrato_id` nulo) e pode ser associada depois a um contrato ainda não totalmente embarcado. A tela da balança usa essa tabela para listar as saídas em ordem cronológica reversa, calcular o peso líquido e recuperar os dados necessários para emissão de nota fiscal via relacionamento com `contratos`, `compradores` e `vendedores`.
+
+### Colunas
+
+| Coluna | Tipo | Nulo? | Default | Descrição |
+| --- | --- | --- | --- | --- |
+| `id` | `bigint` | Não | `nextval('saidas_balanca_id_seq'::regclass)` | Identificador sequencial da saída. |
+| `data_saida` | `timestamp with time zone` | Não | `now()` | Data/hora da saída informada pelo operador; o formulário preenche com a data/hora atual. |
+| `placa_caminhao` | `character varying` | Não | — | Placa do caminhão, validada no padrão brasileiro antigo ou Mercosul. |
+| `produto` | `USER-DEFINED` | Não | — | Tipo de produto da saída. Deve ser compatível com o tipo usado por `contratos.produto`; pela aplicação, valores aceitos: `milho` e `soja`. |
+| `peso_tara_kg` | `numeric` | Não | — | Peso tara em quilogramas. |
+| `peso_bruto_kg` | `numeric` | Não | — | Peso bruto em quilogramas. |
+| `peso_liquido_kg` | `numeric` | Sim | — | Peso líquido em quilogramas, calculado no banco a partir de `peso_bruto_kg - peso_tara_kg`. Aparece como nullable no `information_schema` por ser coluna gerada. |
+| `criado_por_user_id` | `uuid` | Não | — | Usuário operador que criou a saída. FK para `users.id`. |
+| `contrato_id` | `bigint` | Sim | — | Contrato associado à saída. Enquanto nulo, a saída fica pendente de associação. FK para `contratos.id`. |
+| `associado_por_user_id` | `uuid` | Sim | — | Usuário operador que fez a associação com o contrato. FK para `users.id`. |
+| `associado_em` | `timestamp with time zone` | Sim | — | Data/hora da associação com o contrato. |
+| `criado_em` | `timestamp with time zone` | Não | `now()` | Data/hora de criação do registro. |
+| `atualizado_em` | `timestamp with time zone` | Não | `now()` | Data/hora da última atualização do registro. |
+
+### Restrições
+
+| Tipo | Nome | Coluna(s) / referência |
+| --- | --- | --- |
+| Primary key | `saidas_balanca_pkey` | `id` |
+| Foreign key | `saidas_balanca_contrato_id_fkey` | `contrato_id` → `contratos.id` |
+| Foreign key | `saidas_balanca_criado_por_user_id_fkey` | `criado_por_user_id` → `users.id` |
+| Foreign key | `saidas_balanca_associado_por_user_id_fkey` | `associado_por_user_id` → `users.id` |
+| Check | `saidas_balanca_associacao_completa_check` | `contrato_id`, `associado_por_user_id`, `associado_em` |
+| Check | `saidas_balanca_placa_caminhao_formato_check` | `placa_caminhao` |
+| Check | `saidas_balanca_peso_tara_positivo_check` | `peso_tara_kg` |
+| Check | `saidas_balanca_peso_bruto_positivo_check` | `peso_bruto_kg` |
+| Check | `saidas_balanca_peso_bruto_maior_tara_check` | `peso_bruto_kg`, `peso_tara_kg` |
+| Check / not null | constraints `saidas_balanca_*_not_null` | `id`, `data_saida`, `placa_caminhao`, `produto`, `peso_tara_kg`, `peso_bruto_kg`, `criado_por_user_id`, `criado_em`, `atualizado_em` |
+
+### Uso pela aplicação
+
+- A página inicial da balança exibe as 10 saídas mais recentes usando `ORDER BY data_saida DESC, id DESC`.
+- A lista completa de saídas usa a mesma ordem cronológica reversa.
+- Saídas com `contrato_id IS NULL` exibem ação para associar comprador e contrato.
+- A associação filtra contratos pelo comprador escolhido, pelo mesmo `produto` da saída e por contratos com saldo de embarque positivo.
+- Após associação, a página de detalhe da saída mostra apenas os dados necessários para emissão da nota fiscal: nomes completos de vendedor e comprador, CPF/CNPJ e inscrição estadual do comprador, preço por saca, preço por kg truncado em 8 casas decimais e observações do contrato.
+
 ---
 
 ## `users`
@@ -156,7 +208,7 @@ Armazena usuários autenticados do sistema.
 | `root` | Usuário administrativo inicial, criado pelo script `npm run create-root-user`; gerencia contas. |
 | `admin` | Acessa o painel administrativo e consultas/ajustes do secador. |
 | `client` | Perfil de cliente; atualmente direcionado para página em construção. |
-| `weighbridge_operator` | Operador de balança; atualmente direcionado para página em construção. |
+| `weighbridge_operator` | Operador de balança; acessa `/balanca` para registrar saídas e associá-las a contratos. |
 | `silo_operator` | Opera o painel do secador em `/secador`. |
 
 ---
@@ -256,7 +308,7 @@ Armazena as leituras de umidade lançadas durante uma batelada do secador.
 2. **`columns.txt` é a fonte dos tipos, nulidade e defaults.**
 3. **`constraints.txt` é a fonte das chaves primárias, chaves estrangeiras, uniques e checks.**
 4. **Algumas regras de domínio aparecem só pelo nome da constraint**, pois o arquivo de constraints não inclui a expressão SQL completa do `CHECK`. Exemplos: `users_role_check`, `dryer_batches_status_check`, `dryer_batches_grain_type_check` e `dryer_settings_target_moisture_check`.
-5. **A aplicação complementa algumas validações no código**, como CPF/CNPJ, CEP, inscrição estadual, produtos aceitos em contratos e perfis de usuário.
+5. **A aplicação complementa algumas validações no código**, como CPF/CNPJ, CEP, inscrição estadual, produtos aceitos em contratos, saídas da balança e perfis de usuário.
 
 ## Como atualizar este documento
 

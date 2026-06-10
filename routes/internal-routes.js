@@ -7,7 +7,7 @@ const { getHomePathForRole } = require('./utils');
 const router = express.Router();
 
 router.get('/area-interna', requireAuth, (req, res) => {
-  if ([ROLES.ROOT, ROLES.ADMIN, ROLES.SILO_OPERATOR].includes(req.sessionUser.role)) {
+  if ([ROLES.ROOT, ROLES.ADMIN, ROLES.SILO_OPERATOR, ROLES.WEIGHBRIDGE_OPERATOR].includes(req.sessionUser.role)) {
     return res.redirect(getHomePathForRole(req.sessionUser.role));
   }
 

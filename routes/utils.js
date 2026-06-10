@@ -26,6 +26,10 @@ function getHomePathForRole(role) {
     return '/secador';
   }
 
+  if (role === ROLES.WEIGHBRIDGE_OPERATOR) {
+    return '/balanca';
+  }
+
   return '/area-interna';
 }
 

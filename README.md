@@ -70,7 +70,7 @@ Se o login `root` já existir, o script termina com sucesso sem alterar o usuár
 
 ## Login e gerenciamento de usuários
 
-O `/login` autentica usuários salvos na tabela `users` do PostgreSQL usando `DATABASE_URL`. O usuário com `role = 'root'` é redirecionado para `/admin/usuarios`, onde pode adicionar e remover outros usuários do sistema. Usuários com `role = 'admin'` são redirecionados para `/admin`, onde acompanham a batelada atual, alteram a umidade alvo e consultam bateladas anteriores. Usuários com `role = 'silo_operator'` são redirecionados para `/secador`. Os perfis `client` e `weighbridge_operator` são redirecionados para páginas em construção em `/area-interna`.
+O `/login` autentica usuários salvos na tabela `users` do PostgreSQL usando `DATABASE_URL`. O usuário com `role = 'root'` é redirecionado para `/admin/usuarios`, onde pode adicionar e remover outros usuários do sistema. Usuários com `role = 'admin'` são redirecionados para `/admin`, onde acompanham a batelada atual, alteram a umidade alvo e consultam bateladas anteriores. Usuários com `role = 'silo_operator'` são redirecionados para `/secador`. Usuários com `role = 'weighbridge_operator'` são redirecionados para `/balanca`, onde registram saídas e associam carregamentos a contratos. O perfil `client` ainda é redirecionado para página em construção em `/area-interna`.
 
 Além de `DATABASE_URL`, configure também:
 
@@ -102,7 +102,7 @@ O sistema trabalha com cinco perfis na coluna `users.role`:
 | `root` | Usuário especial criado pelo script `npm run create-root-user`; gerencia as contas dos demais usuários. |
 | `admin` | Sócios/administradores da empresa; acessam o painel administrativo do secador em modo consulta e podem ajustar a umidade alvo. |
 | `client` | Clientes; futuramente consultarão volumes de soja e milho armazenados, mas por enquanto acessam uma página em construção. |
-| `weighbridge_operator` | Operadores de balança; futuramente lançarão entradas e saídas de produto, mas por enquanto acessam uma página em construção. |
+| `weighbridge_operator` | Operadores de balança; acessam `/balanca` para registrar saídas de produto e associá-las a compradores/contratos. |
 | `silo_operator` | Operadores de silo; acessam o painel compartilhado do secador em `/secador`. |
 
 O painel do usuário `root` cria apenas usuários dos perfis `admin`, `client`, `weighbridge_operator` e `silo_operator`. O perfil `root` continua reservado ao script de inicialização.

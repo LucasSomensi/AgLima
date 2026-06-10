@@ -5,6 +5,7 @@ const authRoutes = require('./auth-routes');
 const dryerRoutes = require('./dryer-routes');
 const internalRoutes = require('./internal-routes');
 const publicRoutes = require('./public-routes');
+const weighbridgeRoutes = require('./weighbridge-routes');
 
 const router = express.Router();
 
@@ -13,6 +14,7 @@ router.use(publicRoutes);
 router.use(authRoutes);
 router.use(internalRoutes);
 router.use(dryerRoutes);
+router.use(weighbridgeRoutes);
 router.use(adminRoutes);
 
 module.exports = router;
