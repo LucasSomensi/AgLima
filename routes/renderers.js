@@ -338,7 +338,7 @@ function buildScaleOutputRows(outputs, { showAllLink = false } = {}) {
   return outputs
     .map((output) => {
       const action = output.contrato_id
-        ? `<a class="admin-table-link" href="/balanca/saidas/${escapeHtml(output.id)}">Ver nota fiscal</a>`
+        ? `<a class="admin-table-link" href="/balanca/saidas/${escapeHtml(output.id)}">Informações NF</a>`
         : `<a class="admin-table-link" href="/balanca/saidas/${escapeHtml(output.id)}/associar">Associar contrato</a>`;
       const contractLabel = output.contrato_id
         ? `Contrato #${output.contrato_id}${output.comprador_nome ? ` · ${output.comprador_nome}` : ''}`
@@ -433,8 +433,6 @@ function renderScaleOutputDetailPage(res, { invoiceInfo }) {
     .replace('{{DATA_SAIDA}}', escapeHtml(formatDateTime(invoiceInfo.data_saida)))
     .replace('{{PLACA_CAMINHAO}}', escapeHtml(invoiceInfo.placa_caminhao))
     .replace('{{PRODUTO}}', escapeHtml(formatProductLabel(invoiceInfo.produto)))
-    .replace('{{PESO_TARA_KG}}', escapeHtml(formatKg(invoiceInfo.peso_tara_kg)))
-    .replace('{{PESO_BRUTO_KG}}', escapeHtml(formatKg(invoiceInfo.peso_bruto_kg)))
     .replace('{{PESO_LIQUIDO_KG}}', escapeHtml(formatKg(invoiceInfo.peso_liquido_kg)))
     .replace('{{CONTRATO_ID}}', escapeHtml(invoiceInfo.contrato_id))
     .replace('{{VENDEDOR_NOME_COMPLETO}}', escapeHtml(invoiceInfo.vendedor_nome_completo))

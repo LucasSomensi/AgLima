@@ -962,10 +962,39 @@ button:disabled,
 }
 
 .weighbridge-detail-grid dd {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
   margin: 0;
   color: #ffffff;
   font-weight: 700;
   word-break: break-word;
+}
+
+.copy-field-value {
+  min-width: 0;
+}
+
+.copy-field-button {
+  flex: 0 0 auto;
+  padding: 4px 9px;
+  border: 1px solid rgba(234, 246, 238, 0.32);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.copy-field-button:hover,
+.copy-field-button:focus {
+  border-color: var(--accent);
+  background: rgba(233, 190, 106, 0.18);
+  color: var(--accent);
 }
 
 .weighbridge-detail-full {
