@@ -310,6 +310,57 @@ async function associateScaleOutputToContract(outputId, buyerId, contractId, use
 }
 
 
+async function unlinkScaleOutputFromContract(outputId) {
+  ensureDatabaseConfigured();
+
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    const outputResult = await client.query(
+      `
+        SELECT id, contrato_id
+        FROM saidas_balanca
+        WHERE id = $1
+        FOR UPDATE
+      `,
+      [outputId]
+    );
+    const output = outputResult.rows[0];
+
+    if (!output) {
+      throw new Error('Saída não encontrada.');
+    }
+
+    if (!output.contrato_id) {
+      throw new Error('Essa saída não está associada a um contrato.');
+    }
+
+    await client.query(
+      `
+        UPDATE saidas_balanca
+        SET contrato_id = NULL,
+            associado_por_user_id = NULL,
+            associado_em = NULL,
+            atualizado_em = now()
+        WHERE id = $1
+      `,
+      [outputId]
+    );
+
+    await refreshContractShippedStatus(client, output.contrato_id);
+
+    await client.query('COMMIT');
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+
 async function refreshContractShippedStatus(client, contractId) {
   if (!contractId) {
     return;
@@ -471,8 +522,10 @@ async function getScaleOutputDetailInfo(outputId) {
              s.peso_bruto_kg,
              s.peso_liquido_kg,
              c.id AS contrato_id,
+             c.data_contrato,
              c.preco_por_saca,
              trunc(c.preco_por_saca / 60, 8) AS preco_por_kg,
+             c.quantidade_kg,
              c.observacoes,
              vend.nome_completo AS vendedor_nome_completo,
              comp.nome_completo AS comprador_nome_completo,
@@ -505,4 +558,5 @@ module.exports = {
   listEligibleContractsForOutput,
   listScaleOutputs,
   splitScaleOutput,
+  unlinkScaleOutputFromContract,
 };

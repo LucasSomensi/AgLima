@@ -340,7 +340,7 @@ function buildScaleOutputRows(outputs, { showAllLink = false } = {}) {
   return outputs
     .map((output) => {
       const action = output.contrato_id
-        ? `<a class="admin-table-link" href="/balanca/saidas/${escapeHtml(output.id)}">Informações NF</a>`
+        ? `<a class="admin-table-link" href="/balanca/saidas/${escapeHtml(output.id)}/nf">Informações NF</a>`
         : `<a class="admin-table-link" href="/balanca/saidas/${escapeHtml(output.id)}/associar">Associar contrato</a>`;
       const contractLabel = output.contrato_id
         ? `Contrato #${output.contrato_id}${output.comprador_nome ? ` · ${output.comprador_nome}` : ''}`
@@ -425,12 +425,20 @@ function renderScaleOutputAssociationPage(res, { output, buyers, contracts, sele
   res.send(html);
 }
 
-function buildScaleOutputContractDetailHtml(outputInfo) {
+function buildScaleOutputInvoiceLinkHtml(outputInfo) {
+  if (outputInfo.contrato_id) {
+    return `<p><a class="btn-secondary-action" href="/balanca/saidas/${escapeHtml(outputInfo.saida_id)}/nf">Ver informações NF</a></p>`;
+  }
+
+  return `<p><a class="btn-secondary-action" href="/balanca/saidas/${escapeHtml(outputInfo.saida_id)}/associar">Associar contrato</a></p>`;
+}
+
+function buildScaleOutputInvoiceDetailHtml(outputInfo) {
   if (!outputInfo.contrato_id) {
     return `
         <section class="admin-section">
           <h2>Contrato</h2>
-          <p class="admin-muted">Saída ainda não associada a contrato.</p>
+          <p class="admin-muted">Saída ainda não associada a contrato. Associe um contrato para exibir as informações da nota fiscal.</p>
           <a class="btn-secondary-action" href="/balanca/saidas/${escapeHtml(outputInfo.saida_id)}/associar">Associar contrato</a>
         </section>
     `;
@@ -440,6 +448,8 @@ function buildScaleOutputContractDetailHtml(outputInfo) {
         <section class="admin-section">
           <h2>Contrato #${escapeHtml(outputInfo.contrato_id)}</h2>
           <dl class="weighbridge-detail-grid">
+            <div><dt>Data do contrato</dt><dd><span class="copy-field-value">${escapeHtml(formatDate(outputInfo.data_contrato))}</span><button class="copy-field-button" type="button" aria-label="Copiar Data do contrato">Copiar</button></dd></div>
+            <div><dt>Quantidade do contrato</dt><dd><span class="copy-field-value">${escapeHtml(formatPlainDecimal(outputInfo.quantidade_kg))}</span><button class="copy-field-button" type="button" aria-label="Copiar Quantidade do contrato">Copiar</button></dd></div>
             <div><dt>Nome completo do vendedor</dt><dd><span class="copy-field-value">${escapeHtml(outputInfo.vendedor_nome_completo)}</span><button class="copy-field-button" type="button" aria-label="Copiar Nome completo do vendedor">Copiar</button></dd></div>
             <div><dt>Nome completo do comprador</dt><dd><span class="copy-field-value">${escapeHtml(outputInfo.comprador_nome_completo)}</span><button class="copy-field-button" type="button" aria-label="Copiar Nome completo do comprador">Copiar</button></dd></div>
             <div><dt>CPF/CNPJ do comprador</dt><dd><span class="copy-field-value">${escapeHtml(outputInfo.comprador_cpf_cnpj)}</span><button class="copy-field-button" type="button" aria-label="Copiar CPF/CNPJ do comprador">Copiar</button></dd></div>
@@ -451,6 +461,11 @@ function buildScaleOutputContractDetailHtml(outputInfo) {
             <div><dt>Preço por kg</dt><dd><span class="copy-field-value">${escapeHtml(formatPlainDecimal(outputInfo.preco_por_kg))}</span><button class="copy-field-button" type="button" aria-label="Copiar Preço por kg">Copiar</button></dd></div>
             <div class="weighbridge-detail-full"><dt>Observações do contrato</dt><dd><span class="copy-field-value">${escapeHtml(outputInfo.observacoes || '-')}</span><button class="copy-field-button" type="button" aria-label="Copiar Observações do contrato">Copiar</button></dd></div>
           </dl>
+          <div class="weighbridge-output-actions">
+            <form action="/balanca/saidas/${escapeHtml(outputInfo.saida_id)}/desvincular-contrato" method="post" onsubmit="return confirm('Desvincular esta saída do contrato?');">
+              <button class="btn-danger-action" type="submit">Desvincular contrato</button>
+            </form>
+          </div>
         </section>
   `;
 }
@@ -468,7 +483,23 @@ function renderScaleOutputDetailPage(res, { outputInfo, error }) {
     .replace('{{PESO_BRUTO_KG}}', escapeHtml(formatPlainDecimal(outputInfo.peso_bruto_kg)))
     .replace(/{{PESO_LIQUIDO_KG}}/g, escapeHtml(formatPlainDecimal(outputInfo.peso_liquido_kg)))
     .replace(/{{PESO_LIQUIDO_INPUT_MAX}}/g, escapeHtml(formatDecimalInput(outputInfo.peso_liquido_kg)))
-    .replace('{{CONTRACT_DETAIL_SECTION}}', buildScaleOutputContractDetailHtml(outputInfo));
+    .replace('{{INVOICE_INFO_LINK}}', buildScaleOutputInvoiceLinkHtml(outputInfo));
+
+  res.send(html);
+}
+
+function renderScaleOutputInvoicePage(res, { outputInfo, message, error }) {
+  const pagePath = path.join(__dirname, '../views/weighbridge-output-invoice.html');
+  const html = fs
+    .readFileSync(pagePath, 'utf8')
+    .replace('{{SCALE_OUTPUT_MESSAGE}}', buildAlertHtml(message))
+    .replace('{{SCALE_OUTPUT_ERROR}}', buildAlertHtml(error, 'error'))
+    .replace(/{{SAIDA_ID}}/g, escapeHtml(outputInfo.saida_id))
+    .replace('{{DATA_SAIDA}}', escapeHtml(formatDateTime(outputInfo.data_saida)))
+    .replace('{{PLACA_CAMINHAO}}', escapeHtml(outputInfo.placa_caminhao))
+    .replace('{{PRODUTO}}', escapeHtml(formatProductLabel(outputInfo.produto)))
+    .replace(/{{PESO_LIQUIDO_KG}}/g, escapeHtml(formatPlainDecimal(outputInfo.peso_liquido_kg)))
+    .replace('{{INVOICE_DETAIL_SECTION}}', buildScaleOutputInvoiceDetailHtml(outputInfo));
 
   res.send(html);
 }
@@ -602,6 +633,7 @@ module.exports = {
   renderLoginPage,
   renderScaleOutputAssociationPage,
   renderScaleOutputDetailPage,
+  renderScaleOutputInvoicePage,
   renderScaleOutputFormPage,
   renderScaleOutputsListPage,
   renderWeighbridgeHomePage,
