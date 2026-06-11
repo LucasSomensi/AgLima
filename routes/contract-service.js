@@ -460,7 +460,7 @@ async function createContract(payload) {
         corretagem_paga,
         observacoes
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+      VALUES ($1::date, $2, $3, $4, $5, $6, $7, $8::date, $9, $10, $11, $12, $13)
     `,
     [
       payload.dataContrato,
@@ -553,14 +553,14 @@ async function updateContract(id, payload) {
   await pool.query(
     `
       UPDATE contratos
-      SET data_contrato = $1,
+      SET data_contrato = $1::date,
           produto = $2,
           preco_por_saca = $3,
           comprador_id = $4,
           vendedor_id = $5,
           quantidade_kg = $6,
           contrato_embarcado = $7,
-          data_recebimento = $8,
+          data_recebimento = $8::date,
           contrato_recebido = $9,
           corretor = $10,
           valor_corretagem_percentual = $11,

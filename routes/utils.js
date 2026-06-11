@@ -115,16 +115,15 @@ function formatDate(value) {
     return '-';
   }
 
-  const dateOnlyParts = getDateOnlyParts(value);
+  const dateOnlyValue = toDateOnlyInputValue(value);
 
-  if (dateOnlyParts) {
-    return `${dateOnlyParts.day}/${dateOnlyParts.month}/${dateOnlyParts.year}`;
+  if (!dateOnlyValue) {
+    return '-';
   }
 
-  return new Intl.DateTimeFormat('pt-BR', {
-    timeZone: APP_TIME_ZONE,
-    dateStyle: 'short',
-  }).format(new Date(value));
+  const [year, month, day] = dateOnlyValue.split('-');
+
+  return `${day}/${month}/${year}`;
 }
 
 function toDateOnlyInputValue(value) {
