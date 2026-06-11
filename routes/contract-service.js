@@ -306,6 +306,111 @@ async function listContracts(options = {}) {
   return result.rows;
 }
 
+
+function buildContractNotification(type, contract) {
+  const actionPathByType = {
+    shipment_due: `/admin/contratos/${contract.id}/marcar-embarcado`,
+    receipt_due: `/admin/contratos/${contract.id}/marcar-recebido`,
+    brokerage_due: `/admin/contratos/${contract.id}/marcar-corretagem-paga`,
+  };
+
+  return {
+    type,
+    contractId: contract.id,
+    buyerName: contract.comprador_nome,
+    balanceKg: contract.saldo_kg,
+    contractValue: contract.valor_contrato,
+    brokerageValue: contract.valor_corretagem,
+    receiptDate: contract.data_recebimento,
+    daysOverdue: Number(contract.dias_desde_vencimento || 0),
+    actionPath: actionPathByType[type],
+  };
+}
+
+async function listAdminContractNotifications() {
+  ensureDatabaseConfigured();
+
+  const result = await pool.query(
+    `
+      WITH hoje AS (
+        SELECT (now() AT TIME ZONE 'America/Sao_Paulo')::date AS data_atual
+      ), saldos AS (
+        SELECT c.id,
+               c.data_recebimento,
+               c.quantidade_kg,
+               c.contrato_embarcado,
+               c.contrato_recebido,
+               c.corretagem_paga,
+               comp.nome AS comprador_nome,
+               c.quantidade_kg * c.preco_por_saca / 60 AS valor_contrato,
+               CASE
+                 WHEN c.valor_corretagem_percentual IS NULL THEN NULL
+                 ELSE c.quantidade_kg * c.preco_por_saca / 60 * c.valor_corretagem_percentual / 100
+               END AS valor_corretagem,
+               c.quantidade_kg - COALESCE(SUM(s.peso_liquido_kg), 0) AS saldo_kg,
+               CASE
+                 WHEN c.data_recebimento IS NULL THEN NULL
+                 ELSE hoje.data_atual - c.data_recebimento
+               END AS dias_desde_vencimento
+        FROM contratos c
+        JOIN compradores comp ON comp.id = c.comprador_id
+        CROSS JOIN hoje
+        LEFT JOIN saidas_balanca s ON s.contrato_id = c.id
+        GROUP BY c.id, c.data_recebimento, c.quantidade_kg, c.preco_por_saca, c.valor_corretagem_percentual, c.contrato_embarcado, c.contrato_recebido, c.corretagem_paga, comp.nome, hoje.data_atual
+      )
+      SELECT id,
+             data_recebimento,
+             comprador_nome,
+             saldo_kg,
+             valor_contrato,
+             valor_corretagem,
+             dias_desde_vencimento,
+             contrato_embarcado,
+             contrato_recebido,
+             corretagem_paga
+      FROM saldos
+      WHERE (contrato_embarcado IS NOT TRUE AND saldo_kg <= 0)
+         OR (contrato_recebido IS NOT TRUE AND data_recebimento IS NOT NULL AND dias_desde_vencimento >= 0)
+         OR (corretagem_paga IS NOT TRUE AND data_recebimento IS NOT NULL AND dias_desde_vencimento >= 7)
+      ORDER BY data_recebimento ASC NULLS LAST, id ASC
+    `
+  );
+
+  const notifications = [];
+
+  result.rows.forEach((contract) => {
+    const daysSinceDueDate = Number(contract.dias_desde_vencimento || 0);
+
+    if (!contract.contrato_embarcado && Number(contract.saldo_kg) <= 0) {
+      notifications.push(buildContractNotification('shipment_due', contract));
+    }
+
+    if (!contract.contrato_recebido && contract.data_recebimento && daysSinceDueDate >= 0) {
+      notifications.push(buildContractNotification('receipt_due', contract));
+    }
+
+    if (!contract.corretagem_paga && contract.data_recebimento && daysSinceDueDate >= 7) {
+      notifications.push(buildContractNotification('brokerage_due', contract));
+    }
+  });
+
+  const priorityByType = {
+    shipment_due: 1,
+    receipt_due: 2,
+    brokerage_due: 3,
+  };
+
+  return notifications.sort((left, right) => {
+    const priorityDiff = priorityByType[left.type] - priorityByType[right.type];
+
+    if (priorityDiff !== 0) {
+      return priorityDiff;
+    }
+
+    return right.daysOverdue - left.daysOverdue;
+  });
+}
+
 async function getContractById(id) {
   ensureDatabaseConfigured();
 
@@ -375,6 +480,73 @@ async function createContract(payload) {
   );
 }
 
+
+async function markContractAsShipped(id) {
+  ensureDatabaseConfigured();
+
+  const result = await pool.query(
+    `
+      UPDATE contratos c
+      SET contrato_embarcado = TRUE,
+          quantidade_kg = embarque.quantidade_embarcada_kg,
+          atualizado_em = now()
+      FROM (
+        SELECT c2.id,
+               COALESCE(SUM(s.peso_liquido_kg), 0) AS quantidade_embarcada_kg,
+               c2.quantidade_kg - COALESCE(SUM(s.peso_liquido_kg), 0) AS saldo_kg
+        FROM contratos c2
+        LEFT JOIN saidas_balanca s ON s.contrato_id = c2.id
+        WHERE c2.id = $1
+        GROUP BY c2.id, c2.quantidade_kg
+      ) embarque
+      WHERE c.id = embarque.id
+        AND c.contrato_embarcado IS NOT TRUE
+        AND embarque.saldo_kg <= 0
+    `,
+    [id]
+  );
+
+  return result.rowCount;
+}
+
+async function markContractAsReceived(id) {
+  ensureDatabaseConfigured();
+
+  const result = await pool.query(
+    `
+      UPDATE contratos
+      SET contrato_recebido = TRUE,
+          atualizado_em = now()
+      WHERE id = $1
+        AND contrato_recebido IS NOT TRUE
+        AND data_recebimento IS NOT NULL
+        AND data_recebimento <= (now() AT TIME ZONE 'America/Sao_Paulo')::date
+    `,
+    [id]
+  );
+
+  return result.rowCount;
+}
+
+async function markContractBrokerageAsPaid(id) {
+  ensureDatabaseConfigured();
+
+  const result = await pool.query(
+    `
+      UPDATE contratos
+      SET corretagem_paga = TRUE,
+          atualizado_em = now()
+      WHERE id = $1
+        AND corretagem_paga IS NOT TRUE
+        AND data_recebimento IS NOT NULL
+        AND (now() AT TIME ZONE 'America/Sao_Paulo')::date - data_recebimento >= 7
+    `,
+    [id]
+  );
+
+  return result.rowCount;
+}
+
 async function updateContract(id, payload) {
   ensureDatabaseConfigured();
 
@@ -426,9 +598,13 @@ module.exports = {
   getBuyerById,
   getContractById,
   getSellerById,
+  listAdminContractNotifications,
   listBuyers,
   listContracts,
   listSellers,
+  markContractAsReceived,
+  markContractAsShipped,
+  markContractBrokerageAsPaid,
   updateBuyer,
   updateContract,
   updateSeller,

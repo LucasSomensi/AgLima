@@ -11,9 +11,13 @@ const {
   getBuyerById,
   getContractById,
   getSellerById,
+  listAdminContractNotifications,
   listBuyers,
   listContracts,
   listSellers,
+  markContractAsReceived,
+  markContractAsShipped,
+  markContractBrokerageAsPaid,
   updateBuyer,
   updateContract,
   updateSeller,
@@ -51,8 +55,23 @@ function buildAdminPanelRedirect(params) {
   return buildRedirect('/admin/secador', params);
 }
 
-router.get('/admin', canAccessAdminPanel, (req, res) => {
-  return renderAdminHomePage(res);
+function buildAdminHomeRedirect(params = {}) {
+  return buildRedirect('/admin', params);
+}
+
+router.get('/admin', canAccessAdminPanel, async (req, res) => {
+  try {
+    const notifications = await listAdminContractNotifications();
+
+    return renderAdminHomePage(res, {
+      notifications,
+      message: req.query.message || '',
+      error: req.query.error || '',
+    });
+  } catch (error) {
+    console.error('Error loading admin notifications:', error.message);
+    return res.status(500).send('Não foi possível carregar as notificações administrativas agora.');
+  }
 });
 
 router.get('/admin/secador', canAccessAdminPanel, async (req, res) => {
@@ -226,6 +245,55 @@ router.post('/admin/contratos/vendedores/:id', canAccessAdminPanel, async (req, 
     console.error('Error updating seller:', error.message);
     return res.redirect(buildContractsRedirect({ vendedor_id: req.params.id, error: 'Não foi possível atualizar o vendedor agora.' }));
   }
+});
+
+
+async function runContractQuickAction(req, res, action, successMessage, inactiveMessage, errorLogMessage) {
+  try {
+    const updatedRows = await action(req.params.id);
+
+    if (!updatedRows) {
+      return res.redirect(buildAdminHomeRedirect({ error: inactiveMessage }));
+    }
+
+    return res.redirect(buildAdminHomeRedirect({ message: successMessage }));
+  } catch (error) {
+    console.error(errorLogMessage, error.message);
+    return res.redirect(buildAdminHomeRedirect({ error: 'Não foi possível atualizar o contrato agora.' }));
+  }
+}
+
+router.post('/admin/contratos/:id/marcar-embarcado', canAccessAdminPanel, async (req, res) => {
+  return runContractQuickAction(
+    req,
+    res,
+    markContractAsShipped,
+    'Contrato marcado como embarcado com sucesso.',
+    'Esse contrato já foi marcado como embarcado ou não existe.',
+    'Error marking contract as shipped:'
+  );
+});
+
+router.post('/admin/contratos/:id/marcar-recebido', canAccessAdminPanel, async (req, res) => {
+  return runContractQuickAction(
+    req,
+    res,
+    markContractAsReceived,
+    'Contrato marcado como recebido com sucesso.',
+    'Esse contrato já foi marcado como recebido ou não existe.',
+    'Error marking contract as received:'
+  );
+});
+
+router.post('/admin/contratos/:id/marcar-corretagem-paga', canAccessAdminPanel, async (req, res) => {
+  return runContractQuickAction(
+    req,
+    res,
+    markContractBrokerageAsPaid,
+    'Corretagem marcada como paga com sucesso.',
+    'Essa corretagem já foi marcada como paga ou o contrato não existe.',
+    'Error marking contract brokerage as paid:'
+  );
 });
 
 router.post('/admin/contratos/contratos', canAccessAdminPanel, async (req, res) => {

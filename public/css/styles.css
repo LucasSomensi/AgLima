@@ -780,6 +780,84 @@ button:disabled,
   margin-bottom: 22px;
 }
 
+.admin-notifications-panel {
+  padding: 22px;
+  border: 1px solid rgba(217, 182, 109, 0.28);
+  border-radius: 22px;
+  background: rgba(5, 48, 25, 0.28);
+}
+
+.admin-notifications-header {
+  margin-bottom: 16px;
+}
+
+.admin-notifications-count {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 7px 12px;
+  color: var(--green-950);
+  border-radius: 999px;
+  background: var(--accent);
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.admin-notifications-list {
+  display: grid;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.admin-notification-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: center;
+  padding: 18px;
+  border: 1px solid rgba(234, 246, 238, 0.16);
+  border-radius: 18px;
+  background: rgba(234, 246, 238, 0.1);
+}
+
+.admin-notification-copy {
+  display: grid;
+  gap: 6px;
+  color: #ffffff;
+  line-height: 1.45;
+}
+
+.admin-notification-copy span,
+.admin-notification-empty {
+  color: var(--green-100);
+}
+
+.admin-notification-empty {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.admin-notification-action {
+  margin: 0;
+}
+
+.admin-notification-button {
+  white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  .admin-notification-item {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-notification-button {
+    width: 100%;
+    white-space: normal;
+  }
+}
+
 @media (max-width: 720px) {
   .admin-module-grid {
     grid-template-columns: 1fr;

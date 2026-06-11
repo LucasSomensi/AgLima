@@ -113,9 +113,95 @@ function renderReadingsRows(readings, { includeOperator = true } = {}) {
     .join('') || emptyReadings;
 }
 
-function renderAdminHomePage(res) {
+function formatDaysOverdueLabel(daysOverdue) {
+  if (daysOverdue <= 0) {
+    return 'vence hoje';
+  }
+
+  return daysOverdue === 1 ? 'venceu há 1 dia' : `venceu há ${daysOverdue} dias`;
+}
+
+function buildAdminNotificationMessage(notification) {
+  const contractLabel = `Contrato número ${notification.contractId} do comprador ${notification.buyerName}`;
+
+  if (notification.type === 'shipment_due') {
+    return `${contractLabel} tem saldo ${formatKg(notification.balanceKg)}, clique abaixo para marcá-lo como embarcado.`;
+  }
+
+  if (notification.type === 'receipt_due') {
+    return `${contractLabel} ${formatDaysOverdueLabel(notification.daysOverdue)} no valor de ${formatMoney(notification.contractValue)}, clique abaixo para marcá-lo como recebido.`;
+  }
+
+  if (notification.type === 'brokerage_due') {
+    const daysLabel = notification.daysOverdue === 1 ? 'venceu há 1 dia' : `venceu há ${notification.daysOverdue} dias`;
+    return `${contractLabel} ${daysLabel} e tem corretagem no valor de ${formatMoney(notification.brokerageValue)}, clique abaixo para marcar sua corretagem como paga.`;
+  }
+
+  return `${contractLabel} precisa de atenção.`;
+}
+
+function getAdminNotificationActionLabel(type) {
+  const labels = {
+    shipment_due: 'Marcar como embarcado',
+    receipt_due: 'Marcar como recebido',
+    brokerage_due: 'Marcar corretagem como paga',
+  };
+
+  return labels[type] || 'Resolver pendência';
+}
+
+function renderAdminNotificationsPanel(notifications) {
+  const notificationCount = notifications.length;
+  const notificationSummary = notificationCount === 1 ? '1 ação pendente' : `${notificationCount} ações pendentes`;
+
+  if (!notificationCount) {
+    return `
+        <section class="admin-section admin-notifications-panel" aria-labelledby="admin-notifications-title">
+          <div class="admin-section-header admin-notifications-header">
+            <h2 id="admin-notifications-title">Notificações</h2>
+            <span class="admin-notifications-count">Tudo em dia</span>
+          </div>
+          <p class="admin-notification-empty">Nenhuma ação pendente no momento.</p>
+        </section>
+      `;
+  }
+
+  const notificationItems = notifications
+    .map((notification) => `
+          <li class="admin-notification-item admin-notification-${escapeHtml(notification.type)}">
+            <div class="admin-notification-copy">
+              <strong>${escapeHtml(buildAdminNotificationMessage(notification))}</strong>
+              ${notification.receiptDate ? `<span>Data de vencimento: ${escapeHtml(formatDate(notification.receiptDate))}</span>` : ''}
+            </div>
+            <form class="admin-notification-action" action="${escapeHtml(notification.actionPath)}" method="post">
+              <button class="btn-primary-action admin-notification-button" type="submit">${escapeHtml(getAdminNotificationActionLabel(notification.type))}</button>
+            </form>
+          </li>
+        `)
+    .join('');
+
+  return `
+        <section class="admin-section admin-notifications-panel" aria-labelledby="admin-notifications-title">
+          <div class="admin-section-header admin-notifications-header">
+            <h2 id="admin-notifications-title">Notificações</h2>
+            <span class="admin-notifications-count">${escapeHtml(notificationSummary)}</span>
+          </div>
+          <ul class="admin-notifications-list">
+            ${notificationItems}
+          </ul>
+        </section>
+      `;
+}
+
+function renderAdminHomePage(res, { notifications = [], message, error } = {}) {
   const adminHomePath = path.join(__dirname, '../views/admin-home.html');
-  res.send(fs.readFileSync(adminHomePath, 'utf8'));
+  const adminHomeHtml = fs
+    .readFileSync(adminHomePath, 'utf8')
+    .replace('{{ADMIN_HOME_MESSAGE}}', buildAlertHtml(message))
+    .replace('{{ADMIN_HOME_ERROR}}', buildAlertHtml(error, 'error'))
+    .replace('{{ADMIN_NOTIFICATIONS_PANEL}}', renderAdminNotificationsPanel(notifications));
+
+  res.send(adminHomeHtml);
 }
 
 function renderAdminDashboardPage(res, { batch, readings, settings, message, error }) {
