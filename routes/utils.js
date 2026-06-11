@@ -115,21 +115,24 @@ function formatDate(value) {
     return '-';
   }
 
-  const dateOnlyParts = getDateOnlyParts(value);
+  const dateOnlyValue = toDateOnlyInputValue(value);
 
-  if (dateOnlyParts) {
-    return `${dateOnlyParts.day}/${dateOnlyParts.month}/${dateOnlyParts.year}`;
+  if (!dateOnlyValue) {
+    return '-';
   }
 
-  return new Intl.DateTimeFormat('pt-BR', {
-    timeZone: APP_TIME_ZONE,
-    dateStyle: 'short',
-  }).format(new Date(value));
+  const [year, month, day] = dateOnlyValue.split('-');
+
+  return `${day}/${month}/${year}`;
 }
 
-function toDateInputValue(value) {
+function toDateOnlyInputValue(value) {
   if (!value) {
     return '';
+  }
+
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return value;
   }
 
   const dateOnlyParts = getDateOnlyParts(value);
@@ -138,13 +141,21 @@ function toDateInputValue(value) {
     return `${dateOnlyParts.year}-${dateOnlyParts.month}-${dateOnlyParts.day}`;
   }
 
-  const parts = getBrasiliaDateTimeParts(value);
+  const date = value instanceof Date ? value : new Date(value);
 
-  if (!parts) {
+  if (Number.isNaN(date.getTime())) {
     return '';
   }
 
-  return `${parts.year}-${parts.month}-${parts.day}`;
+  const year = String(date.getUTCFullYear()).padStart(4, '0');
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(date.getUTCDate()).padStart(2, '0');
+
+  return `${year}-${month}-${day}`;
+}
+
+function toDateInputValue(value) {
+  return toDateOnlyInputValue(value);
 }
 
 function formatTime(value) {
@@ -239,5 +250,6 @@ module.exports = {
   parseMoisturePercent,
   parseOptionalDateTime,
   toDateInputValue,
+  toDateOnlyInputValue,
   toDateTimeLocalValue,
 };
