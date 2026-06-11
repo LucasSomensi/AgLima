@@ -428,8 +428,10 @@ function buildScaleOutputRows(outputs, { showAllLink = false } = {}) {
       const action = output.contrato_id
         ? `<a class="admin-table-link" href="/balanca/saidas/${escapeHtml(output.id)}/nf">Informações NF</a>`
         : `<a class="admin-table-link" href="/balanca/saidas/${escapeHtml(output.id)}/associar">Associar contrato</a>`;
-      const contractLabel = output.contrato_id
-        ? `Contrato #${output.contrato_id}${output.comprador_nome ? ` · ${output.comprador_nome}` : ''}`
+      const contractContent = output.contrato_id
+        ? `<a class="admin-table-link" href="/balanca/contratos/${escapeHtml(output.contrato_id)}">Contrato #${escapeHtml(output.contrato_id)}${
+          output.comprador_nome ? ` · ${escapeHtml(output.comprador_nome)}` : ''
+        }</a>`
         : 'Pendente';
 
       return `
@@ -438,7 +440,7 @@ function buildScaleOutputRows(outputs, { showAllLink = false } = {}) {
           <td>${escapeHtml(output.placa_caminhao)}</td>
           <td>${escapeHtml(formatProductLabel(output.produto))}</td>
           <td>${escapeHtml(formatKg(output.peso_liquido_kg))}</td>
-          <td>${escapeHtml(contractLabel)}</td>
+          <td>${contractContent}</td>
           <td>${action}</td>
         </tr>
       `;
