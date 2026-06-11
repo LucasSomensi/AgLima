@@ -11,7 +11,7 @@ const {
   formatPlainDecimal,
   formatTime,
   getRoleLabel,
-  toDateInputValue,
+  toDateOnlyInputValue,
   toDateTimeLocalValue,
 } = require('./utils');
 
@@ -382,7 +382,7 @@ function renderAdminContractsPage(res, { buyers, sellers, contracts, selectedBuy
     .replace('{{CONTRACT_FORM_TITLE}}', selectedContract ? 'Editar contrato' : 'Adicionar contrato')
     .replace('{{CONTRACT_FORM_BUTTON}}', selectedContract ? 'Salvar contrato' : 'Adicionar contrato')
     .replace('{{CONTRACT_CANCEL_LINK}}', selectedContract ? '<a class="btn-secondary-action" href="/admin/contratos#contratos">Cancelar edição</a>' : '')
-    .replace(/{{CONTRACT_DATA_CONTRATO}}/g, escapeHtml(toDateInputValue(selectedContract?.data_contrato)))
+    .replace(/{{CONTRACT_DATA_CONTRATO}}/g, escapeHtml(toDateOnlyInputValue(selectedContract?.data_contrato)))
     .replace('{{PRODUCT_MILHO_SELECTED}}', selectedContract?.produto === 'milho' ? ' selected' : '')
     .replace('{{PRODUCT_SOJA_SELECTED}}', selectedContract?.produto === 'soja' ? ' selected' : '')
     .replace(/{{CONTRACT_PRECO_POR_SACA}}/g, escapeHtml(formatDecimalInput(selectedContract?.preco_por_saca)))
@@ -390,7 +390,7 @@ function renderAdminContractsPage(res, { buyers, sellers, contracts, selectedBuy
     .replace('{{SELLER_OPTIONS}}', sellerOptions)
     .replace(/{{CONTRACT_QUANTIDADE_KG}}/g, escapeHtml(formatDecimalInput(selectedContract?.quantidade_kg)))
     .replace('{{CONTRACT_EMBARCADO_CHECKED}}', selectedContract?.contrato_embarcado ? ' checked' : '')
-    .replace(/{{CONTRACT_DATA_RECEBIMENTO}}/g, escapeHtml(toDateInputValue(selectedContract?.data_recebimento)))
+    .replace(/{{CONTRACT_DATA_RECEBIMENTO}}/g, escapeHtml(toDateOnlyInputValue(selectedContract?.data_recebimento)))
     .replace('{{CONTRACT_RECEBIDO_CHECKED}}', selectedContract?.contrato_recebido ? ' checked' : '')
     .replace(/{{CONTRACT_CORRETOR}}/g, escapeHtml(selectedContract?.corretor || ''))
     .replace(/{{CONTRACT_VALOR_CORRETAGEM}}/g, escapeHtml(formatDecimalInput(selectedContract?.valor_corretagem_percentual)))
