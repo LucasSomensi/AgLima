@@ -439,14 +439,25 @@ function isInputClassified(input) {
     && input.graos_avariados_percent !== undefined;
 }
 
-function buildScaleInputRows(inputs) {
+function getDefaultScaleInputProduct(dataEntradaValue) {
+  const monthMatch = String(dataEntradaValue || '').match(/^\d{4}-(\d{2})/);
+
+  if (monthMatch) {
+    return Number(monthMatch[1]) <= 4 ? 'soja' : 'milho';
+  }
+
+  const date = new Date();
+  return date.getMonth() <= 3 ? 'soja' : 'milho';
+}
+
+function buildScaleInputRows(inputs, { showAllLink = false } = {}) {
   return inputs
     .map((input) => {
-      const tareAction = input.peso_tara_kg === null || input.peso_tara_kg === undefined
+      const tareContent = input.peso_tara_kg === null || input.peso_tara_kg === undefined
         ? `<a class="admin-table-link" href="/balanca/entradas/${escapeHtml(input.id)}/tara">Adicionar tara</a>`
         : input.tara_usada_de_entrada_id
           ? `Tara anterior (${escapeHtml(formatKg(input.peso_tara_kg))})`
-          : `Tara adicionada (${escapeHtml(formatKg(input.peso_tara_kg))})`;
+          : escapeHtml(formatKg(input.peso_tara_kg));
       const classificationAction = isInputClassified(input)
         ? `Classificada (${escapeHtml(formatPercent(input.umidade_percent))} umid., ${escapeHtml(formatPercent(input.impureza_percent))} imp., ${escapeHtml(formatPercent(input.graos_avariados_percent))} avar.)`
         : `<a class="admin-table-link" href="/balanca/entradas/${escapeHtml(input.id)}/classificacao">Adicionar classificação</a>`;
@@ -456,23 +467,18 @@ function buildScaleInputRows(inputs) {
 
       return `
         <tr>
-          <td>${escapeHtml(formatDateTime(input.data_entrada))}</td>
+          <td><a class="admin-table-link" href="/balanca/entradas/${escapeHtml(input.id)}">${escapeHtml(formatDateTime(input.data_entrada))}</a></td>
           <td>${escapeHtml(input.placa_caminhao)}</td>
           <td>${escapeHtml(formatProductLabel(input.produto))}</td>
           <td>${escapeHtml(formatKg(input.peso_bruto_kg))}</td>
-          <td>${input.peso_tara_kg === null || input.peso_tara_kg === undefined ? 'Pendente' : escapeHtml(formatKg(input.peso_tara_kg))}</td>
+          <td>${tareContent}</td>
           <td>${escapeHtml(formatKg(input.peso_liquido_kg))}</td>
           <td>${originAction}</td>
-          <td>
-            <div class="weighbridge-row-actions">
-              <span>${tareAction}</span>
-              <span>${classificationAction}</span>
-            </div>
-          </td>
+          <td>${classificationAction}</td>
         </tr>
       `;
     })
-    .join('') || '<tr><td colspan="8">Nenhuma entrada recente cadastrada.</td></tr>';
+    .join('') || `<tr><td colspan="8">${showAllLink ? 'Nenhuma entrada cadastrada.' : 'Nenhuma entrada recente cadastrada.'}</td></tr>`;
 }
 
 function buildScaleOutputRows(outputs, { showAllLink = false } = {}) {
@@ -509,6 +515,15 @@ function renderWeighbridgeHomePage(res, { inputs = [], outputs = [], message, er
     .replace('{{WEIGHBRIDGE_ERROR}}', buildAlertHtml(error, 'error'))
     .replace('{{SCALE_INPUT_ROWS}}', buildScaleInputRows(inputs))
     .replace('{{SCALE_OUTPUT_ROWS}}', buildScaleOutputRows(outputs));
+
+  res.send(html);
+}
+
+function renderScaleInputsListPage(res, { inputs }) {
+  const pagePath = path.join(__dirname, '../views/weighbridge-inputs.html');
+  const html = fs
+    .readFileSync(pagePath, 'utf8')
+    .replace('{{SCALE_INPUT_ROWS}}', buildScaleInputRows(inputs, { showAllLink: true }));
 
   res.send(html);
 }
@@ -613,13 +628,16 @@ function renderScaleInputFormPage(res, { formValues = {}, plateSuggestions = [],
           </button>
         `)
     .join('') || '<p class="weighbridge-plate-empty">Nenhuma placa recente encontrada.</p>';
+  const dataEntradaValue = formValues.data_entrada || toDateTimeLocalValue();
+  const selectedProduct = formValues.produto || getDefaultScaleInputProduct(dataEntradaValue);
   const html = fs
     .readFileSync(pagePath, 'utf8')
     .replace('{{SCALE_INPUT_ERROR}}', buildAlertHtml(error, 'error'))
-    .replace(/{{DATA_ENTRADA}}/g, escapeHtml(formValues.data_entrada || toDateTimeLocalValue()))
+    .replace(/{{DATA_ENTRADA}}/g, escapeHtml(dataEntradaValue))
     .replace(/{{PLACA_CAMINHAO}}/g, escapeHtml(formValues.placa_caminhao || ''))
-    .replace('{{PRODUCT_MILHO_SELECTED}}', formValues.produto === 'milho' ? ' selected' : '')
-    .replace('{{PRODUCT_SOJA_SELECTED}}', formValues.produto === 'soja' ? ' selected' : '')
+    .replace('{{PRODUCT_MILHO_SELECTED}}', selectedProduct === 'milho' ? ' selected' : '')
+    .replace('{{PRODUCT_SOJA_SELECTED}}', selectedProduct === 'soja' ? ' selected' : '')
+    .replace('{{PRODUCT_WAS_CHANGED}}', formValues.produto ? 'true' : 'false')
     .replace(/{{PESO_BRUTO_KG}}/g, escapeHtml(formatDecimalInput(formValues.peso_bruto_kg)))
     .replace('{{USAR_TARA_ANTERIOR_CHECKED}}', formValues.usar_tara_anterior ? ' checked' : '')
     .replace('{{PLATE_SUGGESTIONS}}', suggestions);
@@ -661,6 +679,32 @@ function renderScaleInputOriginFormPage(res, { input, formValues = {}, error }) 
     .replace(/{{ENTRADA_ID}}/g, escapeHtml(input.id))
     .replace('{{INPUT_SUMMARY}}', escapeHtml(`${formatDateTime(input.data_entrada)} · ${input.placa_caminhao} · ${formatProductLabel(input.produto)}`))
     .replace(/{{ORIGEM}}/g, escapeHtml(formValues.origem ?? input.origem ?? ''));
+
+  res.send(html);
+}
+
+function renderScaleInputDetailPage(res, { input, formValues = {}, message, error }) {
+  const pagePath = path.join(__dirname, '../views/weighbridge-input-detail.html');
+  const dataEntradaValue = formValues.data_entrada ?? toDateTimeLocalValue(input.data_entrada);
+  const selectedProduct = formValues.produto || input.produto;
+  const html = fs
+    .readFileSync(pagePath, 'utf8')
+    .replace('{{SCALE_INPUT_MESSAGE}}', buildAlertHtml(message))
+    .replace('{{SCALE_INPUT_ERROR}}', buildAlertHtml(error, 'error'))
+    .replace(/{{ENTRADA_ID}}/g, escapeHtml(input.id))
+    .replace('{{DATA_ENTRADA_FORMATTED}}', escapeHtml(formatDateTime(input.data_entrada)))
+    .replace(/{{DATA_ENTRADA}}/g, escapeHtml(dataEntradaValue))
+    .replace(/{{PLACA_CAMINHAO}}/g, escapeHtml(formValues.placa_caminhao ?? input.placa_caminhao ?? ''))
+    .replace('{{PRODUCT_MILHO_SELECTED}}', selectedProduct === 'milho' ? ' selected' : '')
+    .replace('{{PRODUCT_SOJA_SELECTED}}', selectedProduct === 'soja' ? ' selected' : '')
+    .replace('{{PRODUCT_WAS_CHANGED}}', formValues.produto ? 'true' : 'false')
+    .replace(/{{PESO_BRUTO_KG}}/g, escapeHtml(formatDecimalInput(formValues.peso_bruto_kg ?? input.peso_bruto_kg)))
+    .replace('{{PESO_TARA_KG}}', escapeHtml(input.peso_tara_kg === null || input.peso_tara_kg === undefined ? 'Pendente' : formatPlainDecimal(input.peso_tara_kg)))
+    .replace('{{PESO_LIQUIDO_KG}}', escapeHtml(input.peso_liquido_kg === null || input.peso_liquido_kg === undefined ? '-' : formatPlainDecimal(input.peso_liquido_kg)))
+    .replace('{{ORIGEM}}', input.origem ? escapeHtml(input.origem) : 'Pendente')
+    .replace('{{CLASSIFICACAO}}', isInputClassified(input)
+      ? escapeHtml(`${formatPercent(input.umidade_percent)} umidade · ${formatPercent(input.impureza_percent)} impureza · ${formatPercent(input.graos_avariados_percent)} avariados`)
+      : 'Pendente');
 
   res.send(html);
 }
@@ -904,7 +948,9 @@ module.exports = {
   renderScaleContractDetailPage,
   renderScaleContractsListPage,
   renderScaleInputClassificationFormPage,
+  renderScaleInputDetailPage,
   renderScaleInputFormPage,
+  renderScaleInputsListPage,
   renderScaleInputOriginFormPage,
   renderScaleInputTareFormPage,
   renderScaleOutputAssociationPage,

@@ -27,10 +27,10 @@
         <form class="contact-form contracts-form" action="/balanca/entradas" method="post">
           <div class="contracts-form-grid contracts-form-grid-two">
             <label>Data e hora da entrada
-              <input class="form-control" name="data_entrada" type="datetime-local" value="{{DATA_ENTRADA}}" required>
+              <input class="form-control" id="data_entrada" name="data_entrada" type="datetime-local" value="{{DATA_ENTRADA}}" required>
             </label>
             <label>Produto
-              <select class="form-control" name="produto" required>
+              <select class="form-control" id="produto" name="produto" required>
                 <option value="">Selecione</option>
                 <option value="milho"{{PRODUCT_MILHO_SELECTED}}>Milho</option>
                 <option value="soja"{{PRODUCT_SOJA_SELECTED}}>Soja</option>
@@ -44,7 +44,7 @@
               </div>
             </label>
             <label>Peso bruto (kg)
-              <input class="form-control" name="peso_bruto_kg" type="number" min="0.001" step="0.001" value="{{PESO_BRUTO_KG}}" inputmode="decimal" required>
+              <input class="form-control" name="peso_bruto_kg" type="number" min="0.001" max="79999.999" step="0.001" value="{{PESO_BRUTO_KG}}" inputmode="decimal" required>
             </label>
           </div>
 
@@ -65,11 +65,30 @@
     </main>
     <script>
       (function () {
+        const dateInput = document.getElementById('data_entrada');
+        const productSelect = document.getElementById('produto');
         const plateInput = document.getElementById('placa_caminhao');
         const optionsContainer = document.getElementById('plate-options');
         const previousTareCheckbox = document.getElementById('usar_tara_anterior');
         const previousTareHelp = document.getElementById('previous-tare-help');
         let controller = null;
+        let productWasChanged = {{PRODUCT_WAS_CHANGED}};
+
+        function getDefaultProduct(dateValue) {
+          const monthMatch = String(dateValue || '').match(/^\d{4}-(\d{2})/);
+
+          if (!monthMatch) {
+            return 'milho';
+          }
+
+          return Number(monthMatch[1]) <= 4 ? 'soja' : 'milho';
+        }
+
+        function updateDefaultProduct() {
+          if (!productWasChanged) {
+            productSelect.value = getDefaultProduct(dateInput.value);
+          }
+        }
 
         function normalizePlate(value) {
           return String(value || '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
@@ -144,12 +163,18 @@
           setPreviousTareState(option.dataset.hasTare === '1', option.dataset.tare);
         });
 
+        dateInput.addEventListener('input', updateDefaultProduct);
+        productSelect.addEventListener('change', function () {
+          productWasChanged = true;
+        });
+
         plateInput.addEventListener('input', function () {
           plateInput.value = normalizePlate(plateInput.value);
           fetchPlates().catch(function () {});
           fetchPreviousTare().catch(function () {});
         });
 
+        updateDefaultProduct();
         fetchPreviousTare().catch(function () {});
       }());
     </script>

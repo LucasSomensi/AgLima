@@ -13,6 +13,7 @@ const {
   createScaleInput,
   createScaleOutput,
   defineScaleInputOrigin,
+  deleteScaleInput,
   deleteScaleOutput,
   getOpenContractDetailForWeighbridge,
   getPreviousTareForPlate,
@@ -26,13 +27,16 @@ const {
   listScaleInputs,
   listScaleOutputs,
   splitScaleOutput,
+  updateScaleInput,
   unlinkScaleOutputFromContract,
 } = require('./weighbridge-service');
 const {
   renderScaleContractDetailPage,
   renderScaleContractsListPage,
   renderScaleInputClassificationFormPage,
+  renderScaleInputDetailPage,
   renderScaleInputFormPage,
+  renderScaleInputsListPage,
   renderScaleInputOriginFormPage,
   renderScaleInputTareFormPage,
   renderScaleOutputAssociationPage,
@@ -63,23 +67,27 @@ router.get('/balanca', canAccessWeighbridge, async (req, res) => {
       outputs,
       message: req.query.entrada_criada
         ? 'Entrada adicionada com sucesso.'
-        : req.query.entrada_tara_adicionada
-          ? 'Tara adicionada à entrada com sucesso.'
-          : req.query.entrada_classificada
-            ? 'Classificação adicionada à entrada com sucesso.'
-            : req.query.entrada_origem_definida
-              ? 'Origem definida para a entrada com sucesso.'
-              : req.query.saida_criada
-                ? 'Saída adicionada com sucesso.'
-                : req.query.saida_deletada
-                  ? 'Saída deletada com sucesso.'
-                  : req.query.saida_dividida
-                    ? 'Saída dividida com sucesso.'
-                    : req.query.saida_associada
-                      ? 'Saída associada ao contrato com sucesso.'
-                      : req.query.contrato_desvinculado
-                        ? 'Contrato desvinculado da saída com sucesso.'
-                        : '',
+        : req.query.entrada_editada
+          ? 'Entrada atualizada com sucesso.'
+          : req.query.entrada_deletada
+            ? 'Entrada deletada com sucesso.'
+            : req.query.entrada_tara_adicionada
+              ? 'Tara adicionada à entrada com sucesso.'
+              : req.query.entrada_classificada
+                ? 'Classificação adicionada à entrada com sucesso.'
+                : req.query.entrada_origem_definida
+                  ? 'Origem definida para a entrada com sucesso.'
+                  : req.query.saida_criada
+                    ? 'Saída adicionada com sucesso.'
+                    : req.query.saida_deletada
+                      ? 'Saída deletada com sucesso.'
+                      : req.query.saida_dividida
+                        ? 'Saída dividida com sucesso.'
+                        : req.query.saida_associada
+                          ? 'Saída associada ao contrato com sucesso.'
+                          : req.query.contrato_desvinculado
+                            ? 'Contrato desvinculado da saída com sucesso.'
+                            : '',
       error: req.query.error || '',
     });
   } catch (error) {
@@ -105,6 +113,16 @@ router.get('/balanca/entradas/tara-anterior', canAccessWeighbridge, async (req, 
   } catch (error) {
     console.error('Error loading previous tare:', error.message);
     return res.status(500).json({});
+  }
+});
+
+router.get('/balanca/entradas', canAccessWeighbridge, async (req, res) => {
+  try {
+    const inputs = await listScaleInputs();
+    return renderScaleInputsListPage(res, { inputs });
+  } catch (error) {
+    console.error('Error listing scale inputs:', error.message);
+    return res.status(500).send('Não foi possível listar as entradas agora.');
   }
 });
 
@@ -142,6 +160,71 @@ router.post('/balanca/entradas', canAccessWeighbridge, async (req, res) => {
         ? error.message
         : 'Não foi possível adicionar a entrada agora.',
     });
+  }
+});
+
+router.get('/balanca/entradas/:id', canAccessWeighbridge, async (req, res) => {
+  try {
+    const input = await getScaleInputById(req.params.id);
+
+    if (!input) {
+      return res.redirect(buildWeighbridgeRedirect({ error: 'Entrada não encontrada.' }));
+    }
+
+    return renderScaleInputDetailPage(res, {
+      input,
+      message: req.query.entrada_editada ? 'Entrada atualizada com sucesso.' : '',
+      error: req.query.error || '',
+    });
+  } catch (error) {
+    console.error('Error loading scale input detail:', error.message);
+    return res.redirect(buildWeighbridgeRedirect({ error: 'Não foi possível carregar os dados da entrada agora.' }));
+  }
+});
+
+router.post('/balanca/entradas/:id', canAccessWeighbridge, async (req, res) => {
+  const { payload, error } = buildScaleInputPayload(req.body);
+  const input = await getScaleInputById(req.params.id).catch(() => null);
+
+  if (!input) {
+    return res.redirect(buildWeighbridgeRedirect({ error: 'Entrada não encontrada.' }));
+  }
+
+  if (error) {
+    return renderScaleInputDetailPage(res, { input, formValues: req.body, error });
+  }
+
+  try {
+    const updatedInput = await updateScaleInput(req.params.id, payload);
+
+    if (!updatedInput) {
+      return renderScaleInputDetailPage(res, {
+        input,
+        formValues: req.body,
+        error: 'Confira se o peso bruto continua maior que a tara registrada.',
+      });
+    }
+
+    return res.redirect(buildRedirect(`/balanca/entradas/${req.params.id}`, { entrada_editada: '1' }));
+  } catch (error) {
+    console.error('Error updating scale input:', error.message);
+    return renderScaleInputDetailPage(res, {
+      input,
+      formValues: req.body,
+      error: 'Não foi possível atualizar a entrada agora.',
+    });
+  }
+});
+
+router.post('/balanca/entradas/:id/deletar', canAccessWeighbridge, async (req, res) => {
+  try {
+    await deleteScaleInput(req.params.id);
+    return res.redirect(buildWeighbridgeRedirect({ entrada_deletada: '1' }));
+  } catch (error) {
+    console.error('Error deleting scale input:', error.message);
+    return res.redirect(buildRedirect(`/balanca/entradas/${req.params.id}`, {
+      error: 'Não foi possível deletar a entrada agora. Verifique se ela não está sendo usada como tara anterior de outra entrada.',
+    }));
   }
 });
 

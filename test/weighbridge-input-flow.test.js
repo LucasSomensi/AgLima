@@ -43,6 +43,8 @@ test('weighbridge home renders pending input actions', () => {
   });
 
   assert.match(html, /Últimas 10 entradas/);
+  assert.match(html, /href="\/balanca\/entradas">Ver lista completa/);
+  assert.match(html, /href="\/balanca\/entradas\/11">/);
   assert.match(html, /href="\/balanca\/entradas\/11\/tara">Adicionar tara/);
   assert.match(html, /href="\/balanca\/entradas\/11\/classificacao">Adicionar classificação/);
   assert.match(html, /href="\/balanca\/entradas\/11\/origem">Definir origem/);
@@ -83,6 +85,23 @@ test('input form renders recent plate suggestions and previous tare checkbox', (
   assert.match(html, /id="usar_tara_anterior"/);
 });
 
+test('input form defaults product by entry date and limits gross weight', () => {
+  const aprilHtml = renderPage(renderScaleInputFormPage, {
+    formValues: { data_entrada: '2026-04-30T10:00' },
+    plateSuggestions: [],
+    error: '',
+  });
+  const mayHtml = renderPage(renderScaleInputFormPage, {
+    formValues: { data_entrada: '2026-05-01T10:00' },
+    plateSuggestions: [],
+    error: '',
+  });
+
+  assert.match(aprilHtml, /<option value="soja" selected>Soja<\/option>/);
+  assert.match(mayHtml, /<option value="milho" selected>Milho<\/option>/);
+  assert.match(mayHtml, /name="peso_bruto_kg"[^>]+max="79999\.999"/);
+});
+
 test('classification form defaults to 14, 1, and 0', () => {
   const html = renderPage(renderScaleInputClassificationFormPage, {
     input: baseInput,
@@ -112,8 +131,16 @@ test('input payload supports manual date and current date fallback', () => {
   assert.equal(withManualDate.payload.placaCaminhao, 'ABC1D23');
   assert.equal(withManualDate.payload.produto, 'milho');
   assert.ok(withManualDate.payload.dataEntrada instanceof Date);
+  const overweight = buildScaleInputPayload({
+    data_entrada: '2026-06-12T09:30',
+    placa_caminhao: 'ABC1D23',
+    produto: 'milho',
+    peso_bruto_kg: '80000',
+  });
+
   assert.equal(withFallbackDate.error, undefined);
   assert.ok(withFallbackDate.payload.dataEntrada instanceof Date);
+  assert.match(overweight.error, /abaixo de 80\.000 kg/);
 });
 
 test('classification payload accepts zero damaged grains and rejects over 100', () => {

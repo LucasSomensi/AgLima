@@ -4,7 +4,7 @@ Este documento resume o contexto técnico do fluxo de entradas da balança para 
 
 ## Objetivo do fluxo
 
-O operador de balança registra a chegada de um veículo com produto. O lançamento inicial guarda data/hora, placa, produto e peso bruto. Depois, a entrada pode receber tara, classificação e origem. O banco já possui campos para associação futura a cliente, mas essa ação ainda não aparece na interface.
+O operador de balança registra a chegada de um veículo com produto. O lançamento inicial guarda data/hora, placa, produto e peso bruto. Depois, a entrada pode receber tara, classificação e origem, além de poder ser consultada em uma tela de detalhes para edição ou exclusão. O banco já possui campos para associação futura a cliente, mas essa ação ainda não aparece na interface.
 
 ## Banco de dados
 
@@ -29,6 +29,8 @@ Campos centrais:
 - `routes/weighbridge-service.js`: validações e queries de entradas e saídas da balança.
 - `routes/renderers.js`: renderização HTML das listas e formulários.
 - `views/weighbridge-home.html`: página inicial `/balanca` com últimas entradas e saídas.
+- `views/weighbridge-inputs.html`: lista completa de entradas.
+- `views/weighbridge-input-detail.html`: página de detalhes da entrada, com edição e exclusão.
 - `views/weighbridge-input-form.html`: formulário de nova entrada e autocomplete de placas.
 - `views/weighbridge-input-tare-form.html`: formulário para adicionar tara manual.
 - `views/weighbridge-input-classification-form.html`: formulário para adicionar classificação.
@@ -37,11 +39,15 @@ Campos centrais:
 
 ## Rotas implementadas
 
-- `GET /balanca`: lista as 10 últimas entradas e as 10 últimas saídas.
+- `GET /balanca`: lista as 10 últimas entradas e as 10 últimas saídas. Nas entradas, a coluna de data/hora navega para detalhes e a coluna Tara concentra a ação de adicionar tara quando pendente.
+- `GET /balanca/entradas`: lista todas as entradas em ordem cronológica reversa.
 - `GET /balanca/entradas/nova`: abre formulário de nova entrada.
 - `POST /balanca/entradas`: cria entrada.
 - `GET /balanca/entradas/placas?q=...`: retorna até 5 placas recentes para autocomplete.
 - `GET /balanca/entradas/tara-anterior?placa=...`: retorna a tara anterior da placa, se existir.
+- `GET /balanca/entradas/:id`: mostra detalhes da entrada e formulário de edição.
+- `POST /balanca/entradas/:id`: atualiza data/hora, placa, produto e peso bruto da entrada.
+- `POST /balanca/entradas/:id/deletar`: exclui a entrada.
 - `GET /balanca/entradas/:id/tara`: abre formulário de tara manual.
 - `POST /balanca/entradas/:id/tara`: grava tara manual.
 - `GET /balanca/entradas/:id/classificacao`: abre formulário de classificação.
@@ -50,6 +56,26 @@ Campos centrais:
 - `POST /balanca/entradas/:id/origem`: grava origem.
 
 ## Regras de negócio atuais
+
+### Navegação e telas
+
+A página inicial `/balanca` continua mostrando apenas as 10 entradas mais recentes, mas agora possui um botão “Ver lista completa” que aponta para `/balanca/entradas`. A lista completa usa a mesma renderização de linhas e a mesma ordenação (`ORDER BY data_entrada DESC, id DESC`) sem limite.
+
+Nas tabelas de entradas, o texto de data/hora é link para `/balanca/entradas/:id`. Essa tela de detalhes exibe os dados operacionais principais e permite editar data/hora, placa, produto e peso bruto. Ela também possui uma ação de exclusão com confirmação no navegador.
+
+A ação “Adicionar tara” deve aparecer na coluna Tara, e não na coluna de ação geral. Quando a entrada já possui tara, a coluna exibe o valor ou a indicação de tara anterior; a coluna de ação fica reservada para classificação.
+
+### Produto padrão
+
+No formulário de nova entrada, o produto padrão depende da data da entrada: `soja` para datas em janeiro, fevereiro, março ou abril, e `milho` para datas de maio em diante. A regra é aplicada no renderer para o carregamento inicial e no JavaScript da tela quando o operador altera a data antes de escolher manualmente um produto.
+
+Se o usuário já escolheu um produto, a alteração manual deve ser preservada para evitar trocar o valor sem intenção.
+
+### Peso bruto
+
+O peso bruto de entradas deve ser positivo e menor que `80.000 kg`. O formulário usa `max=79999.999` como auxílio de interface, mas a validação obrigatória fica no backend em `buildScaleInputPayload`, rejeitando valores iguais ou superiores a `80000`.
+
+Ao editar uma entrada, o backend reaproveita a mesma validação do payload de criação e ainda só atualiza se o novo peso bruto continuar maior que a tara já registrada, quando existir.
 
 ### Placas recentes
 
@@ -63,7 +89,7 @@ Ao confirmar com essa opção marcada, o backend busca novamente a tara anterior
 
 ### Tara manual
 
-A ação “Adicionar tara” aparece apenas quando `peso_tara_kg` está nulo. O `UPDATE` só grava se a entrada ainda estiver sem tara e se `peso_bruto_kg > peso_tara_kg`.
+A ação “Adicionar tara” aparece na coluna Tara apenas quando `peso_tara_kg` está nulo. O `UPDATE` só grava se a entrada ainda estiver sem tara e se `peso_bruto_kg > peso_tara_kg`.
 
 ### Classificação
 
@@ -96,4 +122,5 @@ Na gravação, valide novamente que o usuário selecionado ainda tem `role = 'cl
 2. Se a origem deixar de ser texto livre e virar cadastro, crie uma tabela própria e migre `entradas_balanca.origem` para uma FK ou mantenha ambos durante transição.
 3. Se a classificação precisar gerar descontos ou peso líquido ajustado, crie colunas separadas; não altere `peso_liquido_kg`, que hoje representa apenas `peso_bruto_kg - peso_tara_kg`.
 4. Se a tara anterior precisar considerar apenas entradas concluídas/classificadas, altere `getPreviousTareForPlate` em `routes/weighbridge-service.js`.
-5. Se o operador puder editar origem/classificação, remova as travas de interface/queries que assumem preenchimento único e mantenha auditoria de atualização.
+5. A exclusão de entradas usa `DELETE` simples. Se uma entrada estiver referenciada por `tara_usada_de_entrada_id` de outra entrada, o banco pode bloquear a exclusão pela FK; mantenha a mensagem amigável na rota.
+6. Se o operador puder editar origem/classificação, remova as travas de interface/queries que assumem preenchimento único e mantenha auditoria de atualização.

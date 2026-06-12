@@ -2,6 +2,7 @@ const { ensureDatabaseConfigured, pool } = require('./database');
 const { parseOptionalDateTime } = require('./utils');
 
 const PRODUCT_VALUES = ['milho', 'soja'];
+const MAX_INPUT_GROSS_WEIGHT_KG = 80000;
 
 function normalizeText(value) {
   return String(value || '').trim();
@@ -112,6 +113,10 @@ function buildScaleInputPayload(body) {
 
   if (!pesoBrutoKg) {
     return { error: 'Informe um peso bruto válido.' };
+  }
+
+  if (Number(pesoBrutoKg) >= MAX_INPUT_GROSS_WEIGHT_KG) {
+    return { error: 'O peso bruto deve estar abaixo de 80.000 kg.' };
   }
 
   return {
@@ -360,6 +365,33 @@ async function getScaleInputById(inputId) {
   );
 
   return result.rows[0] || null;
+}
+
+async function updateScaleInput(inputId, payload) {
+  ensureDatabaseConfigured();
+
+  const result = await pool.query(
+    `
+      UPDATE entradas_balanca
+      SET data_entrada = $2,
+          placa_caminhao = $3,
+          produto = $4,
+          peso_bruto_kg = $5,
+          atualizado_em = now()
+      WHERE id = $1
+        AND (peso_tara_kg IS NULL OR $5::numeric > peso_tara_kg)
+      RETURNING id
+    `,
+    [inputId, payload.dataEntrada, payload.placaCaminhao, payload.produto, payload.pesoBrutoKg]
+  );
+
+  return result.rows[0] || null;
+}
+
+async function deleteScaleInput(inputId) {
+  ensureDatabaseConfigured();
+
+  await pool.query('DELETE FROM entradas_balanca WHERE id = $1', [inputId]);
 }
 
 async function addScaleInputTare(inputId, pesoTaraKg, userId) {
@@ -983,6 +1015,7 @@ module.exports = {
   createScaleInput,
   createScaleOutput,
   defineScaleInputOrigin,
+  deleteScaleInput,
   deleteScaleOutput,
   getOpenContractDetailForWeighbridge,
   getPreviousTareForPlate,
@@ -997,4 +1030,5 @@ module.exports = {
   listScaleOutputs,
   splitScaleOutput,
   unlinkScaleOutputFromContract,
+  updateScaleInput,
 };
