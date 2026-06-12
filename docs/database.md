@@ -2,7 +2,7 @@
 
 Este documento descreve o schema `public` do banco PostgreSQL usado pela aplicação AgroLima. Ele foi criado a partir dos arquivos `columns.txt` e `constraints.txt`, que contêm consultas ao `information_schema` do banco, e complementado com o comportamento observado no código da aplicação.
 
-> **Uso para manutenção:** consulte este arquivo antes de alterar queries, telas administrativas, serviços do secador, contratos, saídas da balança ou autenticação. Se o banco for alterado, gere novamente `columns.txt` e `constraints.txt` e atualize esta documentação.
+> **Uso para manutenção:** consulte este arquivo antes de alterar queries, telas administrativas, serviços do secador, contratos, entradas, saídas da balança ou autenticação. Se o banco for alterado, gere novamente `columns.txt` e `constraints.txt` e atualize esta documentação.
 
 ## Visão geral
 
@@ -12,6 +12,7 @@ Este documento descreve o schema `public` do banco PostgreSQL usado pela aplica�
   - [`compradores`](#compradores)
   - [`vendedores`](#vendedores)
   - [`contratos`](#contratos)
+  - [`entradas_balanca`](#entradas_balanca)
   - [`saidas_balanca`](#saidas_balanca)
   - [`users`](#users)
   - [`dryer_settings`](#dryer_settings)
@@ -24,6 +25,12 @@ Este documento descreve o schema `public` do banco PostgreSQL usado pela aplica�
 | --- | --- | --- | --- | --- |
 | `contratos` | `comprador_id` | `compradores` | `id` | Vincula cada contrato a um comprador. |
 | `contratos` | `vendedor_id` | `vendedores` | `id` | Vincula cada contrato a um vendedor. |
+| `entradas_balanca` | `criado_por_user_id` | `users` | `id` | Registra o operador que lançou a entrada. |
+| `entradas_balanca` | `tara_usada_de_entrada_id` | `entradas_balanca` | `id` | Registra de qual entrada anterior a tara foi reaproveitada. |
+| `entradas_balanca` | `tara_adicionada_por_user_id` | `users` | `id` | Registra o operador que adicionou tara manualmente. |
+| `entradas_balanca` | `origem_definida_por_user_id` | `users` | `id` | Registra o operador que definiu a origem textual da entrada. |
+| `entradas_balanca` | `classificado_por_user_id` | `users` | `id` | Registra o operador que lançou a classificação. |
+| `entradas_balanca` | `cliente_user_id` | `users` | `id` | Preparado para associar a entrada a um usuário cliente. |
 | `saidas_balanca` | `contrato_id` | `contratos` | `id` | Associação opcional da saída da balança ao contrato embarcado. |
 | `saidas_balanca` | `criado_por_user_id` | `users` | `id` | Registra o operador que lançou a saída. |
 | `saidas_balanca` | `associado_por_user_id` | `users` | `id` | Registra o operador que associou a saída ao contrato. |
@@ -125,6 +132,77 @@ Armazena contratos comerciais de compra/venda de grãos.
 | Foreign key | `contratos_vendedor_id_fk` | `vendedor_id` → `vendedores.id` |
 | Check / not null | constraints `contratos_*_not_null` | `id`, `data_contrato`, `produto`, `preco_por_saca`, `comprador_id`, `vendedor_id`, `quantidade_kg`, `contrato_embarcado`, `contrato_recebido`, `corretagem_paga`, `criado_em`, `atualizado_em` |
 
+
+---
+
+
+## `entradas_balanca`
+
+Armazena as entradas registradas pelo operador de balança. Cada entrada nasce com data/hora, placa, produto e peso bruto. A tara pode ser copiada da última entrada da mesma placa que já tenha tara ou adicionada manualmente depois. A tabela também guarda a origem textual do produto, a classificação de qualidade e campos preparados para associar a entrada a um cliente do sistema.
+
+### Colunas
+
+| Coluna | Tipo | Nulo? | Default | Descrição |
+| --- | --- | --- | --- | --- |
+| `id` | `bigint` | Não | — | Identificador sequencial da entrada, criado por identity. |
+| `data_entrada` | `timestamp with time zone` | Não | `now()` | Data/hora da entrada. O formulário preenche a data/hora atual, mas permite edição manual. |
+| `placa_caminhao` | `character varying` | Não | — | Placa do veículo, normalizada para letras/números maiúsculos e validada no padrão brasileiro antigo ou Mercosul. |
+| `produto` | `USER-DEFINED` | Não | — | Tipo `public.produto_contrato`, o mesmo usado por `contratos.produto` e `saidas_balanca.produto`; pela aplicação, valores aceitos: `milho` e `soja`. |
+| `peso_bruto_kg` | `numeric` | Não | — | Peso bruto em quilogramas lançado na criação da entrada. |
+| `peso_tara_kg` | `numeric` | Sim | — | Peso tara em quilogramas. Fica nulo até o operador adicionar tara ou escolher usar tara anterior. |
+| `peso_liquido_kg` | `numeric` | Sim | — | Peso líquido gerado pelo banco como `peso_bruto_kg - peso_tara_kg`; permanece nulo enquanto não há tara. |
+| `tara_usada_de_entrada_id` | `bigint` | Sim | — | Entrada anterior usada como origem da tara reaproveitada. FK para `entradas_balanca.id`. |
+| `origem` | `text` | Sim | — | Origem textual do produto, como fazenda ou lote. Exemplo: `Fazenda São José`. |
+| `origem_definida_por_user_id` | `uuid` | Sim | — | Usuário que definiu a origem. FK para `users.id`. |
+| `origem_definida_em` | `timestamp with time zone` | Sim | — | Data/hora em que a origem foi definida. |
+| `umidade_percent` | `numeric` | Sim | — | Percentual de umidade da classificação. O formulário usa padrão `14`. |
+| `impureza_percent` | `numeric` | Sim | — | Percentual de impureza da classificação. O formulário usa padrão `1`. |
+| `graos_avariados_percent` | `numeric` | Sim | — | Percentual de grãos avariados da classificação. O formulário usa padrão `0`. |
+| `classificado_por_user_id` | `uuid` | Sim | — | Usuário que lançou a classificação. FK para `users.id`. |
+| `classificado_em` | `timestamp with time zone` | Sim | — | Data/hora da classificação. |
+| `cliente_user_id` | `uuid` | Sim | — | Usuário cliente associado à entrada. Preparado no banco, mas a ação ainda não está exposta na interface. |
+| `cliente_associado_por_user_id` | `uuid` | Sim | — | Usuário operador que associou o cliente. Preparado para implementação futura. |
+| `cliente_associado_em` | `timestamp with time zone` | Sim | — | Data/hora da associação futura com cliente. |
+| `criado_por_user_id` | `uuid` | Não | — | Usuário operador que criou a entrada. FK para `users.id`. |
+| `tara_adicionada_por_user_id` | `uuid` | Sim | — | Usuário que adicionou tara manualmente. FK para `users.id`. |
+| `tara_adicionada_em` | `timestamp with time zone` | Sim | — | Data/hora em que a tara manual foi adicionada. |
+| `criado_em` | `timestamp with time zone` | Não | `now()` | Data/hora de criação do registro. |
+| `atualizado_em` | `timestamp with time zone` | Não | `now()` | Data/hora da última atualização. |
+
+### Restrições
+
+| Tipo | Nome | Coluna(s) / referência |
+| --- | --- | --- |
+| Primary key | `entradas_balanca_pkey` | `id` |
+| Foreign key | `entradas_balanca_criado_por_user_id_fkey` | `criado_por_user_id` → `users.id` |
+| Foreign key | `entradas_balanca_tara_adicionada_por_user_id_fkey` | `tara_adicionada_por_user_id` → `users.id` |
+| Foreign key | `entradas_balanca_tara_usada_de_entrada_id_fkey` | `tara_usada_de_entrada_id` → `entradas_balanca.id` |
+| Foreign key | `entradas_balanca_origem_definida_por_user_id_fkey` | `origem_definida_por_user_id` → `users.id` |
+| Foreign key | `entradas_balanca_classificado_por_user_id_fkey` | `classificado_por_user_id` → `users.id` |
+| Foreign key | `entradas_balanca_cliente_user_id_fkey` | `cliente_user_id` → `users.id` |
+| Foreign key | `entradas_balanca_cliente_associado_por_user_id_fkey` | `cliente_associado_por_user_id` → `users.id` |
+| Check | `entradas_balanca_placa_caminhao_formato_check` | `placa_caminhao` |
+| Check | `entradas_balanca_peso_bruto_positivo_check` | `peso_bruto_kg` |
+| Check | `entradas_balanca_peso_tara_positivo_check` | `peso_tara_kg` |
+| Check | `entradas_balanca_peso_bruto_maior_tara_check` | `peso_bruto_kg`, `peso_tara_kg` |
+| Check | `entradas_balanca_tara_origem_valida_check` | `tara_usada_de_entrada_id`, `peso_tara_kg` |
+| Check | `entradas_balanca_tara_manual_auditoria_check` | `peso_tara_kg`, `tara_adicionada_por_user_id`, `tara_adicionada_em` |
+| Check | `entradas_balanca_origem_texto_check` | `origem` |
+| Check | `entradas_balanca_origem_completa_check` | `origem`, `origem_definida_por_user_id`, `origem_definida_em` |
+| Check | `entradas_balanca_classificacao_completa_check` | `umidade_percent`, `impureza_percent`, `graos_avariados_percent`, `classificado_por_user_id`, `classificado_em` |
+| Check | `entradas_balanca_umidade_intervalo_check` | `umidade_percent` |
+| Check | `entradas_balanca_impureza_intervalo_check` | `impureza_percent` |
+| Check | `entradas_balanca_graos_avariados_intervalo_check` | `graos_avariados_percent` |
+| Check | `entradas_balanca_cliente_completo_check` | `cliente_user_id`, `cliente_associado_por_user_id`, `cliente_associado_em` |
+| Check / not null | constraints `entradas_balanca_*_not_null` | `id`, `data_entrada`, `placa_caminhao`, `produto`, `peso_bruto_kg`, `criado_por_user_id`, `criado_em`, `atualizado_em` |
+
+### Uso pela aplicação
+
+- `/balanca/entradas/nova` permite lançar entrada com data/hora manual ou padrão atual, placa, produto e peso bruto.
+- A tela de nova entrada consulta até 5 placas recentes em `entradas_balanca`, filtra conforme digitação e habilita “Usar tara anterior” quando a placa já tem entrada com tara.
+- Ao usar tara anterior, a aplicação copia `peso_tara_kg` da entrada anterior mais recente da mesma placa e grava `tara_usada_de_entrada_id`.
+- A página inicial `/balanca` lista as 10 entradas mais recentes usando `ORDER BY data_entrada DESC, id DESC`.
+- As ações atuais da lista são adicionar tara, adicionar classificação e definir origem. A ação de cliente está preparada no banco, mas ainda não foi implementada na interface.
 
 ---
 
@@ -308,7 +386,7 @@ Armazena as leituras de umidade lançadas durante uma batelada do secador.
 2. **`columns.txt` é a fonte dos tipos, nulidade e defaults.**
 3. **`constraints.txt` é a fonte das chaves primárias, chaves estrangeiras, uniques e checks.**
 4. **Algumas regras de domínio aparecem só pelo nome da constraint**, pois o arquivo de constraints não inclui a expressão SQL completa do `CHECK`. Exemplos: `users_role_check`, `dryer_batches_status_check`, `dryer_batches_grain_type_check` e `dryer_settings_target_moisture_check`.
-5. **A aplicação complementa algumas validações no código**, como CPF/CNPJ, CEP, inscrição estadual, produtos aceitos em contratos, saídas da balança e perfis de usuário.
+5. **A aplicação complementa algumas validações no código**, como CPF/CNPJ, CEP, inscrição estadual, produtos aceitos em contratos, entradas e saídas da balança, associação futura de entradas a usuários com perfil cliente e perfis de usuário.
 
 ## Como atualizar este documento
 
