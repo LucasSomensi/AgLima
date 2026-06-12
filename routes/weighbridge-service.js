@@ -91,6 +91,339 @@ async function createScaleOutput(payload, userId) {
   return result.rows[0];
 }
 
+function buildScaleInputPayload(body) {
+  const dataEntrada = parseOptionalDateTime(body.data_entrada);
+  const placaCaminhao = normalizePlate(body.placa_caminhao);
+  const produto = normalizeText(body.produto);
+  const pesoBrutoKg = normalizeDecimal(body.peso_bruto_kg);
+  const usarTaraAnterior = body.usar_tara_anterior === 'on' || body.usar_tara_anterior === 'true' || body.usar_tara_anterior === true;
+
+  if (!dataEntrada) {
+    return { error: 'Informe uma data e hora de entrada válidas.' };
+  }
+
+  if (!/^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/.test(placaCaminhao)) {
+    return { error: 'Informe uma placa válida no padrão ABC1234 ou ABC1D23.' };
+  }
+
+  if (!PRODUCT_VALUES.includes(produto)) {
+    return { error: 'Selecione milho ou soja como produto.' };
+  }
+
+  if (!pesoBrutoKg) {
+    return { error: 'Informe um peso bruto válido.' };
+  }
+
+  return {
+    payload: {
+      dataEntrada,
+      placaCaminhao,
+      produto,
+      pesoBrutoKg,
+      usarTaraAnterior,
+    },
+  };
+}
+
+function buildScaleInputTarePayload(body) {
+  const pesoTaraKg = normalizeDecimal(body.peso_tara_kg);
+
+  if (!pesoTaraKg) {
+    return { error: 'Informe um peso tara válido.' };
+  }
+
+  return { payload: { pesoTaraKg } };
+}
+
+function normalizePercent(value) {
+  const normalizedValue = normalizeText(value).replace(',', '.');
+
+  if (!/^\d+(?:\.\d+)?$/.test(normalizedValue)) {
+    return null;
+  }
+
+  const parsedValue = Number(normalizedValue);
+
+  if (!Number.isFinite(parsedValue) || parsedValue < 0 || parsedValue > 100) {
+    return null;
+  }
+
+  return normalizedValue;
+}
+
+function buildScaleInputClassificationPayload(body) {
+  const umidadePercent = normalizePercent(body.umidade_percent);
+  const impurezaPercent = normalizePercent(body.impureza_percent);
+  const graosAvariadosPercent = normalizePercent(body.graos_avariados_percent);
+
+  if (umidadePercent === null) {
+    return { error: 'Informe uma umidade entre 0 e 100%.' };
+  }
+
+  if (impurezaPercent === null) {
+    return { error: 'Informe uma impureza entre 0 e 100%.' };
+  }
+
+  if (graosAvariadosPercent === null) {
+    return { error: 'Informe grãos avariados entre 0 e 100%.' };
+  }
+
+  return {
+    payload: {
+      umidadePercent,
+      impurezaPercent,
+      graosAvariadosPercent,
+    },
+  };
+}
+
+function buildScaleInputOriginPayload(body) {
+  const origem = normalizeText(body.origem).replace(/\s+/g, ' ');
+
+  if (!origem) {
+    return { error: 'Informe a origem da entrada.' };
+  }
+
+  if (origem.length > 200) {
+    return { error: 'Informe uma origem com até 200 caracteres.' };
+  }
+
+  return { payload: { origem } };
+}
+
+async function getPreviousTareForPlate(plate) {
+  ensureDatabaseConfigured();
+
+  const placaCaminhao = normalizePlate(plate);
+
+  if (!/^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/.test(placaCaminhao)) {
+    return null;
+  }
+
+  const result = await pool.query(
+    `
+      SELECT id,
+             peso_tara_kg
+      FROM entradas_balanca
+      WHERE placa_caminhao = $1
+        AND peso_tara_kg IS NOT NULL
+      ORDER BY data_entrada DESC, id DESC
+      LIMIT 1
+    `,
+    [placaCaminhao]
+  );
+
+  return result.rows[0] || null;
+}
+
+async function createScaleInput(payload, userId) {
+  ensureDatabaseConfigured();
+
+  let previousTare = null;
+
+  if (payload.usarTaraAnterior) {
+    previousTare = await getPreviousTareForPlate(payload.placaCaminhao);
+
+    if (!previousTare) {
+      const error = new Error('Não há tara anterior para a placa selecionada.');
+      error.code = 'NO_PREVIOUS_TARE';
+      throw error;
+    }
+
+    if (Number(payload.pesoBrutoKg) <= Number(previousTare.peso_tara_kg)) {
+      const error = new Error('O peso bruto precisa ser maior que a tara anterior.');
+      error.code = 'INVALID_PREVIOUS_TARE';
+      throw error;
+    }
+  }
+
+  const result = await pool.query(
+    `
+      INSERT INTO entradas_balanca (
+        data_entrada,
+        placa_caminhao,
+        produto,
+        peso_bruto_kg,
+        peso_tara_kg,
+        tara_usada_de_entrada_id,
+        criado_por_user_id
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      RETURNING id
+    `,
+    [
+      payload.dataEntrada,
+      payload.placaCaminhao,
+      payload.produto,
+      payload.pesoBrutoKg,
+      previousTare?.peso_tara_kg || null,
+      previousTare?.id || null,
+      userId,
+    ]
+  );
+
+  return result.rows[0];
+}
+
+async function listScaleInputs(options = {}) {
+  ensureDatabaseConfigured();
+
+  const limitClause = options.limit ? 'LIMIT $1' : '';
+  const values = options.limit ? [options.limit] : [];
+  const result = await pool.query(
+    `
+      SELECT id,
+             data_entrada,
+             placa_caminhao,
+             produto,
+             peso_bruto_kg,
+             peso_tara_kg,
+             peso_liquido_kg,
+             tara_usada_de_entrada_id,
+             origem,
+             umidade_percent,
+             impureza_percent,
+             graos_avariados_percent,
+             cliente_user_id
+      FROM entradas_balanca
+      ORDER BY data_entrada DESC, id DESC
+      ${limitClause}
+    `,
+    values
+  );
+
+  return result.rows;
+}
+
+async function listRecentInputPlates(search = '') {
+  ensureDatabaseConfigured();
+
+  const normalizedSearch = normalizePlate(search);
+  const values = normalizedSearch ? [`%${normalizedSearch}%`] : [];
+  const filterClause = normalizedSearch ? 'WHERE placa_caminhao ILIKE $1' : '';
+
+  const result = await pool.query(
+    `
+      WITH placas AS (
+        SELECT DISTINCT ON (placa_caminhao)
+               placa_caminhao,
+               data_entrada,
+               id
+        FROM entradas_balanca
+        ${filterClause}
+        ORDER BY placa_caminhao, data_entrada DESC, id DESC
+      )
+      SELECT placas.placa_caminhao,
+             tara_anterior.peso_tara_kg IS NOT NULL AS tem_tara_anterior,
+             tara_anterior.peso_tara_kg
+      FROM placas
+      LEFT JOIN LATERAL (
+        SELECT peso_tara_kg
+        FROM entradas_balanca entrada_tara
+        WHERE entrada_tara.placa_caminhao = placas.placa_caminhao
+          AND entrada_tara.peso_tara_kg IS NOT NULL
+        ORDER BY entrada_tara.data_entrada DESC, entrada_tara.id DESC
+        LIMIT 1
+      ) tara_anterior ON true
+      ORDER BY placas.data_entrada DESC, placas.id DESC
+      LIMIT 5
+    `,
+    values
+  );
+
+  return result.rows;
+}
+
+async function getScaleInputById(inputId) {
+  ensureDatabaseConfigured();
+
+  const result = await pool.query(
+    `
+      SELECT id,
+             data_entrada,
+             placa_caminhao,
+             produto,
+             peso_bruto_kg,
+             peso_tara_kg,
+             peso_liquido_kg,
+             tara_usada_de_entrada_id,
+             origem,
+             umidade_percent,
+             impureza_percent,
+             graos_avariados_percent,
+             cliente_user_id
+      FROM entradas_balanca
+      WHERE id = $1
+      LIMIT 1
+    `,
+    [inputId]
+  );
+
+  return result.rows[0] || null;
+}
+
+async function addScaleInputTare(inputId, pesoTaraKg, userId) {
+  ensureDatabaseConfigured();
+
+  const result = await pool.query(
+    `
+      UPDATE entradas_balanca
+      SET peso_tara_kg = $2,
+          tara_adicionada_por_user_id = $3,
+          tara_adicionada_em = now(),
+          atualizado_em = now()
+      WHERE id = $1
+        AND peso_tara_kg IS NULL
+        AND peso_bruto_kg > $2
+      RETURNING id
+    `,
+    [inputId, pesoTaraKg, userId]
+  );
+
+  return result.rows[0] || null;
+}
+
+async function addScaleInputClassification(inputId, payload, userId) {
+  ensureDatabaseConfigured();
+
+  const result = await pool.query(
+    `
+      UPDATE entradas_balanca
+      SET umidade_percent = $2,
+          impureza_percent = $3,
+          graos_avariados_percent = $4,
+          classificado_por_user_id = $5,
+          classificado_em = now(),
+          atualizado_em = now()
+      WHERE id = $1
+      RETURNING id
+    `,
+    [inputId, payload.umidadePercent, payload.impurezaPercent, payload.graosAvariadosPercent, userId]
+  );
+
+  return result.rows[0] || null;
+}
+
+async function defineScaleInputOrigin(inputId, origem, userId) {
+  ensureDatabaseConfigured();
+
+  const result = await pool.query(
+    `
+      UPDATE entradas_balanca
+      SET origem = $2,
+          origem_definida_por_user_id = $3,
+          origem_definida_em = now(),
+          atualizado_em = now()
+      WHERE id = $1
+        AND origem IS NULL
+      RETURNING id
+    `,
+    [inputId, origem, userId]
+  );
+
+  return result.rows[0] || null;
+}
+
 async function listScaleOutputs(options = {}) {
   ensureDatabaseConfigured();
 
@@ -639,16 +972,28 @@ async function getScaleOutputDetailInfo(outputId) {
 }
 
 module.exports = {
+  addScaleInputClassification,
+  addScaleInputTare,
   associateScaleOutputToContract,
+  buildScaleInputClassificationPayload,
+  buildScaleInputOriginPayload,
+  buildScaleInputPayload,
+  buildScaleInputTarePayload,
   buildScaleOutputPayload,
+  createScaleInput,
   createScaleOutput,
+  defineScaleInputOrigin,
   deleteScaleOutput,
   getOpenContractDetailForWeighbridge,
+  getPreviousTareForPlate,
+  getScaleInputById,
   getScaleOutputById,
   getScaleOutputDetailInfo,
   listEligibleBuyersForOutput,
   listEligibleContractsForOutput,
   listOpenContractsForWeighbridge,
+  listRecentInputPlates,
+  listScaleInputs,
   listScaleOutputs,
   splitScaleOutput,
   unlinkScaleOutputFromContract,

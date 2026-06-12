@@ -72,6 +72,31 @@
           </a>
         </nav>
 
+        <section class="admin-section" aria-labelledby="recent-inputs-title">
+          <div class="admin-section-header">
+            <h2 id="recent-inputs-title">Últimas 10 entradas</h2>
+          </div>
+          <div class="admin-table-wrapper">
+            <table class="admin-table weighbridge-table weighbridge-input-table">
+              <thead>
+                <tr>
+                  <th>Data/hora</th>
+                  <th>Placa</th>
+                  <th>Produto</th>
+                  <th>Bruto</th>
+                  <th>Tara</th>
+                  <th>Líquido</th>
+                  <th>Origem</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {{SCALE_INPUT_ROWS}}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
         <section class="admin-section" aria-labelledby="recent-outputs-title">
           <div class="admin-section-header">
             <h2 id="recent-outputs-title">Últimas 10 saídas</h2>
