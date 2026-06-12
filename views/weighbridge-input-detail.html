@@ -29,6 +29,9 @@
           <h2>Entrada #{{ENTRADA_ID}}</h2>
           <dl class="weighbridge-detail-grid">
             <div><dt>Data/hora</dt><dd>{{DATA_ENTRADA_FORMATTED}}</dd></div>
+            <div><dt>Placa</dt><dd>{{PLACA_CAMINHAO}}</dd></div>
+            <div><dt>Produto</dt><dd>{{PRODUTO}}</dd></div>
+            <div><dt>Peso bruto</dt><dd>{{PESO_BRUTO_FORMATTED}}</dd></div>
             <div><dt>Tara</dt><dd>{{PESO_TARA_KG}}</dd></div>
             <div><dt>Peso líquido</dt><dd>{{PESO_LIQUIDO_KG}}</dd></div>
             <div><dt>Origem</dt><dd>{{ORIGEM}}</dd></div>
@@ -56,7 +59,23 @@
               <label>Peso bruto (kg)
                 <input class="form-control" name="peso_bruto_kg" type="number" min="0.001" max="79999.999" step="0.001" value="{{PESO_BRUTO_KG}}" inputmode="decimal" required>
               </label>
+              <label>Peso tara (kg)
+                <input class="form-control" name="peso_tara_kg" type="number" min="0.001" step="0.001" value="{{PESO_TARA_INPUT}}" inputmode="decimal" placeholder="Deixe em branco se pendente">
+              </label>
+              <label>Origem
+                <input class="form-control" name="origem" type="text" value="{{ORIGEM_INPUT}}" maxlength="200" placeholder="Fazenda, lote ou local de origem">
+              </label>
+              <label>Umidade (%)
+                <input class="form-control" name="umidade_percent" type="number" min="0" max="100" step="0.001" value="{{UMIDADE_PERCENT}}" inputmode="decimal" placeholder="Ex.: 14">
+              </label>
+              <label>Impureza (%)
+                <input class="form-control" name="impureza_percent" type="number" min="0" max="100" step="0.001" value="{{IMPUREZA_PERCENT}}" inputmode="decimal" placeholder="Ex.: 1">
+              </label>
+              <label>Grãos avariados (%)
+                <input class="form-control" name="graos_avariados_percent" type="number" min="0" max="100" step="0.001" value="{{GRAOS_AVARIADOS_PERCENT}}" inputmode="decimal" placeholder="Ex.: 0">
+              </label>
             </div>
+            <p class="admin-muted">Para remover tara, origem ou classificação, deixe os respectivos campos em branco antes de salvar.</p>
             <div class="contracts-form-actions">
               <button class="btn-primary-action" type="submit">Salvar alterações</button>
               <a class="btn-secondary-action" href="/balanca">Cancelar</a>

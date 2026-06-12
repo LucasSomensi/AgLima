@@ -6,6 +6,7 @@ const {
   addScaleInputTare,
   associateScaleOutputToContract,
   buildScaleInputClassificationPayload,
+  buildScaleInputEditPayload,
   buildScaleInputOriginPayload,
   buildScaleInputPayload,
   buildScaleInputTarePayload,
@@ -183,7 +184,7 @@ router.get('/balanca/entradas/:id', canAccessWeighbridge, async (req, res) => {
 });
 
 router.post('/balanca/entradas/:id', canAccessWeighbridge, async (req, res) => {
-  const { payload, error } = buildScaleInputPayload(req.body);
+  const { payload, error } = buildScaleInputEditPayload(req.body);
   const input = await getScaleInputById(req.params.id).catch(() => null);
 
   if (!input) {
@@ -195,13 +196,13 @@ router.post('/balanca/entradas/:id', canAccessWeighbridge, async (req, res) => {
   }
 
   try {
-    const updatedInput = await updateScaleInput(req.params.id, payload);
+    const updatedInput = await updateScaleInput(req.params.id, payload, req.sessionUser.userId);
 
     if (!updatedInput) {
       return renderScaleInputDetailPage(res, {
         input,
         formValues: req.body,
-        error: 'Confira se o peso bruto continua maior que a tara registrada.',
+        error: 'Confira se o peso bruto continua maior que o peso tara.',
       });
     }
 

@@ -130,6 +130,72 @@ function buildScaleInputPayload(body) {
   };
 }
 
+function buildScaleInputEditPayload(body) {
+  const basePayload = buildScaleInputPayload(body);
+
+  if (basePayload.error) {
+    return basePayload;
+  }
+
+  const pesoTaraRaw = normalizeText(body.peso_tara_kg);
+  const pesoTaraKg = pesoTaraRaw ? normalizeDecimal(pesoTaraRaw) : null;
+
+  if (pesoTaraRaw && !pesoTaraKg) {
+    return { error: 'Informe um peso tara válido ou deixe o campo em branco.' };
+  }
+
+  if (pesoTaraKg && Number(basePayload.payload.pesoBrutoKg) <= Number(pesoTaraKg)) {
+    return { error: 'O peso bruto precisa ser maior que o peso tara.' };
+  }
+
+  const origem = normalizeText(body.origem).replace(/\s+/g, ' ');
+
+  if (origem.length > 200) {
+    return { error: 'Informe uma origem com até 200 caracteres.' };
+  }
+
+  const classificationFields = ['umidade_percent', 'impureza_percent', 'graos_avariados_percent'];
+  const hasAnyClassification = classificationFields.some((field) => normalizeText(body[field]) !== '');
+  let classification = {
+    umidadePercent: null,
+    impurezaPercent: null,
+    graosAvariadosPercent: null,
+  };
+
+  if (hasAnyClassification) {
+    const umidadePercent = normalizePercent(body.umidade_percent);
+    const impurezaPercent = normalizePercent(body.impureza_percent);
+    const graosAvariadosPercent = normalizePercent(body.graos_avariados_percent);
+
+    if (umidadePercent === null) {
+      return { error: 'Informe uma umidade entre 0 e 100%.' };
+    }
+
+    if (impurezaPercent === null) {
+      return { error: 'Informe uma impureza entre 0 e 100%.' };
+    }
+
+    if (graosAvariadosPercent === null) {
+      return { error: 'Informe grãos avariados entre 0 e 100%.' };
+    }
+
+    classification = {
+      umidadePercent,
+      impurezaPercent,
+      graosAvariadosPercent,
+    };
+  }
+
+  return {
+    payload: {
+      ...basePayload.payload,
+      pesoTaraKg,
+      origem: origem || null,
+      ...classification,
+    },
+  };
+}
+
 function buildScaleInputTarePayload(body) {
   const pesoTaraKg = normalizeDecimal(body.peso_tara_kg);
 
@@ -367,8 +433,17 @@ async function getScaleInputById(inputId) {
   return result.rows[0] || null;
 }
 
-async function updateScaleInput(inputId, payload) {
+async function updateScaleInput(inputId, payload, userId) {
   ensureDatabaseConfigured();
+
+  const hasTare = payload.pesoTaraKg !== null && payload.pesoTaraKg !== undefined;
+  const hasOrigin = Boolean(payload.origem);
+  const hasClassification = payload.umidadePercent !== null
+    && payload.umidadePercent !== undefined
+    && payload.impurezaPercent !== null
+    && payload.impurezaPercent !== undefined
+    && payload.graosAvariadosPercent !== null
+    && payload.graosAvariadosPercent !== undefined;
 
   const result = await pool.query(
     `
@@ -377,12 +452,39 @@ async function updateScaleInput(inputId, payload) {
           placa_caminhao = $3,
           produto = $4,
           peso_bruto_kg = $5,
+          peso_tara_kg = $6,
+          tara_usada_de_entrada_id = NULL,
+          tara_adicionada_por_user_id = CASE WHEN $7::boolean THEN $11 ELSE NULL END,
+          tara_adicionada_em = CASE WHEN $7::boolean THEN COALESCE(tara_adicionada_em, now()) ELSE NULL END,
+          origem = $8,
+          origem_definida_por_user_id = CASE WHEN $9::boolean THEN $11 ELSE NULL END,
+          origem_definida_em = CASE WHEN $9::boolean THEN COALESCE(origem_definida_em, now()) ELSE NULL END,
+          umidade_percent = $12,
+          impureza_percent = $13,
+          graos_avariados_percent = $14,
+          classificado_por_user_id = CASE WHEN $10::boolean THEN $11 ELSE NULL END,
+          classificado_em = CASE WHEN $10::boolean THEN COALESCE(classificado_em, now()) ELSE NULL END,
           atualizado_em = now()
       WHERE id = $1
-        AND (peso_tara_kg IS NULL OR $5::numeric > peso_tara_kg)
+        AND ($6::numeric IS NULL OR $5::numeric > $6::numeric)
       RETURNING id
     `,
-    [inputId, payload.dataEntrada, payload.placaCaminhao, payload.produto, payload.pesoBrutoKg]
+    [
+      inputId,
+      payload.dataEntrada,
+      payload.placaCaminhao,
+      payload.produto,
+      payload.pesoBrutoKg,
+      payload.pesoTaraKg,
+      hasTare,
+      payload.origem,
+      hasOrigin,
+      hasClassification,
+      userId,
+      payload.umidadePercent,
+      payload.impurezaPercent,
+      payload.graosAvariadosPercent,
+    ]
   );
 
   return result.rows[0] || null;
@@ -1008,6 +1110,7 @@ module.exports = {
   addScaleInputTare,
   associateScaleOutputToContract,
   buildScaleInputClassificationPayload,
+  buildScaleInputEditPayload,
   buildScaleInputOriginPayload,
   buildScaleInputPayload,
   buildScaleInputTarePayload,
