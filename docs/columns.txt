@@ -1,77 +1,101 @@
- table_schema |       table_name        | ordinal_position |         column_name         |          data_type          | is_nullable |               column_default               
---------------+-------------------------+------------------+-----------------------------+-----------------------------+-------------+--------------------------------------------
- public       | compradores             |                1 | id                          | bigint                      | NO          | nextval('compradores_id_seq'::regclass)
- public       | compradores             |                2 | nome                        | character varying           | NO          | 
- public       | compradores             |                3 | nome_completo               | character varying           | NO          | 
- public       | compradores             |                4 | endereco                    | character varying           | NO          | 
- public       | compradores             |                5 | numero                      | character varying           | NO          | 
- public       | compradores             |                6 | cep                         | character                   | NO          | 
- public       | compradores             |                7 | inscricao_estadual          | character varying           | NO          | 
- public       | compradores             |                8 | cpf_cnpj                    | character varying           | NO          | 
- public       | compradores             |                9 | criado_em                   | timestamp without time zone | NO          | now()
- public       | compradores             |               10 | atualizado_em               | timestamp without time zone | NO          | now()
- public       | contratos               |                1 | id                          | bigint                      | NO          | nextval('contratos_id_seq'::regclass)
- public       | contratos               |                2 | data_contrato               | date                        | NO          | 
- public       | contratos               |                3 | produto                     | USER-DEFINED                | NO          | 
- public       | contratos               |                4 | preco_por_saca              | numeric                     | NO          | 
- public       | contratos               |                5 | comprador_id                | bigint                      | NO          | 
- public       | contratos               |                6 | vendedor_id                 | bigint                      | NO          | 
- public       | contratos               |                7 | quantidade_kg               | numeric                     | NO          | 
- public       | contratos               |                8 | contrato_embarcado          | boolean                     | NO          | false
- public       | contratos               |                9 | data_recebimento            | date                        | YES         | 
- public       | contratos               |               10 | contrato_recebido           | boolean                     | NO          | false
- public       | contratos               |               11 | corretor                    | character varying           | YES         | 
- public       | contratos               |               12 | valor_corretagem_percentual | numeric                     | YES         | 
- public       | contratos               |               13 | corretagem_paga             | boolean                     | NO          | false
- public       | contratos               |               14 | observacoes                 | text                        | YES         | 
- public       | contratos               |               15 | criado_em                   | timestamp without time zone | NO          | now()
- public       | contratos               |               16 | atualizado_em               | timestamp without time zone | NO          | now()
- public       | dryer_batches           |                1 | id                          | uuid                        | NO          | gen_random_uuid()
- public       | dryer_batches           |                2 | grain_type                  | text                        | NO          | 'corn'::text
- public       | dryer_batches           |                3 | status                      | text                        | NO          | 'active'::text
- public       | dryer_batches           |                4 | started_at                  | timestamp with time zone    | NO          | now()
- public       | dryer_batches           |                5 | completed_at                | timestamp with time zone    | YES         | 
- public       | dryer_batches           |                6 | started_by_user_id          | uuid                        | YES         | 
- public       | dryer_batches           |                7 | completed_by_user_id        | uuid                        | YES         | 
- public       | dryer_batches           |                8 | target_moisture             | numeric                     | NO          | 14.5
- public       | dryer_batches           |                9 | notes                       | text                        | YES         | 
- public       | dryer_batches           |               10 | created_at                  | timestamp with time zone    | NO          | now()
- public       | dryer_batches           |               11 | updated_at                  | timestamp with time zone    | NO          | now()
- public       | dryer_batches           |               12 | discharge_started_at        | timestamp with time zone    | YES         | 
- public       | dryer_moisture_readings |                1 | id                          | uuid                        | NO          | gen_random_uuid()
- public       | dryer_moisture_readings |                2 | batch_id                    | uuid                        | NO          | 
- public       | dryer_moisture_readings |                3 | measured_at                 | timestamp with time zone    | NO          | now()
- public       | dryer_moisture_readings |                4 | moisture_percent            | numeric                     | NO          | 
- public       | dryer_moisture_readings |                5 | measured_by_user_id         | uuid                        | YES         | 
- public       | dryer_moisture_readings |                6 | measured_by_login           | text                        | NO          | 
- public       | dryer_moisture_readings |                7 | created_at                  | timestamp with time zone    | NO          | now()
- public       | dryer_settings          |                1 | id                          | boolean                     | NO          | true
- public       | dryer_settings          |                2 | target_moisture             | numeric                     | NO          | 14.5
- public       | dryer_settings          |                3 | updated_at                  | timestamp with time zone    | NO          | now()
- public       | dryer_settings          |                4 | updated_by_user_id          | uuid                        | YES         | 
- public       | saidas_balanca          |                1 | id                          | bigint                      | NO          | nextval('saidas_balanca_id_seq'::regclass)
- public       | saidas_balanca          |                2 | data_saida                  | timestamp with time zone    | NO          | now()
- public       | saidas_balanca          |                3 | placa_caminhao              | character varying           | NO          | 
- public       | saidas_balanca          |                4 | produto                     | USER-DEFINED                | NO          | 
- public       | saidas_balanca          |                5 | peso_tara_kg                | numeric                     | NO          | 
- public       | saidas_balanca          |                6 | peso_bruto_kg               | numeric                     | NO          | 
- public       | saidas_balanca          |                7 | peso_liquido_kg             | numeric                     | YES         | 
- public       | saidas_balanca          |                8 | criado_por_user_id          | uuid                        | NO          | 
- public       | saidas_balanca          |                9 | contrato_id                 | bigint                      | YES         | 
- public       | saidas_balanca          |               10 | associado_por_user_id       | uuid                        | YES         | 
- public       | saidas_balanca          |               11 | associado_em                | timestamp with time zone    | YES         | 
- public       | saidas_balanca          |               12 | criado_em                   | timestamp with time zone    | NO          | now()
- public       | saidas_balanca          |               13 | atualizado_em               | timestamp with time zone    | NO          | now()
- public       | users                   |                1 | id                          | uuid                        | NO          | gen_random_uuid()
- public       | users                   |                2 | login                       | character varying           | NO          | 
- public       | users                   |                3 | password_hash               | text                        | NO          | 
- public       | users                   |                4 | role                        | character varying           | NO          | 'user'::character varying
- public       | users                   |                5 | disabled                    | boolean                     | NO          | false
- public       | users                   |                6 | must_change_password        | boolean                     | NO          | false
- public       | users                   |                7 | created_at                  | timestamp with time zone    | NO          | now()
- public       | users                   |                8 | updated_at                  | timestamp with time zone    | NO          | now()
- public       | vendedores              |                1 | id                          | bigint                      | NO          | nextval('vendedores_id_seq'::regclass)
- public       | vendedores              |                2 | nome                        | character varying           | NO          | 
- public       | vendedores              |                3 | nome_completo               | character varying           | NO          | 
- public       | vendedores              |                4 | criado_em                   | timestamp without time zone | NO          | now()
- public       | vendedores              |                5 | atualizado_em               | timestamp without time zone | NO          | now()
+ table_schema |       table_name        | ordinal_position |          column_name          |          data_type          | is_nullable |               column_default               
+--------------+-------------------------+------------------+-------------------------------+-----------------------------+-------------+--------------------------------------------
+ public       | compradores             |                1 | id                            | bigint                      | NO          | nextval('compradores_id_seq'::regclass)
+ public       | compradores             |                2 | nome                          | character varying           | NO          | 
+ public       | compradores             |                3 | nome_completo                 | character varying           | NO          | 
+ public       | compradores             |                4 | endereco                      | character varying           | NO          | 
+ public       | compradores             |                5 | numero                        | character varying           | NO          | 
+ public       | compradores             |                6 | cep                           | character                   | NO          | 
+ public       | compradores             |                7 | inscricao_estadual            | character varying           | NO          | 
+ public       | compradores             |                8 | cpf_cnpj                      | character varying           | NO          | 
+ public       | compradores             |                9 | criado_em                     | timestamp without time zone | NO          | now()
+ public       | compradores             |               10 | atualizado_em                 | timestamp without time zone | NO          | now()
+ public       | contratos               |                1 | id                            | bigint                      | NO          | nextval('contratos_id_seq'::regclass)
+ public       | contratos               |                2 | data_contrato                 | date                        | NO          | 
+ public       | contratos               |                3 | produto                       | USER-DEFINED                | NO          | 
+ public       | contratos               |                4 | preco_por_saca                | numeric                     | NO          | 
+ public       | contratos               |                5 | comprador_id                  | bigint                      | NO          | 
+ public       | contratos               |                6 | vendedor_id                   | bigint                      | NO          | 
+ public       | contratos               |                7 | quantidade_kg                 | numeric                     | NO          | 
+ public       | contratos               |                8 | contrato_embarcado            | boolean                     | NO          | false
+ public       | contratos               |                9 | data_recebimento              | date                        | YES         | 
+ public       | contratos               |               10 | contrato_recebido             | boolean                     | NO          | false
+ public       | contratos               |               11 | corretor                      | character varying           | YES         | 
+ public       | contratos               |               12 | valor_corretagem_percentual   | numeric                     | YES         | 
+ public       | contratos               |               13 | corretagem_paga               | boolean                     | NO          | false
+ public       | contratos               |               14 | observacoes                   | text                        | YES         | 
+ public       | contratos               |               15 | criado_em                     | timestamp without time zone | NO          | now()
+ public       | contratos               |               16 | atualizado_em                 | timestamp without time zone | NO          | now()
+ public       | dryer_batches           |                1 | id                            | uuid                        | NO          | gen_random_uuid()
+ public       | dryer_batches           |                2 | grain_type                    | text                        | NO          | 'corn'::text
+ public       | dryer_batches           |                3 | status                        | text                        | NO          | 'active'::text
+ public       | dryer_batches           |                4 | started_at                    | timestamp with time zone    | NO          | now()
+ public       | dryer_batches           |                5 | completed_at                  | timestamp with time zone    | YES         | 
+ public       | dryer_batches           |                6 | started_by_user_id            | uuid                        | YES         | 
+ public       | dryer_batches           |                7 | completed_by_user_id          | uuid                        | YES         | 
+ public       | dryer_batches           |                8 | target_moisture               | numeric                     | NO          | 14.5
+ public       | dryer_batches           |                9 | notes                         | text                        | YES         | 
+ public       | dryer_batches           |               10 | created_at                    | timestamp with time zone    | NO          | now()
+ public       | dryer_batches           |               11 | updated_at                    | timestamp with time zone    | NO          | now()
+ public       | dryer_batches           |               12 | discharge_started_at          | timestamp with time zone    | YES         | 
+ public       | dryer_moisture_readings |                1 | id                            | uuid                        | NO          | gen_random_uuid()
+ public       | dryer_moisture_readings |                2 | batch_id                      | uuid                        | NO          | 
+ public       | dryer_moisture_readings |                3 | measured_at                   | timestamp with time zone    | NO          | now()
+ public       | dryer_moisture_readings |                4 | moisture_percent              | numeric                     | NO          | 
+ public       | dryer_moisture_readings |                5 | measured_by_user_id           | uuid                        | YES         | 
+ public       | dryer_moisture_readings |                6 | measured_by_login             | text                        | NO          | 
+ public       | dryer_moisture_readings |                7 | created_at                    | timestamp with time zone    | NO          | now()
+ public       | dryer_settings          |                1 | id                            | boolean                     | NO          | true
+ public       | dryer_settings          |                2 | target_moisture               | numeric                     | NO          | 14.5
+ public       | dryer_settings          |                3 | updated_at                    | timestamp with time zone    | NO          | now()
+ public       | dryer_settings          |                4 | updated_by_user_id            | uuid                        | YES         | 
+ public       | entradas_balanca        |                1 | id                            | bigint                      | NO          | 
+ public       | entradas_balanca        |                2 | data_entrada                  | timestamp with time zone    | NO          | now()
+ public       | entradas_balanca        |                3 | placa_caminhao                | character varying           | NO          | 
+ public       | entradas_balanca        |                4 | produto                       | USER-DEFINED                | NO          | 
+ public       | entradas_balanca        |                5 | peso_bruto_kg                 | numeric                     | NO          | 
+ public       | entradas_balanca        |                6 | peso_tara_kg                  | numeric                     | YES         | 
+ public       | entradas_balanca        |                7 | peso_liquido_kg               | numeric                     | YES         | 
+ public       | entradas_balanca        |                8 | tara_usada_de_entrada_id      | bigint                      | YES         | 
+ public       | entradas_balanca        |                9 | origem                        | text                        | YES         | 
+ public       | entradas_balanca        |               10 | origem_definida_por_user_id   | uuid                        | YES         | 
+ public       | entradas_balanca        |               11 | origem_definida_em            | timestamp with time zone    | YES         | 
+ public       | entradas_balanca        |               12 | umidade_percent               | numeric                     | YES         | 
+ public       | entradas_balanca        |               13 | impureza_percent              | numeric                     | YES         | 
+ public       | entradas_balanca        |               14 | graos_avariados_percent       | numeric                     | YES         | 
+ public       | entradas_balanca        |               15 | classificado_por_user_id      | uuid                        | YES         | 
+ public       | entradas_balanca        |               16 | classificado_em               | timestamp with time zone    | YES         | 
+ public       | entradas_balanca        |               17 | cliente_user_id               | uuid                        | YES         | 
+ public       | entradas_balanca        |               18 | cliente_associado_por_user_id | uuid                        | YES         | 
+ public       | entradas_balanca        |               19 | cliente_associado_em          | timestamp with time zone    | YES         | 
+ public       | entradas_balanca        |               20 | criado_por_user_id            | uuid                        | NO          | 
+ public       | entradas_balanca        |               21 | tara_adicionada_por_user_id   | uuid                        | YES         | 
+ public       | entradas_balanca        |               22 | tara_adicionada_em            | timestamp with time zone    | YES         | 
+ public       | entradas_balanca        |               23 | criado_em                     | timestamp with time zone    | NO          | now()
+ public       | entradas_balanca        |               24 | atualizado_em                 | timestamp with time zone    | NO          | now()
+ public       | saidas_balanca          |                1 | id                            | bigint                      | NO          | nextval('saidas_balanca_id_seq'::regclass)
+ public       | saidas_balanca          |                2 | data_saida                    | timestamp with time zone    | NO          | now()
+ public       | saidas_balanca          |                3 | placa_caminhao                | character varying           | NO          | 
+ public       | saidas_balanca          |                4 | produto                       | USER-DEFINED                | NO          | 
+ public       | saidas_balanca          |                5 | peso_tara_kg                  | numeric                     | NO          | 
+ public       | saidas_balanca          |                6 | peso_bruto_kg                 | numeric                     | NO          | 
+ public       | saidas_balanca          |                7 | peso_liquido_kg               | numeric                     | YES         | 
+ public       | saidas_balanca          |                8 | criado_por_user_id            | uuid                        | NO          | 
+ public       | saidas_balanca          |                9 | contrato_id                   | bigint                      | YES         | 
+ public       | saidas_balanca          |               10 | associado_por_user_id         | uuid                        | YES         | 
+ public       | saidas_balanca          |               11 | associado_em                  | timestamp with time zone    | YES         | 
+ public       | saidas_balanca          |               12 | criado_em                     | timestamp with time zone    | NO          | now()
+ public       | saidas_balanca          |               13 | atualizado_em                 | timestamp with time zone    | NO          | now()
+ public       | users                   |                1 | id                            | uuid                        | NO          | gen_random_uuid()
+ public       | users                   |                2 | login                         | character varying           | NO          | 
+ public       | users                   |                3 | password_hash                 | text                        | NO          | 
+ public       | users                   |                4 | role                          | character varying           | NO          | 'user'::character varying
+ public       | users                   |                5 | disabled                      | boolean                     | NO          | false
+ public       | users                   |                6 | must_change_password          | boolean                     | NO          | false
+ public       | users                   |                7 | created_at                    | timestamp with time zone    | NO          | now()
+ public       | users                   |                8 | updated_at                    | timestamp with time zone    | NO          | now()
+ public       | vendedores              |                1 | id                            | bigint                      | NO          | nextval('vendedores_id_seq'::regclass)
+ public       | vendedores              |                2 | nome                          | character varying           | NO          | 
+ public       | vendedores              |                3 | nome_completo                 | character varying           | NO          | 
+ public       | vendedores              |                4 | criado_em                     | timestamp without time zone | NO          | now()
+ public       | vendedores              |                5 | atualizado_em                 | timestamp without time zone | NO          | now() 
