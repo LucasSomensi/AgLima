@@ -4,7 +4,7 @@ Este documento resume o contexto técnico e operacional do fluxo de saídas da b
 
 ## Objetivo do fluxo
 
-O operador de balança registra o carregamento de produto que sai da unidade, informando data/hora, placa, produto, peso tara e peso bruto. A saída nasce sem contrato associado e, depois do lançamento, pode ser associada a um comprador/contrato com saldo disponível. A partir da associação, o sistema disponibiliza as informações necessárias para emissão de nota fiscal e atualiza o status de embarque do contrato quando o saldo é consumido.
+O operador de balança registra o carregamento de produto que sai da unidade, informando data/hora, placa, produto e peso bruto; a tara é adicionada depois nas listas da balança. A saída nasce sem contrato associado e, depois do lançamento, pode ser associada a um comprador/contrato com saldo disponível. A partir da associação, o sistema disponibiliza as informações necessárias para emissão de nota fiscal e atualiza o status de embarque do contrato quando o saldo é consumido.
 
 Além do lançamento e da associação, o operador pode consultar a lista completa de saídas, abrir a tela de detalhes, dividir uma saída em duas cargas, deletar uma saída e desvincular uma saída de um contrato quando for necessário corrigir a associação.
 
@@ -17,8 +17,8 @@ Campos centrais:
 - `data_saida`: data/hora operacional da saída. O formulário sugere a data/hora atual, mas permite edição manual.
 - `placa_caminhao`: placa normalizada em maiúsculas, sem pontuação, validada no padrão `ABC1234` ou `ABC1D23`.
 - `produto`: usa o tipo `public.produto_contrato`, o mesmo de `contratos.produto` e `entradas_balanca.produto`; a aplicação aceita `milho` e `soja`.
-- `peso_tara_kg`: peso tara informado na criação da saída; deve ser positivo.
-- `peso_bruto_kg`: peso bruto informado na criação da saída; deve ser positivo e maior que a tara.
+- `peso_tara_kg`: peso tara informado depois da criação da saída; fica nulo enquanto pendente e deve ser positivo quando preenchido.
+- `peso_bruto_kg`: peso bruto informado na criação da saída; deve ser positivo e maior que a tara quando ela for preenchida.
 - `peso_liquido_kg`: coluna gerada pelo PostgreSQL a partir de `peso_bruto_kg - peso_tara_kg`.
 - `criado_por_user_id`: operador de balança que registrou a saída.
 - `contrato_id`: contrato associado à saída. Enquanto nulo, a saída permanece pendente de associação.
@@ -36,7 +36,7 @@ Tabelas relacionadas:
 Restrições relevantes:
 
 - A associação é completa: `contrato_id`, `associado_por_user_id` e `associado_em` devem estar todos preenchidos ou todos nulos.
-- O banco exige peso tara e peso bruto positivos, além de peso bruto maior que tara.
+- O banco exige peso bruto positivo. Quando a tara é preenchida, ela deve ser positiva e menor que o peso bruto.
 - A placa deve respeitar o formato aceito pelo banco e pela aplicação.
 - A saída pode ser associada a no máximo um contrato por vez.
 
@@ -57,11 +57,13 @@ Restrições relevantes:
 
 ## Rotas implementadas
 
-- `GET /balanca`: lista as 10 últimas entradas e as 10 últimas saídas. A seção de saídas mostra data/hora, placa, produto, peso líquido, contrato e ação.
+- `GET /balanca`: lista as 10 últimas entradas e as 10 últimas saídas. A seção de saídas mostra data/hora, placa, produto, peso bruto, tara, peso líquido, contrato e ação.
 - `GET /balanca/saidas`: lista todas as saídas em ordem cronológica reversa.
 - `GET /balanca/saidas/nova`: abre o formulário de nova saída.
-- `POST /balanca/saidas`: valida e cria uma saída.
+- `POST /balanca/saidas`: valida e cria uma saída sem tara.
 - `GET /balanca/saidas/:id`: abre a tela de detalhes da saída.
+- `GET /balanca/saidas/:id/tara`: abre o formulário para adicionar tara a uma saída pendente.
+- `POST /balanca/saidas/:id/tara`: valida e grava a tara da saída pendente.
 - `POST /balanca/saidas/:id/dividir`: divide uma saída em duas, a partir do peso líquido desejado para a primeira saída.
 - `POST /balanca/saidas/:id/deletar`: deleta a saída e recalcula o status de embarque do contrato associado, se houver.
 - `GET /balanca/saidas/:id/associar`: abre a tela de associação de saída a contrato.
@@ -93,7 +95,6 @@ Campos do formulário:
 - Data e hora da saída (`data_saida`), preenchida inicialmente com a data/hora atual.
 - Placa do caminhão (`placa_caminhao`).
 - Produto (`produto`), selecionado entre milho e soja.
-- Peso tara em kg (`peso_tara_kg`).
 - Peso bruto em kg (`peso_bruto_kg`).
 
 Ao enviar o formulário, `buildScaleOutputPayload` normaliza e valida os dados:
@@ -101,10 +102,9 @@ Ao enviar o formulário, `buildScaleOutputPayload` normaliza e valida os dados:
 - Data/hora precisa ser válida.
 - Placa é convertida para maiúsculas, sem caracteres não alfanuméricos, e precisa seguir `ABC1234` ou `ABC1D23`.
 - Produto precisa ser `milho` ou `soja`.
-- Pesos aceitam vírgula ou ponto decimal, precisam ser positivos e numéricos.
-- Peso bruto precisa ser maior que peso tara.
+- O peso bruto aceita vírgula ou ponto decimal e precisa ser positivo e numérico.
 
-Se houver erro, o formulário é renderizado novamente com os valores informados e a mensagem de validação. Se passar, `createScaleOutput` insere a saída em `saidas_balanca` com `contrato_id` nulo e `criado_por_user_id` do operador logado. Depois o usuário volta para `/balanca` com a mensagem “Saída adicionada com sucesso.”
+Se houver erro, o formulário é renderizado novamente com os valores informados e a mensagem de validação. Se passar, `createScaleOutput` insere a saída em `saidas_balanca` com `peso_tara_kg` nulo, `contrato_id` nulo e `criado_por_user_id` do operador logado. Depois o usuário volta para `/balanca` com a mensagem “Saída adicionada com sucesso.”
 
 ### 3. Consultar saídas
 
@@ -115,9 +115,11 @@ As linhas exibem:
 - Data/hora com link para a tela de detalhes.
 - Placa.
 - Produto.
-- Peso líquido formatado em kg.
+- Peso bruto formatado em kg.
+- Tara formatada em kg ou link “Adicionar tara”.
+- Peso líquido formatado em kg ou “-” enquanto a tara estiver pendente.
 - Contrato associado ou pendência.
-- Ação contextual de associação ou NF.
+- Ação contextual: associar contrato ou abrir informações de NF. A associação pode acontecer mesmo enquanto a tara está pendente.
 
 ### 4. Abrir detalhes da saída
 
@@ -132,14 +134,14 @@ Em `/balanca/saidas/:id`, a tela mostra os dados operacionais principais:
 
 Cada campo exibido possui botão “Copiar”, útil para conferência ou transcrição. A tela também mostra um link contextual:
 
-- “Associar contrato”, se a saída ainda não possui contrato.
+- “Associar contrato”, se a saída ainda não possui contrato, mesmo antes da tara.
 - “Ver informações NF”, se a saída já possui contrato.
 
-Na mesma tela ficam as ações de divisão e deleção.
+Na mesma tela ficam as ações de divisão e deleção quando já há peso líquido. Enquanto a tara está pendente, a tela mostra a ação de adicionar tara e mantém a deleção disponível; a associação ao contrato continua disponível pelo link contextual.
 
 ### 5. Associar saída a contrato
 
-Uma saída recém-criada fica pendente de contrato. O operador inicia a associação pela lista ou pelo detalhe da saída, em `/balanca/saidas/:id/associar`.
+Uma saída recém-criada fica pendente de tara e de contrato. O operador pode iniciar a associação pela lista ou pelo detalhe da saída, em `/balanca/saidas/:id/associar`, mesmo antes de adicionar a tara. A tara pode ser adicionada pela lista ou pelo detalhe da saída quando o caminhão retornar à balança.
 
 A tela de associação funciona em duas etapas:
 
@@ -289,6 +291,7 @@ Mensagens de sucesso exibidas após redirects de saída:
 - `saida_criada`: “Saída adicionada com sucesso.”
 - `saida_deletada`: “Saída deletada com sucesso.”
 - `saida_dividida`: “Saída dividida com sucesso.”
+- `saida_tara_adicionada`: “Tara adicionada à saída com sucesso.”
 - `saida_associada`: “Saída associada ao contrato com sucesso.”
 - `contrato_desvinculado`: “Contrato desvinculado da saída com sucesso.”, exibida na tela de informações NF após a desvinculação.
 

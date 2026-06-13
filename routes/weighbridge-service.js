@@ -32,7 +32,6 @@ function buildScaleOutputPayload(body) {
   const dataSaida = parseOptionalDateTime(body.data_saida);
   const placaCaminhao = normalizePlate(body.placa_caminhao);
   const produto = normalizeText(body.produto);
-  const pesoTaraKg = normalizeDecimal(body.peso_tara_kg);
   const pesoBrutoKg = normalizeDecimal(body.peso_bruto_kg);
 
   if (!dataSaida) {
@@ -47,16 +46,8 @@ function buildScaleOutputPayload(body) {
     return { error: 'Selecione milho ou soja como produto.' };
   }
 
-  if (!pesoTaraKg) {
-    return { error: 'Informe um peso tara válido.' };
-  }
-
   if (!pesoBrutoKg) {
     return { error: 'Informe um peso bruto válido.' };
-  }
-
-  if (Number(pesoBrutoKg) <= Number(pesoTaraKg)) {
-    return { error: 'O peso bruto precisa ser maior que o peso tara.' };
   }
 
   return {
@@ -64,10 +55,19 @@ function buildScaleOutputPayload(body) {
       dataSaida,
       placaCaminhao,
       produto,
-      pesoTaraKg,
       pesoBrutoKg,
     },
   };
+}
+
+function buildScaleOutputTarePayload(body) {
+  const pesoTaraKg = normalizeDecimal(body.peso_tara_kg);
+
+  if (!pesoTaraKg) {
+    return { error: 'Informe um peso tara válido.' };
+  }
+
+  return { payload: { pesoTaraKg } };
 }
 
 async function createScaleOutput(payload, userId) {
@@ -79,14 +79,13 @@ async function createScaleOutput(payload, userId) {
         data_saida,
         placa_caminhao,
         produto,
-        peso_tara_kg,
         peso_bruto_kg,
         criado_por_user_id
       )
-      VALUES ($1, $2, $3, $4, $5, $6)
+      VALUES ($1, $2, $3, $4, $5)
       RETURNING id
     `,
-    [payload.dataSaida, payload.placaCaminhao, payload.produto, payload.pesoTaraKg, payload.pesoBrutoKg, userId]
+    [payload.dataSaida, payload.placaCaminhao, payload.produto, payload.pesoBrutoKg, userId]
   );
 
   return result.rows[0];
@@ -517,6 +516,42 @@ async function addScaleInputTare(inputId, pesoTaraKg, userId) {
   return result.rows[0] || null;
 }
 
+async function addScaleOutputTare(outputId, pesoTaraKg) {
+  ensureDatabaseConfigured();
+
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    const result = await client.query(
+      `
+        UPDATE saidas_balanca
+        SET peso_tara_kg = $2,
+            atualizado_em = now()
+        WHERE id = $1
+          AND peso_tara_kg IS NULL
+          AND peso_bruto_kg > $2
+        RETURNING id, contrato_id
+      `,
+      [outputId, pesoTaraKg]
+    );
+    const updatedOutput = result.rows[0] || null;
+
+    if (updatedOutput) {
+      await refreshContractShippedStatus(client, updatedOutput.contrato_id);
+    }
+
+    await client.query('COMMIT');
+    return updatedOutput;
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
 async function addScaleInputClassification(inputId, payload, userId) {
   ensureDatabaseConfigured();
 
@@ -920,6 +955,10 @@ async function splitScaleOutput(outputId, firstNetWeightKg, userId) {
       throw new Error('Saída não encontrada.');
     }
 
+    if (output.peso_liquido_kg === null || output.peso_liquido_kg === undefined) {
+      throw new Error('Adicione a tara da saída antes de dividir.');
+    }
+
     const firstNetWeight = Number(normalizedFirstNetWeightKg);
     const originalTareWeight = Number(output.peso_tara_kg);
     const originalGrossWeight = Number(output.peso_bruto_kg);
@@ -1108,6 +1147,7 @@ async function getScaleOutputDetailInfo(outputId) {
 module.exports = {
   addScaleInputClassification,
   addScaleInputTare,
+  addScaleOutputTare,
   associateScaleOutputToContract,
   buildScaleInputClassificationPayload,
   buildScaleInputEditPayload,
@@ -1115,6 +1155,7 @@ module.exports = {
   buildScaleInputPayload,
   buildScaleInputTarePayload,
   buildScaleOutputPayload,
+  buildScaleOutputTarePayload,
   createScaleInput,
   createScaleOutput,
   defineScaleInputOrigin,
