@@ -4,6 +4,7 @@ const { ROLES } = require('./constants');
 const {
   addScaleInputClassification,
   addScaleInputTare,
+  addScaleOutputTare,
   associateScaleOutputToContract,
   buildScaleInputClassificationPayload,
   buildScaleInputEditPayload,
@@ -11,6 +12,7 @@ const {
   buildScaleInputPayload,
   buildScaleInputTarePayload,
   buildScaleOutputPayload,
+  buildScaleOutputTarePayload,
   createScaleInput,
   createScaleOutput,
   defineScaleInputOrigin,
@@ -44,6 +46,7 @@ const {
   renderScaleOutputDetailPage,
   renderScaleOutputFormPage,
   renderScaleOutputInvoicePage,
+  renderScaleOutputTareFormPage,
   renderScaleOutputsListPage,
   renderWeighbridgeHomePage,
 } = require('./renderers');
@@ -84,7 +87,9 @@ router.get('/balanca', canAccessWeighbridge, async (req, res) => {
                       ? 'Saída deletada com sucesso.'
                       : req.query.saida_dividida
                         ? 'Saída dividida com sucesso.'
-                        : req.query.saida_associada
+                        : req.query.saida_tara_adicionada
+                          ? 'Tara adicionada à saída com sucesso.'
+                          : req.query.saida_associada
                           ? 'Saída associada ao contrato com sucesso.'
                           : req.query.contrato_desvinculado
                             ? 'Contrato desvinculado da saída com sucesso.'
@@ -431,6 +436,59 @@ router.post('/balanca/saidas', canAccessWeighbridge, async (req, res) => {
       formValues: req.body,
       error: 'Não foi possível adicionar a saída agora.',
     });
+  }
+});
+
+
+router.get('/balanca/saidas/:id/tara', canAccessWeighbridge, async (req, res) => {
+  try {
+    const output = await getScaleOutputById(req.params.id);
+
+    if (!output) {
+      return res.redirect(buildWeighbridgeRedirect({ error: 'Saída não encontrada.' }));
+    }
+
+    if (output.peso_tara_kg !== null && output.peso_tara_kg !== undefined) {
+      return res.redirect(buildWeighbridgeRedirect({ error: 'Esta saída já possui tara.' }));
+    }
+
+    return renderScaleOutputTareFormPage(res, { output, formValues: {}, error: req.query.error || '' });
+  } catch (error) {
+    console.error('Error loading scale output tare form:', error.message);
+    return res.redirect(buildWeighbridgeRedirect({ error: 'Não foi possível carregar a tara da saída agora.' }));
+  }
+});
+
+router.post('/balanca/saidas/:id/tara', canAccessWeighbridge, async (req, res) => {
+  const { payload, error } = buildScaleOutputTarePayload(req.body);
+
+  try {
+    const output = await getScaleOutputById(req.params.id);
+
+    if (!output) {
+      return res.redirect(buildWeighbridgeRedirect({ error: 'Saída não encontrada.' }));
+    }
+
+    if (error) {
+      return renderScaleOutputTareFormPage(res, { output, formValues: req.body, error });
+    }
+
+    const updatedOutput = await addScaleOutputTare(req.params.id, payload.pesoTaraKg);
+
+    if (!updatedOutput) {
+      return renderScaleOutputTareFormPage(res, {
+        output,
+        formValues: req.body,
+        error: 'Confira se a saída ainda está sem tara e se o peso tara é menor que o peso bruto.',
+      });
+    }
+
+    return res.redirect(buildWeighbridgeRedirect({ saida_tara_adicionada: '1' }));
+  } catch (error) {
+    console.error('Error adding scale output tare:', error.message);
+    return res.redirect(buildWeighbridgeRedirect({
+      error: 'Não foi possível adicionar a tara da saída agora.',
+    }));
   }
 });
 

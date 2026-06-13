@@ -37,29 +37,7 @@
           {{INVOICE_INFO_LINK}}
         </section>
 
-        <section class="admin-section">
-          <h2>Ações da saída</h2>
-          <form class="weighbridge-split-form" action="/balanca/saidas/{{SAIDA_ID}}/dividir" method="post">
-            <h3>Dividir saída</h3>
-            <div class="form-row">
-              <div class="form-group col-md-6">
-                <label for="peso-liquido-primeira">Peso líquido da primeira saída (kg)</label>
-                <input class="form-control" id="peso-liquido-primeira" name="peso_liquido_primeira_kg" type="number" min="0.001" max="{{PESO_LIQUIDO_INPUT_MAX}}" step="0.001" data-total-net="{{PESO_LIQUIDO_INPUT_MAX}}" required>
-              </div>
-              <div class="form-group col-md-6">
-                <label for="peso-liquido-segunda">Peso líquido da segunda saída (kg)</label>
-                <input class="form-control" id="peso-liquido-segunda" type="text" readonly value="-">
-              </div>
-            </div>
-            <button class="btn-secondary-action" type="submit">Dividir saída</button>
-          </form>
-
-          <div class="weighbridge-output-actions">
-            <form action="/balanca/saidas/{{SAIDA_ID}}/deletar" method="post" onsubmit="return confirm('Tem certeza que quer deletar essa saída? Essa operação não pode ser desfeita.');">
-              <button class="btn-danger-action" type="submit">Deletar saída</button>
-            </form>
-          </div>
-        </section>
+        {{OUTPUT_ACTIONS_SECTION}}
       </section>
     </main>
     <script>
@@ -129,7 +107,9 @@
         });
       }
 
-      firstNetInput.addEventListener('input', updateSecondNetWeight);
+      if (firstNetInput && secondNetInput) {
+        firstNetInput.addEventListener('input', updateSecondNetWeight);
+      }
     </script>
   </body>
 </html>
