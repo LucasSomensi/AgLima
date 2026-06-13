@@ -484,10 +484,11 @@ function buildScaleInputRows(inputs, { showAllLink = false } = {}) {
 function buildScaleOutputRows(outputs, { showAllLink = false } = {}) {
   return outputs
     .map((output) => {
-      const hasTare = output.peso_tara_kg !== null && output.peso_tara_kg !== undefined;
-      const tareContent = hasTare
-        ? escapeHtml(formatKg(output.peso_tara_kg))
-        : `<a class="admin-table-link" href="/balanca/saidas/${escapeHtml(output.id)}/tara">Adicionar tara</a>`;
+      const hasGross = output.peso_bruto_kg !== null && output.peso_bruto_kg !== undefined;
+      const grossContent = hasGross
+        ? escapeHtml(formatKg(output.peso_bruto_kg))
+        : `<a class="admin-table-link" href="/balanca/saidas/${escapeHtml(output.id)}/bruto">Adicionar bruto</a>`;
+      const tareContent = escapeHtml(formatKg(output.peso_tara_kg));
       const action = output.contrato_id
         ? `<a class="admin-table-link" href="/balanca/saidas/${escapeHtml(output.id)}/nf">Informações NF</a>`
         : `<a class="admin-table-link" href="/balanca/saidas/${escapeHtml(output.id)}/associar">Associar contrato</a>`;
@@ -505,7 +506,7 @@ function buildScaleOutputRows(outputs, { showAllLink = false } = {}) {
           <td><a class="admin-table-link" href="/balanca/saidas/${escapeHtml(output.id)}">${escapeHtml(formatDateTime(output.data_saida))}</a></td>
           <td>${escapeHtml(output.placa_caminhao)}</td>
           <td>${escapeHtml(formatProductLabel(output.produto))}</td>
-          <td>${escapeHtml(formatKg(output.peso_bruto_kg))}</td>
+          <td>${grossContent}</td>
           <td>${tareContent}</td>
           <td>${netWeightContent}</td>
           <td>${contractContent}</td>
@@ -622,20 +623,20 @@ function renderScaleOutputFormPage(res, { formValues = {}, error }) {
     .replace(/{{PLACA_CAMINHAO}}/g, escapeHtml(formValues.placa_caminhao || ''))
     .replace('{{PRODUCT_MILHO_SELECTED}}', formValues.produto === 'milho' ? ' selected' : '')
     .replace('{{PRODUCT_SOJA_SELECTED}}', formValues.produto === 'soja' ? ' selected' : '')
-    .replace(/{{PESO_BRUTO_KG}}/g, escapeHtml(formatDecimalInput(formValues.peso_bruto_kg)));
+    .replace(/{{PESO_TARA_KG}}/g, escapeHtml(formatDecimalInput(formValues.peso_tara_kg)));
 
   res.send(html);
 }
 
 
-function renderScaleOutputTareFormPage(res, { output, formValues = {}, error }) {
-  const pagePath = path.join(__dirname, '../views/weighbridge-output-tare-form.html');
+function renderScaleOutputGrossFormPage(res, { output, formValues = {}, error }) {
+  const pagePath = path.join(__dirname, '../views/weighbridge-output-gross-form.html');
   const html = fs
     .readFileSync(pagePath, 'utf8')
     .replace('{{SCALE_OUTPUT_ERROR}}', buildAlertHtml(error, 'error'))
     .replace(/{{SAIDA_ID}}/g, escapeHtml(output.id))
-    .replace('{{OUTPUT_SUMMARY}}', escapeHtml(`${formatDateTime(output.data_saida)} · ${output.placa_caminhao} · ${formatProductLabel(output.produto)} · bruto ${formatKg(output.peso_bruto_kg)}`))
-    .replace(/{{PESO_TARA_KG}}/g, escapeHtml(formatDecimalInput(formValues.peso_tara_kg)));
+    .replace('{{OUTPUT_SUMMARY}}', escapeHtml(`${formatDateTime(output.data_saida)} · ${output.placa_caminhao} · ${formatProductLabel(output.produto)} · tara ${formatKg(output.peso_tara_kg)}`))
+    .replace(/{{PESO_BRUTO_KG}}/g, escapeHtml(formatDecimalInput(formValues.peso_bruto_kg)));
 
   res.send(html);
 }
@@ -813,13 +814,13 @@ function buildScaleOutputInvoiceDetailHtml(outputInfo) {
 }
 
 function buildScaleOutputActionsHtml(outputInfo) {
-  if (outputInfo.peso_tara_kg === null || outputInfo.peso_tara_kg === undefined) {
+  if (outputInfo.peso_bruto_kg === null || outputInfo.peso_bruto_kg === undefined) {
     return `
         <section class="admin-section">
           <h2>Ações da saída</h2>
-          <p class="admin-muted">Adicione a tara para calcular o peso líquido antes de dividir a saída ou associar contrato.</p>
+          <p class="admin-muted">Adicione o peso bruto para calcular o peso líquido antes de dividir a saída ou associar contrato.</p>
           <div class="weighbridge-output-actions">
-            <a class="btn-secondary-action" href="/balanca/saidas/${escapeHtml(outputInfo.saida_id)}/tara">Adicionar tara</a>
+            <a class="btn-secondary-action" href="/balanca/saidas/${escapeHtml(outputInfo.saida_id)}/bruto">Adicionar bruto</a>
             <form action="/balanca/saidas/${escapeHtml(outputInfo.saida_id)}/deletar" method="post" onsubmit="return confirm('Tem certeza que quer deletar essa saída? Essa operação não pode ser desfeita.');">
               <button class="btn-danger-action" type="submit">Deletar saída</button>
             </form>
@@ -1028,7 +1029,7 @@ module.exports = {
   renderScaleOutputDetailPage,
   renderScaleOutputInvoicePage,
   renderScaleOutputFormPage,
-  renderScaleOutputTareFormPage,
+  renderScaleOutputGrossFormPage,
   renderScaleOutputsListPage,
   renderWeighbridgeHomePage,
 };

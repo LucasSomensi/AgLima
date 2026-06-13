@@ -4,7 +4,7 @@ const { ROLES } = require('./constants');
 const {
   addScaleInputClassification,
   addScaleInputTare,
-  addScaleOutputTare,
+  addScaleOutputGross,
   associateScaleOutputToContract,
   buildScaleInputClassificationPayload,
   buildScaleInputEditPayload,
@@ -12,7 +12,7 @@ const {
   buildScaleInputPayload,
   buildScaleInputTarePayload,
   buildScaleOutputPayload,
-  buildScaleOutputTarePayload,
+  buildScaleOutputGrossPayload,
   createScaleInput,
   createScaleOutput,
   defineScaleInputOrigin,
@@ -46,7 +46,7 @@ const {
   renderScaleOutputDetailPage,
   renderScaleOutputFormPage,
   renderScaleOutputInvoicePage,
-  renderScaleOutputTareFormPage,
+  renderScaleOutputGrossFormPage,
   renderScaleOutputsListPage,
   renderWeighbridgeHomePage,
 } = require('./renderers');
@@ -87,8 +87,8 @@ router.get('/balanca', canAccessWeighbridge, async (req, res) => {
                       ? 'Saída deletada com sucesso.'
                       : req.query.saida_dividida
                         ? 'Saída dividida com sucesso.'
-                        : req.query.saida_tara_adicionada
-                          ? 'Tara adicionada à saída com sucesso.'
+                        : req.query.saida_bruto_adicionado
+                          ? 'Peso bruto adicionado à saída com sucesso.'
                           : req.query.saida_associada
                           ? 'Saída associada ao contrato com sucesso.'
                           : req.query.contrato_desvinculado
@@ -440,7 +440,7 @@ router.post('/balanca/saidas', canAccessWeighbridge, async (req, res) => {
 });
 
 
-router.get('/balanca/saidas/:id/tara', canAccessWeighbridge, async (req, res) => {
+router.get('/balanca/saidas/:id/bruto', canAccessWeighbridge, async (req, res) => {
   try {
     const output = await getScaleOutputById(req.params.id);
 
@@ -448,19 +448,19 @@ router.get('/balanca/saidas/:id/tara', canAccessWeighbridge, async (req, res) =>
       return res.redirect(buildWeighbridgeRedirect({ error: 'Saída não encontrada.' }));
     }
 
-    if (output.peso_tara_kg !== null && output.peso_tara_kg !== undefined) {
-      return res.redirect(buildWeighbridgeRedirect({ error: 'Esta saída já possui tara.' }));
+    if (output.peso_bruto_kg !== null && output.peso_bruto_kg !== undefined) {
+      return res.redirect(buildWeighbridgeRedirect({ error: 'Esta saída já possui peso bruto.' }));
     }
 
-    return renderScaleOutputTareFormPage(res, { output, formValues: {}, error: req.query.error || '' });
+    return renderScaleOutputGrossFormPage(res, { output, formValues: {}, error: req.query.error || '' });
   } catch (error) {
     console.error('Error loading scale output tare form:', error.message);
-    return res.redirect(buildWeighbridgeRedirect({ error: 'Não foi possível carregar a tara da saída agora.' }));
+    return res.redirect(buildWeighbridgeRedirect({ error: 'Não foi possível carregar o peso bruto da saída agora.' }));
   }
 });
 
-router.post('/balanca/saidas/:id/tara', canAccessWeighbridge, async (req, res) => {
-  const { payload, error } = buildScaleOutputTarePayload(req.body);
+router.post('/balanca/saidas/:id/bruto', canAccessWeighbridge, async (req, res) => {
+  const { payload, error } = buildScaleOutputGrossPayload(req.body);
 
   try {
     const output = await getScaleOutputById(req.params.id);
@@ -470,24 +470,24 @@ router.post('/balanca/saidas/:id/tara', canAccessWeighbridge, async (req, res) =
     }
 
     if (error) {
-      return renderScaleOutputTareFormPage(res, { output, formValues: req.body, error });
+      return renderScaleOutputGrossFormPage(res, { output, formValues: req.body, error });
     }
 
-    const updatedOutput = await addScaleOutputTare(req.params.id, payload.pesoTaraKg);
+    const updatedOutput = await addScaleOutputGross(req.params.id, payload.pesoBrutoKg);
 
     if (!updatedOutput) {
-      return renderScaleOutputTareFormPage(res, {
+      return renderScaleOutputGrossFormPage(res, {
         output,
         formValues: req.body,
-        error: 'Confira se a saída ainda está sem tara e se o peso tara é menor que o peso bruto.',
+        error: 'Confira se a saída ainda está sem peso bruto e se o peso bruto é maior que o peso tara.',
       });
     }
 
-    return res.redirect(buildWeighbridgeRedirect({ saida_tara_adicionada: '1' }));
+    return res.redirect(buildWeighbridgeRedirect({ saida_bruto_adicionado: '1' }));
   } catch (error) {
-    console.error('Error adding scale output tare:', error.message);
+    console.error('Error adding scale output gross:', error.message);
     return res.redirect(buildWeighbridgeRedirect({
-      error: 'Não foi possível adicionar a tara da saída agora.',
+      error: 'Não foi possível adicionar o peso bruto da saída agora.',
     }));
   }
 });

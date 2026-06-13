@@ -218,8 +218,8 @@ Armazena as saídas registradas pelo operador de balança. Cada saída nasce sem
 | `data_saida` | `timestamp with time zone` | Não | `now()` | Data/hora da saída informada pelo operador; o formulário preenche com a data/hora atual. |
 | `placa_caminhao` | `character varying` | Não | — | Placa do caminhão, validada no padrão brasileiro antigo ou Mercosul. |
 | `produto` | `USER-DEFINED` | Não | — | Tipo de produto da saída. Deve ser compatível com o tipo usado por `contratos.produto`; pela aplicação, valores aceitos: `milho` e `soja`. |
-| `peso_tara_kg` | `numeric` | Sim | — | Peso tara em quilogramas. Fica nulo até o operador adicionar tara pela lista de saídas. |
-| `peso_bruto_kg` | `numeric` | Não | — | Peso bruto em quilogramas. Deve ser maior que a tara quando ela estiver preenchida. |
+| `peso_tara_kg` | `numeric` | Não | — | Peso tara em quilogramas lançado na criação da saída. |
+| `peso_bruto_kg` | `numeric` | Sim | — | Peso bruto em quilogramas. Fica nulo até o operador adicionar bruto pela lista de saídas e deve ser maior que a tara quando preenchido. |
 | `peso_liquido_kg` | `numeric` | Sim | — | Peso líquido em quilogramas, calculado no banco a partir de `peso_bruto_kg - peso_tara_kg`. Aparece como nullable no `information_schema` por ser coluna gerada. |
 | `criado_por_user_id` | `uuid` | Não | — | Usuário operador que criou a saída. FK para `users.id`. |
 | `contrato_id` | `bigint` | Sim | — | Contrato associado à saída. Enquanto nulo, a saída fica pendente de associação. FK para `contratos.id`. |
@@ -241,7 +241,7 @@ Armazena as saídas registradas pelo operador de balança. Cada saída nasce sem
 | Check | `saidas_balanca_peso_tara_positivo_check` | `peso_tara_kg` |
 | Check | `saidas_balanca_peso_bruto_positivo_check` | `peso_bruto_kg` |
 | Check | `saidas_balanca_peso_bruto_maior_tara_check` | `peso_bruto_kg`, `peso_tara_kg` |
-| Check / not null | constraints `saidas_balanca_*_not_null` | `id`, `data_saida`, `placa_caminhao`, `produto`, `peso_bruto_kg`, `criado_por_user_id`, `criado_em`, `atualizado_em` |
+| Check / not null | constraints `saidas_balanca_*_not_null` | `id`, `data_saida`, `placa_caminhao`, `produto`, `peso_tara_kg`, `criado_por_user_id`, `criado_em`, `atualizado_em` |
 
 ### Uso pela aplicação
 
