@@ -1,41 +1,81 @@
+# AgroLima
 
+Aplicação web Node.js/Express para operações da AgroLima, incluindo site público, autenticação, painéis administrativos, operação do secador, balança e contratos.
 
-## Contact form email setup
+## Arquitetura
 
-The `/contato` form sends messages through the MailerSend Email API, which works well in hosts that block outbound SMTP ports.
+- `app.js`: ponto de entrada da aplicação. Cria o servidor Express, configura arquivos estáticos em `public/`, habilita parsing de formulários e JSON, monta o roteador principal em `/` e define o fallback de erro 404.
+- `routes/index.js`: agregador central de rotas. Anexa a sessão em toda requisição e registra, em ordem, as rotas públicas, autenticação, área interna, secador, balança e administração.
+- `routes/*-routes.js`: módulos responsáveis pela camada HTTP de cada área. Eles declaram endpoints, aplicam autorização, leem `req.body`/`req.query`, chamam services e escolhem o renderer ou redirect adequado.
+- `routes/*-service.js`: módulos de regra de negócio e persistência. Eles validam e normalizam dados, executam consultas PostgreSQL via `routes/database.js` e retornam objetos prontos para as rotas renderizarem ou redirecionarem.
+- `routes/renderers.js`: camada de composição HTML. Centraliza a leitura dos arquivos em `views/`, substitui placeholders, monta tabelas/listas dinâmicas e aplica formatação/escape antes de enviar respostas HTML.
+- `views/`: templates HTML estáticos com placeholders usados pelos renderers. Cada nova tela deve ter um arquivo aqui quando não for uma resposta puramente programática.
+- `public/`: assets servidos diretamente pelo Express, como CSS, imagens e favicon. Use esta pasta para recursos públicos referenciados pelos templates.
 
-Configure these environment variables in your hosting provider before using the form:
+## Comandos
 
-| Variable | Required | Description |
-| --- | --- | --- |
-| `MAILERSEND_API_TOKEN` | Yes | MailerSend API token. Do not commit this value to Git. |
-| `MAILERSEND_FROM_EMAIL` | Yes | Verified sender email/domain configured in MailerSend. |
-| `CONTACT_TO` | Yes | Email address that receives contact form submissions. |
-| `MAILERSEND_FROM_NAME` | No | Sender display name. Defaults to `AgroLima`. |
-| `CONTACT_TO_NAME` | No | Recipient display name. Defaults to `AgroLima`. |
+| Comando | Descrição |
+| --- | --- |
+| `npm start` | Inicia o servidor com `node app.js`. |
+| `npm test` | Executa a suíte de testes com o test runner nativo do Node.js (`node --test`). |
+| `npm run create-root-user` | Cria o usuário administrativo `root` no PostgreSQL usando `DATABASE_URL` e `ROOT_PASSWORD`. |
 
-Example Railway variables:
+## Variáveis de ambiente
+
+| Variável | Obrigatória | Usada por | Descrição |
+| --- | --- | --- | --- |
+| `DATABASE_URL` | Sim para funcionalidades com banco | Aplicação, autenticação, painéis e `npm run create-root-user` | String de conexão do PostgreSQL usada pela biblioteca `pg`. |
+| `SESSION_SECRET` | Sim em produção | Autenticação | Segredo usado para assinar o cookie de sessão. Use um valor longo e aleatório; sem ele há apenas um fallback inseguro de desenvolvimento. |
+| `SESSION_DURATION_DAYS` | Não | Autenticação | Duração da sessão em dias. Deve ser número positivo; tem prioridade sobre `SESSION_DURATION_HOURS`. |
+| `SESSION_DURATION_HOURS` | Não | Autenticação | Alternativa para duração da sessão em horas quando `SESSION_DURATION_DAYS` não está definida. Se nenhuma duração válida for informada, o padrão é 8 horas. |
+| `MAILERSEND_API_TOKEN` | Sim para `/contato` enviar e-mail | Formulário de contato | Token da API MailerSend. Não commite este valor no Git. |
+| `MAILERSEND_FROM_EMAIL` | Sim para `/contato` enviar e-mail | Formulário de contato | E-mail/domínio remetente verificado no MailerSend. |
+| `MAILERSEND_FROM_NAME` | Não | Formulário de contato | Nome exibido do remetente. Padrão: `AgroLima`. |
+| `CONTACT_TO` | Sim para `/contato` enviar e-mail | Formulário de contato | Endereço que recebe as mensagens do formulário de contato. |
+| `CONTACT_TO_NAME` | Não | Formulário de contato | Nome exibido do destinatário. Padrão: `AgroLima`. |
+| `ROOT_PASSWORD` | Sim apenas no `npm run create-root-user` | Inicialização do root | Senha inicial criptografada e armazenada para o login `root`. Não commite este valor no Git. |
+
+Exemplo de variáveis para Railway:
 
 ```env
+DATABASE_URL=postgresql://usuario:senha@host:5432/agrolima
+SESSION_SECRET=troque-por-uma-string-longa-e-aleatoria
+SESSION_DURATION_DAYS=30
 MAILERSEND_API_TOKEN=ms_xxxxxxxxxxxxxxxxxxxxx
 MAILERSEND_FROM_EMAIL=contato@seudominio.com
 MAILERSEND_FROM_NAME=AgroLima
 CONTACT_TO=destino@exemplo.com
 CONTACT_TO_NAME=AgroLima
+ROOT_PASSWORD=troque-esta-senha
 ```
 
-After changing variables in Railway, redeploy or restart the service so the Node.js process reads the new values.
+Depois de alterar variáveis no Railway, faça redeploy ou reinicie o serviço para o processo Node.js ler os novos valores.
+
+## Banco de dados
+
+A aplicação usa PostgreSQL. Consulte a documentação complementar antes de criar ou alterar tabelas:
+
+- `docs/database.md`: visão geral do modelo de dados e orientações de schema.
+- `docs/columns.txt`: inventário consolidado de colunas esperadas.
+- `docs/constraints.txt`: constraints, chaves e índices esperados.
+
+## Como adicionar uma nova tela
+
+1. **Rota**: crie ou atualize um arquivo `routes/*-routes.js` com o endpoint `GET` da tela e, se necessário, endpoints `POST` para ações de formulário. Aplique middlewares de autenticação/autorização adequados (`requireAuth`, `requireRole` ou `requireRoot`).
+2. **Service**: coloque consultas, validações e regras de negócio em um `routes/*-service.js` existente ou novo. A rota deve delegar acesso ao banco e regras complexas para o service, mantendo a camada HTTP enxuta.
+3. **Renderer**: adicione uma função em `routes/renderers.js` para ler a view, escapar dados dinâmicos, substituir placeholders e enviar a resposta. Reutilize helpers de `routes/utils.js` sempre que possível.
+4. **View**: adicione o template HTML em `views/` com placeholders explícitos para dados dinâmicos. Referencie CSS/imagens a partir de `public/` quando precisar de assets públicos.
+5. **Teste esperado**: cubra o fluxo com `node --test`, preferencialmente em `test/*.test.js`, validando pelo menos o comportamento de service/validação e, quando aplicável, redirects ou HTML gerado para casos de sucesso e erro.
+
+## Formulário de contato por e-mail
+
+O formulário `/contato` envia mensagens pela API de e-mail do MailerSend, uma opção adequada para hospedagens que bloqueiam portas SMTP de saída. Configure as variáveis `MAILERSEND_*` e `CONTACT_*` descritas na tabela consolidada de variáveis de ambiente antes de usar o formulário.
 
 ## Inicialização do usuário root no banco
 
 O script `scripts/create-root-user.js` cria o usuário administrativo `root` no PostgreSQL. Ele lê a string de conexão e a senha do root a partir de variáveis de ambiente, gera o hash da senha com `bcrypt` e insere o registro somente se o `login` ainda não existir.
 
-Variáveis de ambiente obrigatórias:
-
-| Variável | Obrigatória | Descrição |
-| --- | --- | --- |
-| `DATABASE_URL` | Sim | String de conexão do PostgreSQL usada pela biblioteca `pg`. |
-| `ROOT_PASSWORD` | Sim | Senha que será criptografada e armazenada para o login `root`. Não commit este valor no Git. |
+Consulte `DATABASE_URL` e `ROOT_PASSWORD` na tabela consolidada de variáveis de ambiente antes de executar o script.
 
 O script e o login esperam que a tabela `users` tenha pelo menos estas colunas:
 
@@ -72,20 +112,7 @@ Se o login `root` já existir, o script termina com sucesso sem alterar o usuár
 
 O `/login` autentica usuários salvos na tabela `users` do PostgreSQL usando `DATABASE_URL`. O usuário com `role = 'root'` é redirecionado para `/admin/usuarios`, onde pode adicionar e remover outros usuários do sistema. Usuários com `role = 'admin'` são redirecionados para `/admin`, onde acompanham a batelada atual, alteram a umidade alvo e consultam bateladas anteriores. Usuários com `role = 'silo_operator'` são redirecionados para `/secador`. Usuários com `role = 'weighbridge_operator'` são redirecionados para `/balanca`, onde registram saídas e associam carregamentos a contratos. O perfil `client` ainda é redirecionado para página em construção em `/area-interna`.
 
-Além de `DATABASE_URL`, configure também:
-
-| Variable | Required | Description |
-| --- | --- | --- |
-| `SESSION_SECRET` | Yes | Secret usado para assinar o cookie de sessão. Use um valor longo e aleatório. |
-| `SESSION_DURATION_DAYS` | No | Duração da sessão em dias. Use um número positivo; valores inválidos, zero ou negativos voltam ao padrão de 8 horas. |
-| `SESSION_DURATION_HOURS` | No | Alternativa para configurar a duração da sessão em horas quando `SESSION_DURATION_DAYS` não estiver definida. Use um número positivo. |
-
-Example Railway variable:
-
-```env
-SESSION_SECRET=troque-por-uma-string-longa-e-aleatoria
-SESSION_DURATION_DAYS=30
-```
+Além de `DATABASE_URL`, configure `SESSION_SECRET` e, se quiser alterar o padrão de 8 horas, `SESSION_DURATION_DAYS` ou `SESSION_DURATION_HOURS`, conforme a tabela consolidada de variáveis de ambiente.
 
 As senhas criadas pelo painel root são armazenadas como hash `bcrypt` na coluna `password_hash`; a senha em texto puro nunca é gravada no banco.
 
