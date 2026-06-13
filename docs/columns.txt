@@ -78,7 +78,7 @@
  public       | saidas_balanca          |                3 | placa_caminhao                | character varying           | NO          | 
  public       | saidas_balanca          |                4 | produto                       | USER-DEFINED                | NO          | 
  public       | saidas_balanca          |                5 | peso_tara_kg                  | numeric                     | NO          | 
- public       | saidas_balanca          |                6 | peso_bruto_kg                 | numeric                     | NO          | 
+ public       | saidas_balanca          |                6 | peso_bruto_kg                 | numeric                     | YES         | 
  public       | saidas_balanca          |                7 | peso_liquido_kg               | numeric                     | YES         | 
  public       | saidas_balanca          |                8 | criado_por_user_id            | uuid                        | NO          | 
  public       | saidas_balanca          |                9 | contrato_id                   | bigint                      | YES         | 
@@ -98,4 +98,4 @@
  public       | vendedores              |                2 | nome                          | character varying           | NO          | 
  public       | vendedores              |                3 | nome_completo                 | character varying           | NO          | 
  public       | vendedores              |                4 | criado_em                     | timestamp without time zone | NO          | now()
- public       | vendedores              |                5 | atualizado_em                 | timestamp without time zone | NO          | now() 
+ public       | vendedores              |                5 | atualizado_em                 | timestamp without time zone | NO          | now()
