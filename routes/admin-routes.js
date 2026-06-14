@@ -36,6 +36,7 @@ const {
   renderAdminContractsPage,
   renderAdminDashboardPage,
   renderAdminHomePage,
+  renderAdminStoragePage,
   renderAdminUsersPage,
   renderConstructionPage,
 } = require('./renderers/admin-renderer');
@@ -46,6 +47,13 @@ const {
   updateManagedUserPassword,
 } = require('./user-service');
 const { buildRedirect, parseMoisturePercent } = require('./utils');
+const {
+  buildStorageRecalibrationPayload,
+  countStorageIgnoredInputs,
+  createStorageRecalibration,
+  getStorageSummary,
+  listStorageRecalibrations,
+} = require('./storage-service');
 
 const router = express.Router();
 
@@ -53,6 +61,10 @@ const canAccessAdminPanel = requireRole(ROLES.ADMIN);
 
 function buildAdminPanelRedirect(params) {
   return buildRedirect('/admin/secador', params);
+}
+
+function buildStorageRedirect(params = {}) {
+  return buildRedirect('/admin/armazenamento', params);
 }
 
 function buildAdminHomeRedirect(params = {}) {
@@ -92,12 +104,45 @@ router.get('/admin/secador', canAccessAdminPanel, async (req, res) => {
   }
 });
 
-router.get('/admin/:module(armazenamento|entradas-e-saidas)', canAccessAdminPanel, (req, res) => {
+router.get('/admin/armazenamento', canAccessAdminPanel, async (req, res) => {
+  try {
+    const [summary, recalibrations, ignoredInputs] = await Promise.all([
+      getStorageSummary(),
+      listStorageRecalibrations(),
+      countStorageIgnoredInputs(),
+    ]);
+
+    return renderAdminStoragePage(res, {
+      summary,
+      recalibrations,
+      ignoredInputs,
+      message: req.query.recalibrado ? 'Recalibração registrada com sucesso.' : '',
+      error: req.query.error || '',
+    });
+  } catch (error) {
+    console.error('Error loading storage admin panel:', error.message);
+    return res.status(500).send('Não foi possível carregar o painel de armazenamento agora.');
+  }
+});
+
+router.post('/admin/armazenamento/recalibracoes', canAccessAdminPanel, async (req, res) => {
+  const { payload, error } = buildStorageRecalibrationPayload(req.body);
+
+  if (error) {
+    return res.redirect(buildStorageRedirect({ error }));
+  }
+
+  try {
+    await createStorageRecalibration(payload, req.sessionUser.userId);
+    return res.redirect(buildStorageRedirect({ recalibrado: '1' }));
+  } catch (error) {
+    console.error('Error creating storage recalibration:', error.message);
+    return res.redirect(buildStorageRedirect({ error: 'Não foi possível salvar a recalibração agora.' }));
+  }
+});
+
+router.get('/admin/:module(entradas-e-saidas)', canAccessAdminPanel, (req, res) => {
   const moduleContent = {
-    armazenamento: {
-      title: 'Armazenamento',
-      description: 'O módulo de armazenamento está em construção e ficará disponível em breve.',
-    },
     'entradas-e-saidas': {
       title: 'Entradas e Saídas',
       description: 'O módulo de entradas e saídas está em construção e ficará disponível em breve.',
