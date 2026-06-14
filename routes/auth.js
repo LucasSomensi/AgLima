@@ -1,5 +1,6 @@
 const crypto = require('crypto');
 const { ROLES, SESSION_COOKIE_NAME, SESSION_DURATION_MS } = require('./constants');
+const userService = require('./user-service');
 
 function getSessionSecret() {
   if (process.env.SESSION_SECRET) {
@@ -114,9 +115,35 @@ function clearSessionCookie(res) {
   );
 }
 
-function attachSession(req, res, next) {
-  req.sessionUser = readSession(req);
-  next();
+async function attachSession(req, res, next) {
+  const session = readSession(req);
+
+  if (!session) {
+    req.sessionUser = null;
+    return next();
+  }
+
+  try {
+    const user = await userService.findActiveUserById(session.userId);
+
+    if (!user || user.disabled) {
+      req.sessionUser = null;
+      clearSessionCookie(res);
+      return next();
+    }
+
+    req.sessionUser = {
+      userId: user.id,
+      login: user.login,
+      role: user.role,
+      disabled: user.disabled,
+      must_change_password: user.must_change_password,
+      expiresAt: session.expiresAt,
+    };
+    return next();
+  } catch (error) {
+    return next(error);
+  }
 }
 
 function requireAuth(req, res, next) {

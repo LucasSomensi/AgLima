@@ -18,6 +18,22 @@ async function findUserByLogin(login) {
   return result.rows[0] || null;
 }
 
+async function findActiveUserById(userId) {
+  ensureDatabaseConfigured();
+
+  const result = await pool.query(
+    `
+      SELECT id, login, role, disabled, must_change_password
+      FROM users
+      WHERE id = $1
+      LIMIT 1
+    `,
+    [userId]
+  );
+
+  return result.rows[0] || null;
+}
+
 async function listManagedUsers() {
   ensureDatabaseConfigured();
 
@@ -81,6 +97,7 @@ async function updateManagedUserPassword(userId, password) {
 module.exports = {
   createManagedUser,
   deleteManagedUser,
+  findActiveUserById,
   findUserByLogin,
   listManagedUsers,
   updateManagedUserPassword,
