@@ -10,7 +10,7 @@ const {
   startDryerBatchDischarge,
   stopDryerBatch,
 } = require('./dryer-service');
-const { renderDryerPanelPage } = require('./renderers');
+const { renderDryerPanelPage } = require('./renderers/dryer-renderer');
 const { buildRedirect, parseMoisturePercent } = require('./utils');
 
 const router = express.Router();

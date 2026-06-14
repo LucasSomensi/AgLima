@@ -38,7 +38,7 @@ const {
   renderAdminHomePage,
   renderAdminUsersPage,
   renderConstructionPage,
-} = require('./renderers');
+} = require('./renderers/admin-renderer');
 const {
   createManagedUser,
   deleteManagedUser,
