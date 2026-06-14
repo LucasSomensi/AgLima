@@ -49,7 +49,7 @@ const {
   renderScaleOutputGrossFormPage,
   renderScaleOutputsListPage,
   renderWeighbridgeHomePage,
-} = require('./renderers');
+} = require('./renderers/weighbridge-renderer');
 const { buildRedirect } = require('./utils');
 
 const router = express.Router();

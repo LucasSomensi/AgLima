@@ -1,7 +1,7 @@
 const bcrypt = require('bcrypt');
 const express = require('express');
 const { clearSessionCookie, setSessionCookie } = require('./auth');
-const { renderLoginPage } = require('./renderers');
+const { renderLoginPage } = require('./renderers/auth-renderer');
 const { findUserByLogin } = require('./user-service');
 const { getHomePathForRole } = require('./utils');
 
