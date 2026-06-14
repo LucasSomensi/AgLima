@@ -9,6 +9,7 @@ const {
   createContract,
   createSeller,
   getBuyerById,
+  getAdminContractsSummary,
   getContractById,
   getSellerById,
   listAdminContractNotifications,
@@ -54,6 +55,8 @@ const {
   getStorageSummary,
   listStorageRecalibrations,
 } = require('./storage-service');
+const { listScaleInputs, listScaleOutputs } = require('./weighbridge-service');
+const { renderScaleInputsListPage, renderScaleOutputsListPage } = require('./renderers/weighbridge-renderer');
 
 const router = express.Router();
 
@@ -73,10 +76,22 @@ function buildAdminHomeRedirect(params = {}) {
 
 router.get('/admin', canAccessAdminPanel, async (req, res) => {
   try {
-    const notifications = await listAdminContractNotifications();
+    const [notifications, contractsSummary, dryerBatch, storageSummary, scaleInputs, scaleOutputs] = await Promise.all([
+      listAdminContractNotifications(),
+      getAdminContractsSummary(),
+      getActiveDryerBatch(),
+      getStorageSummary(),
+      listScaleInputs({ limit: 10 }),
+      listScaleOutputs({ limit: 10 }),
+    ]);
 
     return renderAdminHomePage(res, {
       notifications,
+      contractsSummary,
+      dryerBatch,
+      storageSummary,
+      scaleInputs,
+      scaleOutputs,
       message: req.query.message || '',
       error: req.query.error || '',
     });
@@ -138,6 +153,26 @@ router.post('/admin/armazenamento/recalibracoes', canAccessAdminPanel, async (re
   } catch (error) {
     console.error('Error creating storage recalibration:', error.message);
     return res.redirect(buildStorageRedirect({ error: 'Não foi possível salvar a recalibração agora.' }));
+  }
+});
+
+router.get('/admin/entradas-e-saidas/entradas', canAccessAdminPanel, async (req, res) => {
+  try {
+    const inputs = await listScaleInputs();
+    return renderScaleInputsListPage(res, { inputs });
+  } catch (error) {
+    console.error('Error listing admin scale inputs:', error.message);
+    return res.status(500).send('Não foi possível listar as entradas agora.');
+  }
+});
+
+router.get('/admin/entradas-e-saidas/saidas', canAccessAdminPanel, async (req, res) => {
+  try {
+    const outputs = await listScaleOutputs();
+    return renderScaleOutputsListPage(res, { outputs });
+  } catch (error) {
+    console.error('Error listing admin scale outputs:', error.message);
+    return res.status(500).send('Não foi possível listar as saídas agora.');
   }
 });
 

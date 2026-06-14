@@ -11,6 +11,7 @@ const {
   toDateTimeLocalValue,
 } = require('../utils');
 const { buildAlertHtml, renderEmptyRow, renderTemplate } = require('./template-utils');
+const { buildScaleInputRows, buildScaleOutputRows } = require('./weighbridge-renderer');
 
 function renderAdminUsersPage(res, { users, message, error }) {
   const adminPath = path.join(__dirname, '../../views/admin-users.html');
@@ -242,11 +243,123 @@ function renderAdminNotificationsPanel(notifications) {
       `;
 }
 
-function renderAdminHomePage(res, { notifications = [], message, error } = {}) {
+function formatSacks(value) {
+  if (value === null || value === undefined || value === '') {
+    return '-';
+  }
+
+  return `${Number(value).toLocaleString('pt-BR', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  })} sc`;
+}
+
+function renderAdminMetric(label, value) {
+  return `
+      <div class="admin-home-metric">
+        <span>${escapeHtml(label)}</span>
+        <strong>${escapeHtml(value)}</strong>
+      </div>
+    `;
+}
+
+function renderAdminContractsPanel(summary = {}) {
+  const sojaKg = Number(summary.soja_a_embarcar_kg || 0);
+  const milhoKg = Number(summary.milho_a_embarcar_kg || 0);
+  const nextContract = summary.proximo_recebimento_contrato_id
+    ? `Contrato #${summary.proximo_recebimento_contrato_id}${summary.proximo_recebimento_comprador ? ` · ${summary.proximo_recebimento_comprador}` : ''}`
+    : '-';
+
+  return `
+        <section class="admin-section admin-notifications-panel admin-home-panel" aria-labelledby="admin-contracts-title">
+          <div class="admin-section-header admin-notifications-header">
+            <h2 id="admin-contracts-title">Contratos</h2>
+            <a class="btn-secondary-action" href="/admin/contratos">Ver contratos</a>
+          </div>
+          <div class="admin-home-metrics-grid">
+            ${renderAdminMetric('Contratos ativos', String(summary.contratos_ativos || 0))}
+            ${renderAdminMetric('Soja a embarcar', `${formatKg(sojaKg)} · ${formatSacks(sojaKg / 60)}`)}
+            ${renderAdminMetric('Milho a embarcar', `${formatKg(milhoKg)} · ${formatSacks(milhoKg / 60)}`)}
+            ${renderAdminMetric('Valor total a receber', formatMoney(summary.valor_total_a_receber || 0))}
+            ${renderAdminMetric('Próximo recebimento', summary.proximo_recebimento_data ? formatDate(summary.proximo_recebimento_data) : '-')}
+            ${renderAdminMetric('Próximo contrato a receber', nextContract)}
+          </div>
+        </section>
+      `;
+}
+
+function renderAdminDryerPanel(batch) {
+  return `
+        <section class="admin-section admin-notifications-panel admin-home-panel" aria-labelledby="admin-dryer-title">
+          <div class="admin-section-header admin-notifications-header">
+            <h2 id="admin-dryer-title">Secador</h2>
+            <a class="btn-secondary-action" href="/admin/secador">Ver secador</a>
+          </div>
+          <div class="admin-home-metrics-grid">
+            ${renderAdminMetric('Status do secador', formatBatchStatusLabel(batch))}
+            ${renderAdminMetric('Início da batelada', batch ? formatDateTime(batch.started_at) : '-')}
+            ${renderAdminMetric(batch?.discharge_started_at ? 'Início da descarga' : 'Previsão da próxima descarga', batch?.discharge_started_at ? formatDateTime(batch.discharge_started_at) : '-')}
+          </div>
+        </section>
+      `;
+}
+
+function getStorageAmount(summary = [], product) {
+  const item = summary.find((entry) => entry.produto === product);
+  return Number(item?.armazenado_kg || 0);
+}
+
+function renderAdminStoragePanel(summary = []) {
+  const milhoKg = getStorageAmount(summary, 'milho');
+  const sojaKg = getStorageAmount(summary, 'soja');
+
+  return `
+        <section class="admin-section admin-notifications-panel admin-home-panel" aria-labelledby="admin-storage-title">
+          <div class="admin-section-header admin-notifications-header">
+            <h2 id="admin-storage-title">Armazenagem</h2>
+            <a class="btn-secondary-action" href="/admin/armazenamento">Ver armazenagem</a>
+          </div>
+          <div class="admin-home-metrics-grid">
+            ${renderAdminMetric('Milho armazenado', `${formatKg(milhoKg)} · ${formatSacks(milhoKg / 60)}`)}
+            ${renderAdminMetric('Soja armazenada', `${formatKg(sojaKg)} · ${formatSacks(sojaKg / 60)}`)}
+          </div>
+        </section>
+      `;
+}
+
+function renderAdminWeighbridgePanel({ inputs = [], outputs = [] } = {}) {
+  return `
+        <section class="admin-section admin-notifications-panel admin-home-panel" aria-labelledby="admin-weighbridge-title">
+          <div class="admin-section-header admin-notifications-header">
+            <h2 id="admin-weighbridge-title">Entradas e saídas</h2>
+          </div>
+          <section class="admin-section" aria-labelledby="admin-recent-inputs-title">
+            <div class="admin-section-header">
+              <h3 id="admin-recent-inputs-title">Últimas 10 entradas</h3>
+              <a class="btn-secondary-action" href="/admin/entradas-e-saidas/entradas">Ver lista completa</a>
+            </div>
+            <div class="admin-table-wrapper"><table class="admin-table weighbridge-table weighbridge-input-table"><thead><tr><th>Data/hora</th><th>Placa</th><th>Produto</th><th>Bruto</th><th>Tara</th><th>Líquido</th><th>Origem</th><th>Classificação</th></tr></thead><tbody>${buildScaleInputRows(inputs)}</tbody></table></div>
+          </section>
+          <section class="admin-section" aria-labelledby="admin-recent-outputs-title">
+            <div class="admin-section-header">
+              <h3 id="admin-recent-outputs-title">Últimas 10 saídas</h3>
+              <a class="btn-secondary-action" href="/admin/entradas-e-saidas/saidas">Ver lista completa</a>
+            </div>
+            <div class="admin-table-wrapper"><table class="admin-table weighbridge-table"><thead><tr><th>Data/hora</th><th>Placa</th><th>Produto</th><th>Bruto</th><th>Tara</th><th>Líquido</th><th>Contrato</th><th>Ação</th></tr></thead><tbody>${buildScaleOutputRows(outputs)}</tbody></table></div>
+          </section>
+        </section>
+      `;
+}
+
+function renderAdminHomePage(res, { notifications = [], contractsSummary = {}, dryerBatch = null, storageSummary = [], scaleInputs = [], scaleOutputs = [], message, error } = {}) {
   const adminHomeHtml = renderTemplate('admin-home.html', {
     ADMIN_HOME_MESSAGE: buildAlertHtml(message),
     ADMIN_HOME_ERROR: buildAlertHtml(error, 'error'),
     ADMIN_NOTIFICATIONS_PANEL: renderAdminNotificationsPanel(notifications),
+    ADMIN_CONTRACTS_PANEL: renderAdminContractsPanel(contractsSummary),
+    ADMIN_DRYER_PANEL: renderAdminDryerPanel(dryerBatch),
+    ADMIN_STORAGE_PANEL: renderAdminStoragePanel(storageSummary),
+    ADMIN_WEIGHBRIDGE_PANEL: renderAdminWeighbridgePanel({ inputs: scaleInputs, outputs: scaleOutputs }),
   });
 
   res.send(adminHomeHtml);

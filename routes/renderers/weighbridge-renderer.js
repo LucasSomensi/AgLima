@@ -525,6 +525,8 @@ function renderScaleOutputInvoicePage(res, { outputInfo, message, error }) {
 }
 
 module.exports = {
+  buildScaleInputRows,
+  buildScaleOutputRows,
   renderScaleContractDetailPage,
   renderScaleContractsListPage,
   renderScaleInputClassificationFormPage,
