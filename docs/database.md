@@ -12,6 +12,7 @@ Este documento descreve o schema `public` do banco PostgreSQL usado pela aplica�
   - [`compradores`](#compradores)
   - [`vendedores`](#vendedores)
   - [`contratos`](#contratos)
+  - [`armazenamento_recalibracoes`](#armazenamento_recalibracoes)
   - [`entradas_balanca`](#entradas_balanca)
   - [`saidas_balanca`](#saidas_balanca)
   - [`users`](#users)
@@ -25,6 +26,7 @@ Este documento descreve o schema `public` do banco PostgreSQL usado pela aplica�
 | --- | --- | --- | --- | --- |
 | `contratos` | `comprador_id` | `compradores` | `id` | Vincula cada contrato a um comprador. |
 | `contratos` | `vendedor_id` | `vendedores` | `id` | Vincula cada contrato a um vendedor. |
+| `armazenamento_recalibracoes` | `criado_por_user_id` | `users` | `id` | Registra o administrador que lançou a recalibração manual do estoque. |
 | `entradas_balanca` | `criado_por_user_id` | `users` | `id` | Registra o operador que lançou a entrada. |
 | `entradas_balanca` | `tara_usada_de_entrada_id` | `entradas_balanca` | `id` | Registra de qual entrada anterior a tara foi reaproveitada. |
 | `entradas_balanca` | `tara_adicionada_por_user_id` | `users` | `id` | Registra o operador que adicionou tara manualmente. |
@@ -133,7 +135,40 @@ Armazena contratos comerciais de compra/venda de grãos.
 | Check / not null | constraints `contratos_*_not_null` | `id`, `data_contrato`, `produto`, `preco_por_saca`, `comprador_id`, `vendedor_id`, `quantidade_kg`, `contrato_embarcado`, `contrato_recebido`, `corretagem_paga`, `criado_em`, `atualizado_em` |
 
 
+
 ---
+
+## `armazenamento_recalibracoes`
+
+Armazena os marcos manuais de recalibração do estoque do silo. Cada registro informa que, em determinada data/hora, um administrador conferiu fisicamente uma quantidade real de soja ou milho. O cálculo da página `/admin/armazenamento` usa a recalibração mais recente de cada produto como base e soma/subtrai apenas movimentações posteriores a essa data.
+
+### Colunas
+
+| Coluna | Tipo | Nulo? | Default | Descrição |
+| --- | --- | --- | --- | --- |
+| `id` | `bigint` | Não | — | Identificador sequencial da recalibração, criado por identity. |
+| `produto` | `USER-DEFINED` | Não | — | Tipo `public.produto_contrato`; pela aplicação, valores aceitos: `milho` e `soja`. |
+| `data_recalibracao` | `timestamp with time zone` | Não | — | Data/hora em que a medição física foi feita. |
+| `quantidade_real_kg` | `numeric` | Não | — | Quantidade real conferida fisicamente no silo, em quilogramas. |
+| `observacoes` | `text` | Sim | — | Observações livres sobre a conferência manual. |
+| `criado_por_user_id` | `uuid` | Não | — | Administrador que registrou a recalibração. FK para `users.id`. |
+| `criado_em` | `timestamp with time zone` | Não | `now()` | Data/hora de criação do registro. |
+
+### Restrições
+
+| Tipo | Nome | Coluna(s) / referência |
+| --- | --- | --- |
+| Primary key | `armazenamento_recalibracoes_pkey` | `id` |
+| Foreign key | `armazenamento_recalibracoes_criado_por_user_id_fkey` | `criado_por_user_id` → `users.id` |
+| Check | `armazenamento_recalibracoes_quantidade_real_nao_negativa_check` | `quantidade_real_kg` |
+| Check | `armazenamento_recalibracoes_observacoes_texto_check` | `observacoes` |
+| Check / not null | constraints `armazenamento_recalibracoes_*_not_null` | `id`, `produto`, `data_recalibracao`, `quantidade_real_kg`, `criado_por_user_id`, `criado_em` |
+
+### Uso pela aplicação
+
+- `/admin/armazenamento` lista o saldo atual por produto, usando a recalibração mais recente como base quando houver.
+- `/admin/armazenamento/recalibracoes` insere uma nova medição manual com produto, data/hora, quantidade real e usuário administrador.
+- O cálculo considera entradas e saídas com data maior que `data_recalibracao`, para que a medição manual represente o saldo exato naquele instante.
 
 
 ## `entradas_balanca`
@@ -151,6 +186,7 @@ Armazena as entradas registradas pelo operador de balança. Cada entrada nasce c
 | `peso_bruto_kg` | `numeric` | Não | — | Peso bruto em quilogramas lançado na criação da entrada. |
 | `peso_tara_kg` | `numeric` | Sim | — | Peso tara em quilogramas. Fica nulo até o operador adicionar tara ou escolher usar tara anterior. |
 | `peso_liquido_kg` | `numeric` | Sim | — | Peso líquido gerado pelo banco como `peso_bruto_kg - peso_tara_kg`; permanece nulo enquanto não há tara. |
+| `liquido_real_kg` | `numeric` | Sim | — | Peso líquido real armazenado para cálculo de estoque. Fica nulo enquanto falta tara ou classificação; quando classificado, desconta impureza e, se a umidade for maior que 14%, ajusta pela matéria seca usando divisor `0,86`. |
 | `tara_usada_de_entrada_id` | `bigint` | Sim | — | Entrada anterior usada como origem da tara reaproveitada. FK para `entradas_balanca.id`. |
 | `origem` | `text` | Sim | — | Origem textual do produto, como fazenda ou lote. Exemplo: `Fazenda São José`. |
 | `origem_definida_por_user_id` | `uuid` | Sim | — | Usuário que definiu a origem. FK para `users.id`. |
@@ -203,6 +239,7 @@ Armazena as entradas registradas pelo operador de balança. Cada entrada nasce c
 - Ao usar tara anterior, a aplicação copia `peso_tara_kg` da entrada anterior mais recente da mesma placa e grava `tara_usada_de_entrada_id`.
 - A página inicial `/balanca` lista as 10 entradas mais recentes usando `ORDER BY data_entrada DESC, id DESC`.
 - As ações atuais da lista são adicionar tara, adicionar classificação e definir origem. A ação de cliente está preparada no banco, mas ainda não foi implementada na interface.
+- O campo `liquido_real_kg` é usado pelo módulo `/admin/armazenamento` para somar entradas no estoque. A fórmula aplicada considera os percentuais como valores de 0 a 100: para umidade até 14%, `(peso_liquido_kg * (1 - impureza_percent / 100))`; para umidade acima de 14%, `(peso_liquido_kg * (1 - impureza_percent / 100) * (1 - umidade_percent / 100) / 0.86)`.
 
 ---
 

@@ -1213,3 +1213,31 @@ button:disabled,
 .contracts-checkbox:has(input:disabled) {
   opacity: 0.7;
 }
+
+.storage-card {
+  max-width: 1180px;
+}
+
+.storage-summary-grid {
+  margin-bottom: 28px;
+}
+
+.storage-status-card small {
+  display: block;
+  margin-top: 10px;
+  color: var(--green-100);
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.storage-section-description {
+  margin: -6px 0 18px;
+}
+
+.storage-recalibration-form {
+  margin-top: 0;
+}
+
+.storage-table {
+  min-width: 820px;
+}

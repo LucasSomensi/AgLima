@@ -8,6 +8,7 @@ const {
   formatMoisture,
   getRoleLabel,
   toDateOnlyInputValue,
+  toDateTimeLocalValue,
 } = require('../utils');
 const { buildAlertHtml, renderEmptyRow, renderTemplate } = require('./template-utils');
 
@@ -55,6 +56,79 @@ function renderAdminUsersPage(res, { users, message, error }) {
     .replace('{{USERS_ROWS}}', rowsHtml || emptyState);
 
   res.send(adminHtml);
+}
+
+
+function formatProductLabel(value) {
+  const labels = {
+    milho: 'Milho',
+    soja: 'Soja',
+  };
+
+  return labels[value] || value || '-';
+}
+
+function formatKg(value) {
+  if (value === null || value === undefined || value === '') {
+    return '-';
+  }
+
+  return `${Number(value).toLocaleString('pt-BR', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 3,
+  })} kg`;
+}
+
+function renderAdminStoragePage(res, { summary, recalibrations, ignoredInputs, message, error }) {
+  const ignoredInputsByProduct = new Map(
+    ignoredInputs.map((item) => [item.produto, Number(item.entradas_pendentes || 0)])
+  );
+  const summaryCards = summary
+    .map((item) => `
+        <article class="dryer-status-card storage-status-card">
+          <span class="dryer-card-label">${escapeHtml(formatProductLabel(item.produto))}</span>
+          <strong>${escapeHtml(formatKg(item.armazenado_kg))}</strong>
+          <small>${item.data_recalibracao ? `Base: ${escapeHtml(formatDateTime(item.data_recalibracao))}` : 'Sem recalibração registrada'}</small>
+        </article>
+      `)
+    .join('');
+  const detailRows = summary
+    .map((item) => {
+      const pendingInputs = ignoredInputsByProduct.get(item.produto) || 0;
+      return `
+        <tr>
+          <td>${escapeHtml(formatProductLabel(item.produto))}</td>
+          <td>${item.data_recalibracao ? `${escapeHtml(formatKg(item.quantidade_recalibrada_kg))}<br><span class="admin-muted">${escapeHtml(formatDateTime(item.data_recalibracao))}</span>` : '-'}</td>
+          <td>${escapeHtml(formatKg(item.entradas_desde_recalibracao_kg))}</td>
+          <td>${escapeHtml(formatKg(item.saidas_desde_recalibracao_kg))}</td>
+          <td><strong>${escapeHtml(formatKg(item.armazenado_kg))}</strong></td>
+          <td>${pendingInputs ? `${escapeHtml(String(pendingInputs))} entrada(s)` : '-'}</td>
+        </tr>
+      `;
+    })
+    .join('') || '<tr><td colspan="6">Nenhum produto encontrado.</td></tr>';
+  const recalibrationRows = recalibrations
+    .map((item) => `
+        <tr>
+          <td>${escapeHtml(formatDateTime(item.data_recalibracao))}</td>
+          <td>${escapeHtml(formatProductLabel(item.produto))}</td>
+          <td>${escapeHtml(formatKg(item.quantidade_real_kg))}</td>
+          <td>${escapeHtml(item.criado_por_login || '-')}</td>
+          <td>${escapeHtml(item.observacoes || '-')}</td>
+        </tr>
+      `)
+    .join('') || '<tr><td colspan="5">Nenhuma recalibração registrada.</td></tr>';
+
+  const storageHtml = renderTemplate('admin-storage.html', {
+    STORAGE_MESSAGE: buildAlertHtml(message),
+    STORAGE_ERROR: buildAlertHtml(error, 'error'),
+    STORAGE_SUMMARY_CARDS: summaryCards,
+    CURRENT_DATE_TIME: escapeHtml(toDateTimeLocalValue()),
+    STORAGE_DETAIL_ROWS: detailRows,
+    STORAGE_RECALIBRATION_ROWS: recalibrationRows,
+  });
+
+  res.send(storageHtml);
 }
 
 function getGrainLabel(grainType) {
@@ -409,6 +483,7 @@ module.exports = {
   renderAdminContractsPage,
   renderAdminDashboardPage,
   renderAdminHomePage,
+  renderAdminStoragePage,
   renderAdminUsersPage,
   renderConstructionPage,
 };
