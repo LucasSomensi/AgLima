@@ -411,6 +411,48 @@ async function listAdminContractNotifications() {
   });
 }
 
+async function getAdminContractsSummary() {
+  ensureDatabaseConfigured();
+
+  const result = await pool.query(
+    `
+      WITH contratos_calculados AS (
+        SELECT c.id,
+               c.produto,
+               c.quantidade_kg,
+               c.preco_por_saca,
+               c.data_recebimento,
+               c.contrato_embarcado,
+               c.contrato_recebido,
+               comp.nome AS comprador_nome,
+               c.quantidade_kg - COALESCE(SUM(s.peso_liquido_kg), 0) AS saldo_kg,
+               c.quantidade_kg * c.preco_por_saca / 60 AS valor_contrato
+        FROM contratos c
+        JOIN compradores comp ON comp.id = c.comprador_id
+        LEFT JOIN saidas_balanca s ON s.contrato_id = c.id
+        GROUP BY c.id, comp.nome
+      ), proximos_recebimentos AS (
+        SELECT id, comprador_nome, data_recebimento
+        FROM contratos_calculados
+        WHERE contrato_recebido IS NOT TRUE
+          AND data_recebimento IS NOT NULL
+        ORDER BY data_recebimento ASC, id ASC
+        LIMIT 1
+      )
+      SELECT COUNT(*) FILTER (WHERE contrato_embarcado IS NOT TRUE OR contrato_recebido IS NOT TRUE)::integer AS contratos_ativos,
+             COALESCE(SUM(GREATEST(saldo_kg, 0)) FILTER (WHERE produto = 'soja' AND contrato_embarcado IS NOT TRUE), 0) AS soja_a_embarcar_kg,
+             COALESCE(SUM(GREATEST(saldo_kg, 0)) FILTER (WHERE produto = 'milho' AND contrato_embarcado IS NOT TRUE), 0) AS milho_a_embarcar_kg,
+             COALESCE(SUM(valor_contrato) FILTER (WHERE contrato_recebido IS NOT TRUE), 0) AS valor_total_a_receber,
+             (SELECT data_recebimento FROM proximos_recebimentos) AS proximo_recebimento_data,
+             (SELECT id FROM proximos_recebimentos) AS proximo_recebimento_contrato_id,
+             (SELECT comprador_nome FROM proximos_recebimentos) AS proximo_recebimento_comprador
+      FROM contratos_calculados
+    `
+  );
+
+  return result.rows[0] || {};
+}
+
 async function getContractById(id) {
   ensureDatabaseConfigured();
 
@@ -597,6 +639,7 @@ module.exports = {
   createSeller,
   getBuyerById,
   getContractById,
+  getAdminContractsSummary,
   getSellerById,
   listAdminContractNotifications,
   listBuyers,
