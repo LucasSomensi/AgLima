@@ -54,6 +54,19 @@ test('weighbridge outputs list links contract column content to contract detail 
   );
 });
 
+test('weighbridge outputs list can return admins to administration', () => {
+  const html = renderPage(renderScaleOutputsListPage, {
+    outputs: [outputWithContract],
+    navigation: {
+      homeHref: '/admin',
+      homeLabel: '← Voltar à administração',
+    },
+  });
+
+  assert.match(html, /href="\/admin">← Voltar à administração<\/a>/);
+  assert.doesNotMatch(html, /href="\/balanca">← Voltar à balança<\/a>/);
+});
+
 test('weighbridge outputs keep pending contract column as plain text', () => {
   const html = renderPage(renderScaleOutputsListPage, {
     outputs: [{ ...outputWithContract, contrato_id: null, comprador_nome: null }],

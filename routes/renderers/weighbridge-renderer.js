@@ -84,6 +84,15 @@ function getDefaultScaleInputProduct(dataEntradaValue) {
   return date.getMonth() <= 3 ? 'soja' : 'milho';
 }
 
+function applyWeighbridgeNavigation(html, navigation = {}) {
+  const homeHref = navigation.homeHref || '/balanca';
+  const homeLabel = navigation.homeLabel || '← Voltar à balança';
+
+  return html
+    .replace(/{{WEIGHBRIDGE_HOME_HREF}}/g, escapeHtml(homeHref))
+    .replace(/{{WEIGHBRIDGE_HOME_LABEL}}/g, escapeHtml(homeLabel));
+}
+
 function buildScaleInputRows(inputs, { showAllLink = false } = {}) {
   return inputs
     .map((input) => {
@@ -163,20 +172,20 @@ function renderWeighbridgeHomePage(res, { inputs = [], outputs = [], message, er
   res.send(html);
 }
 
-function renderScaleInputsListPage(res, { inputs }) {
+function renderScaleInputsListPage(res, { inputs, navigation }) {
   const pagePath = path.join(__dirname, '../../views/weighbridge-inputs.html');
-  const html = fs
+  const html = applyWeighbridgeNavigation(fs
     .readFileSync(pagePath, 'utf8')
-    .replace('{{SCALE_INPUT_ROWS}}', buildScaleInputRows(inputs, { showAllLink: true }));
+    .replace('{{SCALE_INPUT_ROWS}}', buildScaleInputRows(inputs, { showAllLink: true })), navigation);
 
   res.send(html);
 }
 
-function renderScaleOutputsListPage(res, { outputs }) {
+function renderScaleOutputsListPage(res, { outputs, navigation }) {
   const pagePath = path.join(__dirname, '../../views/weighbridge-outputs.html');
-  const html = fs
+  const html = applyWeighbridgeNavigation(fs
     .readFileSync(pagePath, 'utf8')
-    .replace('{{SCALE_OUTPUT_ROWS}}', buildScaleOutputRows(outputs, { showAllLink: true }));
+    .replace('{{SCALE_OUTPUT_ROWS}}', buildScaleOutputRows(outputs, { showAllLink: true })), navigation);
 
   res.send(html);
 }
@@ -198,11 +207,11 @@ function buildScaleContractsRows(contracts) {
     .join('') || '<tr><td colspan="7">Nenhum contrato com embarque pendente.</td></tr>';
 }
 
-function renderScaleContractsListPage(res, { contracts }) {
+function renderScaleContractsListPage(res, { contracts, navigation }) {
   const pagePath = path.join(__dirname, '../../views/weighbridge-contracts.html');
-  const html = fs
+  const html = applyWeighbridgeNavigation(fs
     .readFileSync(pagePath, 'utf8')
-    .replace('{{CONTRACT_ROWS}}', buildScaleContractsRows(contracts));
+    .replace('{{CONTRACT_ROWS}}', buildScaleContractsRows(contracts)), navigation);
 
   res.send(html);
 }
@@ -248,34 +257,34 @@ function renderScaleContractDetailPage(res, { contract, outputs }) {
   res.send(html);
 }
 
-function renderScaleOutputFormPage(res, { formValues = {}, error }) {
+function renderScaleOutputFormPage(res, { formValues = {}, error, navigation }) {
   const pagePath = path.join(__dirname, '../../views/weighbridge-output-form.html');
-  const html = fs
+  const html = applyWeighbridgeNavigation(fs
     .readFileSync(pagePath, 'utf8')
     .replace('{{SCALE_OUTPUT_ERROR}}', buildAlertHtml(error, 'error'))
     .replace(/{{DATA_SAIDA}}/g, escapeHtml(formValues.data_saida || toDateTimeLocalValue()))
     .replace(/{{PLACA_CAMINHAO}}/g, escapeHtml(formValues.placa_caminhao || ''))
     .replace('{{PRODUCT_MILHO_SELECTED}}', formValues.produto === 'milho' ? ' selected' : '')
     .replace('{{PRODUCT_SOJA_SELECTED}}', formValues.produto === 'soja' ? ' selected' : '')
-    .replace(/{{PESO_TARA_KG}}/g, escapeHtml(formatDecimalInput(formValues.peso_tara_kg)));
+    .replace(/{{PESO_TARA_KG}}/g, escapeHtml(formatDecimalInput(formValues.peso_tara_kg))), navigation);
 
   res.send(html);
 }
 
 
-function renderScaleOutputGrossFormPage(res, { output, formValues = {}, error }) {
+function renderScaleOutputGrossFormPage(res, { output, formValues = {}, error, navigation }) {
   const pagePath = path.join(__dirname, '../../views/weighbridge-output-gross-form.html');
-  const html = fs
+  const html = applyWeighbridgeNavigation(fs
     .readFileSync(pagePath, 'utf8')
     .replace('{{SCALE_OUTPUT_ERROR}}', buildAlertHtml(error, 'error'))
     .replace(/{{SAIDA_ID}}/g, escapeHtml(output.id))
     .replace('{{OUTPUT_SUMMARY}}', escapeHtml(`${formatDateTime(output.data_saida)} · ${output.placa_caminhao} · ${formatProductLabel(output.produto)} · tara ${formatKg(output.peso_tara_kg)}`))
-    .replace(/{{PESO_BRUTO_KG}}/g, escapeHtml(formatDecimalInput(formValues.peso_bruto_kg)));
+    .replace(/{{PESO_BRUTO_KG}}/g, escapeHtml(formatDecimalInput(formValues.peso_bruto_kg))), navigation);
 
   res.send(html);
 }
 
-function renderScaleInputFormPage(res, { formValues = {}, plateSuggestions = [], error }) {
+function renderScaleInputFormPage(res, { formValues = {}, plateSuggestions = [], error, navigation }) {
   const pagePath = path.join(__dirname, '../../views/weighbridge-input-form.html');
   const suggestions = plateSuggestions
     .map((plate) => `
@@ -286,7 +295,7 @@ function renderScaleInputFormPage(res, { formValues = {}, plateSuggestions = [],
     .join('') || '<p class="weighbridge-plate-empty">Nenhuma placa recente encontrada.</p>';
   const dataEntradaValue = formValues.data_entrada || toDateTimeLocalValue();
   const selectedProduct = formValues.produto || getDefaultScaleInputProduct(dataEntradaValue);
-  const html = fs
+  const html = applyWeighbridgeNavigation(fs
     .readFileSync(pagePath, 'utf8')
     .replace('{{SCALE_INPUT_ERROR}}', buildAlertHtml(error, 'error'))
     .replace(/{{DATA_ENTRADA}}/g, escapeHtml(dataEntradaValue))
@@ -296,54 +305,54 @@ function renderScaleInputFormPage(res, { formValues = {}, plateSuggestions = [],
     .replace('{{PRODUCT_WAS_CHANGED}}', formValues.produto ? 'true' : 'false')
     .replace(/{{PESO_BRUTO_KG}}/g, escapeHtml(formatDecimalInput(formValues.peso_bruto_kg)))
     .replace('{{USAR_TARA_ANTERIOR_CHECKED}}', formValues.usar_tara_anterior ? ' checked' : '')
-    .replace('{{PLATE_SUGGESTIONS}}', suggestions);
+    .replace('{{PLATE_SUGGESTIONS}}', suggestions), navigation);
 
   res.send(html);
 }
 
-function renderScaleInputTareFormPage(res, { input, formValues = {}, error }) {
+function renderScaleInputTareFormPage(res, { input, formValues = {}, error, navigation }) {
   const pagePath = path.join(__dirname, '../../views/weighbridge-input-tare-form.html');
-  const html = fs
+  const html = applyWeighbridgeNavigation(fs
     .readFileSync(pagePath, 'utf8')
     .replace('{{SCALE_INPUT_ERROR}}', buildAlertHtml(error, 'error'))
     .replace(/{{ENTRADA_ID}}/g, escapeHtml(input.id))
     .replace('{{INPUT_SUMMARY}}', escapeHtml(`${formatDateTime(input.data_entrada)} · ${input.placa_caminhao} · bruto ${formatKg(input.peso_bruto_kg)}`))
-    .replace(/{{PESO_TARA_KG}}/g, escapeHtml(formatDecimalInput(formValues.peso_tara_kg)));
+    .replace(/{{PESO_TARA_KG}}/g, escapeHtml(formatDecimalInput(formValues.peso_tara_kg))), navigation);
 
   res.send(html);
 }
 
-function renderScaleInputClassificationFormPage(res, { input, formValues = {}, error }) {
+function renderScaleInputClassificationFormPage(res, { input, formValues = {}, error, navigation }) {
   const pagePath = path.join(__dirname, '../../views/weighbridge-input-classification-form.html');
-  const html = fs
+  const html = applyWeighbridgeNavigation(fs
     .readFileSync(pagePath, 'utf8')
     .replace('{{SCALE_INPUT_ERROR}}', buildAlertHtml(error, 'error'))
     .replace(/{{ENTRADA_ID}}/g, escapeHtml(input.id))
     .replace('{{INPUT_SUMMARY}}', escapeHtml(`${formatDateTime(input.data_entrada)} · ${input.placa_caminhao} · ${formatProductLabel(input.produto)}`))
     .replace(/{{UMIDADE_PERCENT}}/g, escapeHtml(formatDecimalInput(formValues.umidade_percent ?? input.umidade_percent ?? 14)))
     .replace(/{{IMPUREZA_PERCENT}}/g, escapeHtml(formatDecimalInput(formValues.impureza_percent ?? input.impureza_percent ?? 1)))
-    .replace(/{{GRAOS_AVARIADOS_PERCENT}}/g, escapeHtml(formatDecimalInput(formValues.graos_avariados_percent ?? input.graos_avariados_percent ?? 0)));
+    .replace(/{{GRAOS_AVARIADOS_PERCENT}}/g, escapeHtml(formatDecimalInput(formValues.graos_avariados_percent ?? input.graos_avariados_percent ?? 0))), navigation);
 
   res.send(html);
 }
 
-function renderScaleInputOriginFormPage(res, { input, formValues = {}, error }) {
+function renderScaleInputOriginFormPage(res, { input, formValues = {}, error, navigation }) {
   const pagePath = path.join(__dirname, '../../views/weighbridge-input-origin-form.html');
-  const html = fs
+  const html = applyWeighbridgeNavigation(fs
     .readFileSync(pagePath, 'utf8')
     .replace('{{SCALE_INPUT_ERROR}}', buildAlertHtml(error, 'error'))
     .replace(/{{ENTRADA_ID}}/g, escapeHtml(input.id))
     .replace('{{INPUT_SUMMARY}}', escapeHtml(`${formatDateTime(input.data_entrada)} · ${input.placa_caminhao} · ${formatProductLabel(input.produto)}`))
-    .replace(/{{ORIGEM}}/g, escapeHtml(formValues.origem ?? input.origem ?? ''));
+    .replace(/{{ORIGEM}}/g, escapeHtml(formValues.origem ?? input.origem ?? '')), navigation);
 
   res.send(html);
 }
 
-function renderScaleInputDetailPage(res, { input, formValues = {}, message, error }) {
+function renderScaleInputDetailPage(res, { input, formValues = {}, message, error, navigation }) {
   const pagePath = path.join(__dirname, '../../views/weighbridge-input-detail.html');
   const dataEntradaValue = formValues.data_entrada ?? toDateTimeLocalValue(input.data_entrada);
   const selectedProduct = formValues.produto || input.produto;
-  const html = fs
+  const html = applyWeighbridgeNavigation(fs
     .readFileSync(pagePath, 'utf8')
     .replace('{{SCALE_INPUT_MESSAGE}}', buildAlertHtml(message))
     .replace('{{SCALE_INPUT_ERROR}}', buildAlertHtml(error, 'error'))
@@ -367,12 +376,12 @@ function renderScaleInputDetailPage(res, { input, formValues = {}, message, erro
     .replace('{{ORIGEM}}', input.origem ? escapeHtml(input.origem) : 'Pendente')
     .replace('{{CLASSIFICACAO}}', isInputClassified(input)
       ? escapeHtml(`${formatPercent(input.umidade_percent)} umidade · ${formatPercent(input.impureza_percent)} impureza · ${formatPercent(input.graos_avariados_percent)} avariados`)
-      : 'Pendente');
+      : 'Pendente'), navigation);
 
   res.send(html);
 }
 
-function renderScaleOutputAssociationPage(res, { output, buyers, contracts, selectedBuyerId, error }) {
+function renderScaleOutputAssociationPage(res, { output, buyers, contracts, selectedBuyerId, error, navigation }) {
   const pagePath = path.join(__dirname, '../../views/weighbridge-associate-output.html');
   const buyerOptions = buyers.map((buyer) => buildOption(buyer.id, buyer.nome, selectedBuyerId)).join('');
   const contractOptions = contracts.map((contract) => {
@@ -388,7 +397,7 @@ function renderScaleOutputAssociationPage(res, { output, buyers, contracts, sele
         : 'Escolha qual contrato deve receber esta saída.';
   const submitDisabled = contracts.length === 0 ? 'disabled' : '';
 
-  const html = fs
+  const html = applyWeighbridgeNavigation(fs
     .readFileSync(pagePath, 'utf8')
     .replace('{{ASSOCIATION_ERROR}}', buildAlertHtml(error, 'error'))
     .replace(/{{OUTPUT_ID}}/g, escapeHtml(output.id))
@@ -397,7 +406,7 @@ function renderScaleOutputAssociationPage(res, { output, buyers, contracts, sele
     .replace('{{CONTRACT_OPTIONS}}', contractOptions)
     .replace('{{CONTRACT_HELP}}', escapeHtml(contractHelp))
     .replace(/{{SELECTED_BUYER_ID}}/g, escapeHtml(selectedBuyerId || ''))
-    .replace(/{{ASSOCIATE_DISABLED}}/g, submitDisabled);
+    .replace(/{{ASSOCIATE_DISABLED}}/g, submitDisabled), navigation);
 
   res.send(html);
 }
@@ -490,9 +499,9 @@ function buildScaleOutputActionsHtml(outputInfo) {
   `;
 }
 
-function renderScaleOutputDetailPage(res, { outputInfo, error }) {
+function renderScaleOutputDetailPage(res, { outputInfo, error, navigation }) {
   const pagePath = path.join(__dirname, '../../views/weighbridge-output-detail.html');
-  const html = fs
+  const html = applyWeighbridgeNavigation(fs
     .readFileSync(pagePath, 'utf8')
     .replace('{{SCALE_OUTPUT_ERROR}}', buildAlertHtml(error, 'error'))
     .replace(/{{SAIDA_ID}}/g, escapeHtml(outputInfo.saida_id))
@@ -503,14 +512,14 @@ function renderScaleOutputDetailPage(res, { outputInfo, error }) {
     .replace('{{PESO_BRUTO_KG}}', escapeHtml(formatPlainDecimal(outputInfo.peso_bruto_kg)))
     .replace(/{{PESO_LIQUIDO_KG}}/g, escapeHtml(formatPlainDecimal(outputInfo.peso_liquido_kg)))
     .replace('{{INVOICE_INFO_LINK}}', buildScaleOutputInvoiceLinkHtml(outputInfo))
-    .replace('{{OUTPUT_ACTIONS_SECTION}}', buildScaleOutputActionsHtml(outputInfo));
+    .replace('{{OUTPUT_ACTIONS_SECTION}}', buildScaleOutputActionsHtml(outputInfo)), navigation);
 
   res.send(html);
 }
 
-function renderScaleOutputInvoicePage(res, { outputInfo, message, error }) {
+function renderScaleOutputInvoicePage(res, { outputInfo, message, error, navigation }) {
   const pagePath = path.join(__dirname, '../../views/weighbridge-output-invoice.html');
-  const html = fs
+  const html = applyWeighbridgeNavigation(fs
     .readFileSync(pagePath, 'utf8')
     .replace('{{SCALE_OUTPUT_MESSAGE}}', buildAlertHtml(message))
     .replace('{{SCALE_OUTPUT_ERROR}}', buildAlertHtml(error, 'error'))
@@ -519,7 +528,7 @@ function renderScaleOutputInvoicePage(res, { outputInfo, message, error }) {
     .replace('{{PLACA_CAMINHAO}}', escapeHtml(outputInfo.placa_caminhao))
     .replace('{{PRODUTO}}', escapeHtml(formatProductLabel(outputInfo.produto)))
     .replace(/{{PESO_LIQUIDO_KG}}/g, escapeHtml(formatPlainDecimal(outputInfo.peso_liquido_kg)))
-    .replace('{{INVOICE_DETAIL_SECTION}}', buildScaleOutputInvoiceDetailHtml(outputInfo));
+    .replace('{{INVOICE_DETAIL_SECTION}}', buildScaleOutputInvoiceDetailHtml(outputInfo)), navigation);
 
   res.send(html);
 }
