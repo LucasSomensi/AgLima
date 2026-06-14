@@ -53,13 +53,31 @@ const {
 const { buildRedirect } = require('./utils');
 
 const router = express.Router();
-const canAccessWeighbridge = requireRole(ROLES.WEIGHBRIDGE_OPERATOR);
+const canAccessWeighbridge = requireRole(ROLES.WEIGHBRIDGE_OPERATOR, ROLES.ADMIN);
 
 function buildWeighbridgeRedirect(params = {}) {
   return buildRedirect('/balanca', params);
 }
 
+function getWeighbridgeNavigation(req) {
+  if (req.sessionUser?.role === ROLES.ADMIN) {
+    return {
+      homeHref: '/admin',
+      homeLabel: '← Voltar à administração',
+    };
+  }
+
+  return {
+    homeHref: '/balanca',
+    homeLabel: '← Voltar à balança',
+  };
+}
+
 router.get('/balanca', canAccessWeighbridge, async (req, res) => {
+  if (req.sessionUser.role === ROLES.ADMIN) {
+    return res.redirect('/admin');
+  }
+
   try {
     const [inputs, outputs] = await Promise.all([
       listScaleInputs({ limit: 10 }),
@@ -125,7 +143,7 @@ router.get('/balanca/entradas/tara-anterior', canAccessWeighbridge, async (req, 
 router.get('/balanca/entradas', canAccessWeighbridge, async (req, res) => {
   try {
     const inputs = await listScaleInputs();
-    return renderScaleInputsListPage(res, { inputs });
+    return renderScaleInputsListPage(res, { inputs, navigation: getWeighbridgeNavigation(req) });
   } catch (error) {
     console.error('Error listing scale inputs:', error.message);
     return res.status(500).send('Não foi possível listar as entradas agora.');
@@ -139,6 +157,7 @@ router.get('/balanca/entradas/nova', canAccessWeighbridge, async (req, res) => {
       formValues: {},
       plateSuggestions,
       error: req.query.error || '',
+      navigation: getWeighbridgeNavigation(req),
     });
   } catch (error) {
     console.error('Error loading input form:', error.message);
@@ -151,7 +170,12 @@ router.post('/balanca/entradas', canAccessWeighbridge, async (req, res) => {
   const plateSuggestions = await listRecentInputPlates(req.body.placa_caminhao || '').catch(() => []);
 
   if (error) {
-    return renderScaleInputFormPage(res, { formValues: req.body, plateSuggestions, error });
+    return renderScaleInputFormPage(res, {
+      formValues: req.body,
+      plateSuggestions,
+      error,
+      navigation: getWeighbridgeNavigation(req),
+    });
   }
 
   try {
@@ -165,6 +189,7 @@ router.post('/balanca/entradas', canAccessWeighbridge, async (req, res) => {
       error: error.code === 'NO_PREVIOUS_TARE' || error.code === 'INVALID_PREVIOUS_TARE'
         ? error.message
         : 'Não foi possível adicionar a entrada agora.',
+      navigation: getWeighbridgeNavigation(req),
     });
   }
 });
@@ -181,6 +206,7 @@ router.get('/balanca/entradas/:id', canAccessWeighbridge, async (req, res) => {
       input,
       message: req.query.entrada_editada ? 'Entrada atualizada com sucesso.' : '',
       error: req.query.error || '',
+      navigation: getWeighbridgeNavigation(req),
     });
   } catch (error) {
     console.error('Error loading scale input detail:', error.message);
@@ -197,7 +223,12 @@ router.post('/balanca/entradas/:id', canAccessWeighbridge, async (req, res) => {
   }
 
   if (error) {
-    return renderScaleInputDetailPage(res, { input, formValues: req.body, error });
+    return renderScaleInputDetailPage(res, {
+      input,
+      formValues: req.body,
+      error,
+      navigation: getWeighbridgeNavigation(req),
+    });
   }
 
   try {
@@ -208,6 +239,7 @@ router.post('/balanca/entradas/:id', canAccessWeighbridge, async (req, res) => {
         input,
         formValues: req.body,
         error: 'Confira se o peso bruto continua maior que o peso tara.',
+        navigation: getWeighbridgeNavigation(req),
       });
     }
 
@@ -218,6 +250,7 @@ router.post('/balanca/entradas/:id', canAccessWeighbridge, async (req, res) => {
       input,
       formValues: req.body,
       error: 'Não foi possível atualizar a entrada agora.',
+      navigation: getWeighbridgeNavigation(req),
     });
   }
 });
@@ -246,7 +279,12 @@ router.get('/balanca/entradas/:id/tara', canAccessWeighbridge, async (req, res) 
       return res.redirect(buildWeighbridgeRedirect({ error: 'Esta entrada já possui tara.' }));
     }
 
-    return renderScaleInputTareFormPage(res, { input, formValues: {}, error: req.query.error || '' });
+    return renderScaleInputTareFormPage(res, {
+      input,
+      formValues: {},
+      error: req.query.error || '',
+      navigation: getWeighbridgeNavigation(req),
+    });
   } catch (error) {
     console.error('Error loading input tare form:', error.message);
     return res.redirect(buildWeighbridgeRedirect({ error: 'Não foi possível carregar a tara agora.' }));
@@ -262,7 +300,12 @@ router.post('/balanca/entradas/:id/tara', canAccessWeighbridge, async (req, res)
   }
 
   if (error) {
-    return renderScaleInputTareFormPage(res, { input, formValues: req.body, error });
+    return renderScaleInputTareFormPage(res, {
+      input,
+      formValues: req.body,
+      error,
+      navigation: getWeighbridgeNavigation(req),
+    });
   }
 
   try {
@@ -273,6 +316,7 @@ router.post('/balanca/entradas/:id/tara', canAccessWeighbridge, async (req, res)
         input,
         formValues: req.body,
         error: 'Confira se a entrada ainda está sem tara e se o peso tara é menor que o peso bruto.',
+        navigation: getWeighbridgeNavigation(req),
       });
     }
 
@@ -283,6 +327,7 @@ router.post('/balanca/entradas/:id/tara', canAccessWeighbridge, async (req, res)
       input,
       formValues: req.body,
       error: 'Não foi possível adicionar a tara agora.',
+      navigation: getWeighbridgeNavigation(req),
     });
   }
 });
@@ -295,7 +340,12 @@ router.get('/balanca/entradas/:id/classificacao', canAccessWeighbridge, async (r
       return res.redirect(buildWeighbridgeRedirect({ error: 'Entrada não encontrada.' }));
     }
 
-    return renderScaleInputClassificationFormPage(res, { input, formValues: {}, error: req.query.error || '' });
+    return renderScaleInputClassificationFormPage(res, {
+      input,
+      formValues: {},
+      error: req.query.error || '',
+      navigation: getWeighbridgeNavigation(req),
+    });
   } catch (error) {
     console.error('Error loading input classification form:', error.message);
     return res.redirect(buildWeighbridgeRedirect({ error: 'Não foi possível carregar a classificação agora.' }));
@@ -311,7 +361,12 @@ router.post('/balanca/entradas/:id/classificacao', canAccessWeighbridge, async (
   }
 
   if (error) {
-    return renderScaleInputClassificationFormPage(res, { input, formValues: req.body, error });
+    return renderScaleInputClassificationFormPage(res, {
+      input,
+      formValues: req.body,
+      error,
+      navigation: getWeighbridgeNavigation(req),
+    });
   }
 
   try {
@@ -323,6 +378,7 @@ router.post('/balanca/entradas/:id/classificacao', canAccessWeighbridge, async (
       input,
       formValues: req.body,
       error: 'Não foi possível adicionar a classificação agora.',
+      navigation: getWeighbridgeNavigation(req),
     });
   }
 });
@@ -339,7 +395,12 @@ router.get('/balanca/entradas/:id/origem', canAccessWeighbridge, async (req, res
       return res.redirect(buildWeighbridgeRedirect({ error: 'Esta entrada já possui origem definida.' }));
     }
 
-    return renderScaleInputOriginFormPage(res, { input, formValues: {}, error: req.query.error || '' });
+    return renderScaleInputOriginFormPage(res, {
+      input,
+      formValues: {},
+      error: req.query.error || '',
+      navigation: getWeighbridgeNavigation(req),
+    });
   } catch (error) {
     console.error('Error loading input origin form:', error.message);
     return res.redirect(buildWeighbridgeRedirect({ error: 'Não foi possível carregar a origem agora.' }));
@@ -355,7 +416,12 @@ router.post('/balanca/entradas/:id/origem', canAccessWeighbridge, async (req, re
   }
 
   if (error) {
-    return renderScaleInputOriginFormPage(res, { input, formValues: req.body, error });
+    return renderScaleInputOriginFormPage(res, {
+      input,
+      formValues: req.body,
+      error,
+      navigation: getWeighbridgeNavigation(req),
+    });
   }
 
   try {
@@ -366,6 +432,7 @@ router.post('/balanca/entradas/:id/origem', canAccessWeighbridge, async (req, re
         input,
         formValues: req.body,
         error: 'Confira se a entrada ainda está sem origem definida.',
+        navigation: getWeighbridgeNavigation(req),
       });
     }
 
@@ -376,6 +443,7 @@ router.post('/balanca/entradas/:id/origem', canAccessWeighbridge, async (req, re
       input,
       formValues: req.body,
       error: 'Não foi possível definir a origem agora.',
+      navigation: getWeighbridgeNavigation(req),
     });
   }
 });
@@ -383,7 +451,7 @@ router.post('/balanca/entradas/:id/origem', canAccessWeighbridge, async (req, re
 router.get('/balanca/contratos', canAccessWeighbridge, async (req, res) => {
   try {
     const contracts = await listOpenContractsForWeighbridge();
-    return renderScaleContractsListPage(res, { contracts });
+    return renderScaleContractsListPage(res, { contracts, navigation: getWeighbridgeNavigation(req) });
   } catch (error) {
     console.error('Error listing weighbridge contracts:', error.message);
     return res.status(500).send('Não foi possível listar os contratos agora.');
@@ -408,7 +476,7 @@ router.get('/balanca/contratos/:id', canAccessWeighbridge, async (req, res) => {
 router.get('/balanca/saidas', canAccessWeighbridge, async (req, res) => {
   try {
     const outputs = await listScaleOutputs();
-    return renderScaleOutputsListPage(res, { outputs });
+    return renderScaleOutputsListPage(res, { outputs, navigation: getWeighbridgeNavigation(req) });
   } catch (error) {
     console.error('Error listing scale outputs:', error.message);
     return res.status(500).send('Não foi possível listar as saídas agora.');
@@ -418,13 +486,18 @@ router.get('/balanca/saidas', canAccessWeighbridge, async (req, res) => {
 router.get('/balanca/saidas/nova', canAccessWeighbridge, (req, res) => renderScaleOutputFormPage(res, {
   formValues: {},
   error: req.query.error || '',
+  navigation: getWeighbridgeNavigation(req),
 }));
 
 router.post('/balanca/saidas', canAccessWeighbridge, async (req, res) => {
   const { payload, error } = buildScaleOutputPayload(req.body);
 
   if (error) {
-    return renderScaleOutputFormPage(res, { formValues: req.body, error });
+    return renderScaleOutputFormPage(res, {
+      formValues: req.body,
+      error,
+      navigation: getWeighbridgeNavigation(req),
+    });
   }
 
   try {
@@ -435,6 +508,7 @@ router.post('/balanca/saidas', canAccessWeighbridge, async (req, res) => {
     return renderScaleOutputFormPage(res, {
       formValues: req.body,
       error: 'Não foi possível adicionar a saída agora.',
+      navigation: getWeighbridgeNavigation(req),
     });
   }
 });
@@ -452,7 +526,12 @@ router.get('/balanca/saidas/:id/bruto', canAccessWeighbridge, async (req, res) =
       return res.redirect(buildWeighbridgeRedirect({ error: 'Esta saída já possui peso bruto.' }));
     }
 
-    return renderScaleOutputGrossFormPage(res, { output, formValues: {}, error: req.query.error || '' });
+    return renderScaleOutputGrossFormPage(res, {
+      output,
+      formValues: {},
+      error: req.query.error || '',
+      navigation: getWeighbridgeNavigation(req),
+    });
   } catch (error) {
     console.error('Error loading scale output tare form:', error.message);
     return res.redirect(buildWeighbridgeRedirect({ error: 'Não foi possível carregar o peso bruto da saída agora.' }));
@@ -470,7 +549,12 @@ router.post('/balanca/saidas/:id/bruto', canAccessWeighbridge, async (req, res) 
     }
 
     if (error) {
-      return renderScaleOutputGrossFormPage(res, { output, formValues: req.body, error });
+      return renderScaleOutputGrossFormPage(res, {
+        output,
+        formValues: req.body,
+        error,
+        navigation: getWeighbridgeNavigation(req),
+      });
     }
 
     const updatedOutput = await addScaleOutputGross(req.params.id, payload.pesoBrutoKg);
@@ -480,6 +564,7 @@ router.post('/balanca/saidas/:id/bruto', canAccessWeighbridge, async (req, res) 
         output,
         formValues: req.body,
         error: 'Confira se a saída ainda está sem peso bruto e se o peso bruto é maior que o peso tara.',
+        navigation: getWeighbridgeNavigation(req),
       });
     }
 
@@ -516,6 +601,7 @@ router.get('/balanca/saidas/:id/associar', canAccessWeighbridge, async (req, res
       contracts,
       selectedBuyerId,
       error: req.query.error || '',
+      navigation: getWeighbridgeNavigation(req),
     });
   } catch (error) {
     console.error('Error loading association page:', error.message);
@@ -592,6 +678,7 @@ router.get('/balanca/saidas/:id/nf', canAccessWeighbridge, async (req, res) => {
       outputInfo,
       message: req.query.contrato_desvinculado ? 'Contrato desvinculado da saída com sucesso.' : '',
       error: req.query.error || '',
+      navigation: getWeighbridgeNavigation(req),
     });
   } catch (error) {
     console.error('Error loading scale output invoice info:', error.message);
@@ -610,6 +697,7 @@ router.get('/balanca/saidas/:id', canAccessWeighbridge, async (req, res) => {
     return renderScaleOutputDetailPage(res, {
       outputInfo,
       error: req.query.error || '',
+      navigation: getWeighbridgeNavigation(req),
     });
   } catch (error) {
     console.error('Error loading scale output detail:', error.message);

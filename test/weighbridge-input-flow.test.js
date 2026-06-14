@@ -64,6 +64,19 @@ test('weighbridge inputs list uses classification as the final input column', ()
   assert.doesNotMatch(html, /<th>Ação<\/th>/);
 });
 
+test('weighbridge inputs list can return admins to administration', () => {
+  const html = renderPage(renderScaleInputsListPage, {
+    inputs: [baseInput],
+    navigation: {
+      homeHref: '/admin',
+      homeLabel: '← Voltar à administração',
+    },
+  });
+
+  assert.match(html, /href="\/admin">← Voltar à administração<\/a>/);
+  assert.doesNotMatch(html, /href="\/balanca">← Voltar à balança<\/a>/);
+});
+
 test('weighbridge home renders completed input states without client action', () => {
   const html = renderPage(renderWeighbridgeHomePage, {
     inputs: [{
