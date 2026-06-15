@@ -56,13 +56,7 @@ function formatCsvWeightKg(value) {
     return '';
   }
 
-  const numericValue = Number(value);
-
-  if (!Number.isFinite(numericValue)) {
-    return value;
-  }
-
-  return numericValue / 1000;
+  return value;
 }
 
 function buildScaleInputsCsv(inputs) {

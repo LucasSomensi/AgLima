@@ -152,7 +152,7 @@ test('scale outputs CSV exports rows in the provided chronological order and esc
 
   assert.equal(rows[0], 'Data;Hora;Placa;Produto;Bruto kg;Tara kg;Liquido kg;Contrato;Comprador');
   assert.match(rows[1], /^10\/06\/2026;05:00:00;ABC1D23/);
-  assert.match(rows[1], /;22.345678;10;12.345678;Contrato #42;"Comprador ""Teste"", LTDA"$/);
+  assert.match(rows[1], /;22345.678;10000;12345.678;Contrato #42;"Comprador ""Teste"", LTDA"$/);
   assert.match(rows[2], /^11\/06\/2026;05:00:00;DEF4G56/);
   assert.match(rows[2], /;Pendente;$/);
 });
