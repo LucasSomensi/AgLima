@@ -121,7 +121,7 @@ test('output payload creates output with tare and validates gross separately', (
   assert.deepEqual(grossPayload.payload, { pesoBrutoKg: '30000' });
 });
 
-const { buildScaleOutputsCsv } = require('../routes/weighbridge-csv');
+const { buildScaleInputsCsv, buildScaleOutputsCsv } = require('../routes/weighbridge-csv');
 
 test('weighbridge outputs list includes CSV download action', () => {
   const html = renderPage(renderScaleOutputsListPage, {
@@ -152,7 +152,45 @@ test('scale outputs CSV exports rows in the provided chronological order and esc
 
   assert.equal(rows[0], 'Data;Hora;Placa;Produto;Bruto kg;Tara kg;Liquido kg;Contrato;Comprador');
   assert.match(rows[1], /^10\/06\/2026;05:00:00;ABC1D23/);
-  assert.match(rows[1], /;22345.678;10000;12345.678;Contrato #42;"Comprador ""Teste"", LTDA"$/);
+  assert.match(rows[1], /;22\.345,678;10\.000;12\.345,678;Contrato #42;"Comprador ""Teste"", LTDA"$/);
   assert.match(rows[2], /^11\/06\/2026;05:00:00;DEF4G56/);
   assert.match(rows[2], /;Pendente;$/);
+});
+
+
+test('scale outputs CSV formats decimal weights from database with Brazilian separators', () => {
+  const csv = buildScaleOutputsCsv([
+    {
+      ...outputWithContract,
+      peso_bruto_kg: '30000.000',
+      peso_tara_kg: '7654.321',
+      peso_liquido_kg: '22345.678',
+    },
+  ]);
+
+  const rows = csv.replace(/^\uFEFF/, '').split('\r\n');
+
+  assert.match(rows[1], /;30\.000;7\.654,321;22\.345,678;Contrato #42;Comprador Teste$/);
+});
+
+test('scale inputs CSV formats weights and percentage decimals from database', () => {
+  const csv = buildScaleInputsCsv([
+    {
+      data_entrada: '2026-06-10T08:00:00.000Z',
+      placa_caminhao: 'ABC1D23',
+      produto: 'milho',
+      peso_bruto_kg: '30000.000',
+      peso_tara_kg: '7654.321',
+      peso_liquido_kg: '22345.678',
+      origem: 'Fazenda Teste',
+      umidade_percent: '14.000',
+      impureza_percent: '1.250',
+      graos_avariados_percent: '0.125',
+    },
+  ]);
+
+  const rows = csv.replace(/^\uFEFF/, '').split('\r\n');
+
+  assert.equal(rows[0], 'Data;Hora;Placa;Produto;Bruto kg;Tara kg;Liquido kg;Origem;Umidade %;Impureza %;Graos avariados %');
+  assert.match(rows[1], /^10\/06\/2026;05:00:00;ABC1D23;milho;30\.000;7\.654,321;22\.345,678;Fazenda Teste;14;1,25;0,125$/);
 });
