@@ -51,12 +51,25 @@ function formatBrasiliaDateTime(value) {
   };
 }
 
-function formatCsvWeightKg(value) {
+function formatCsvDecimal(value) {
   if (value === null || value === undefined || value === '') {
     return '';
   }
 
-  return value;
+  const numberValue = Number(value);
+
+  if (Number.isNaN(numberValue)) {
+    return String(value);
+  }
+
+  return numberValue.toLocaleString('pt-BR', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 3,
+  });
+}
+
+function formatCsvWeightKg(value) {
+  return formatCsvDecimal(value);
 }
 
 function buildScaleInputsCsv(inputs) {
@@ -86,9 +99,9 @@ function buildScaleInputsCsv(inputs) {
         formatCsvWeightKg(input.peso_tara_kg),
         formatCsvWeightKg(input.peso_liquido_kg),
         input.origem,
-        input.umidade_percent,
-        input.impureza_percent,
-        input.graos_avariados_percent,
+        formatCsvDecimal(input.umidade_percent),
+        formatCsvDecimal(input.impureza_percent),
+        formatCsvDecimal(input.graos_avariados_percent),
       ];
     }),
   ]);
@@ -130,5 +143,6 @@ module.exports = {
   buildScaleOutputsCsv,
   escapeCsvValue,
   formatBrasiliaDateTime,
+  formatCsvDecimal,
   formatCsvWeightKg,
 };

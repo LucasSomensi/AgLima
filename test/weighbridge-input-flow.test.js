@@ -291,7 +291,7 @@ test('scale inputs CSV exports rows in the provided chronological order and esca
   assert.equal(rows[0], 'Data;Hora;Placa;Produto;Bruto kg;Tara kg;Liquido kg;Origem;Umidade %;Impureza %;Graos avariados %');
   assert.match(rows[1], /^10\/06\/2026;05:00:00;ABC1D23/);
   assert.match(rows[1], /"Fazenda ""A"", Talhão 1"/);
-  assert.match(rows[1], /;30000;;;"Fazenda/);
+  assert.match(rows[1], /;30\.000;;;"Fazenda/);
   assert.match(rows[2], /^11\/06\/2026;05:00:00;DEF4G56/);
 });
 
@@ -307,5 +307,5 @@ test('scale inputs CSV preserves whole kilogram weights without dividing by one 
 
   const rows = csv.replace(/^\uFEFF/, '').split('\r\n');
 
-  assert.match(rows[1], /;61170;10000;51170;/);
+  assert.match(rows[1], /;61\.170;10\.000;51\.170;/);
 });
