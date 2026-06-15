@@ -256,3 +256,40 @@ test('input edit payload accepts complete editable data and blank optional field
   assert.equal(blankPayload.payload.umidadePercent, null);
   assert.match(invalidTare.error, /maior que o peso tara/);
 });
+
+const { buildScaleInputsCsv } = require('../routes/weighbridge-csv');
+
+test('weighbridge inputs list includes CSV download action', () => {
+  const html = renderPage(renderScaleInputsListPage, {
+    inputs: [baseInput],
+  });
+
+  assert.match(html, /href="\/balanca\/entradas\.csv">Baixar CSV<\/a>/);
+});
+
+test('scale inputs CSV exports rows in the provided chronological order and escapes fields', () => {
+  const csv = buildScaleInputsCsv([
+    {
+      ...baseInput,
+      data_entrada: '2026-06-10T08:00:00.000Z',
+      origem: 'Fazenda "A", Talhão 1',
+      umidade_percent: '14',
+      impureza_percent: '1',
+      graos_avariados_percent: '0',
+    },
+    {
+      ...baseInput,
+      id: 12,
+      data_entrada: '2026-06-11T08:00:00.000Z',
+      placa_caminhao: 'DEF4G56',
+      origem: null,
+    },
+  ]);
+
+  const rows = csv.replace(/^\uFEFF/, '').split('\r\n');
+
+  assert.equal(rows[0], 'Data/hora,Placa,Produto,Bruto kg,Tara kg,Liquido kg,Origem,Umidade %,Impureza %,Graos avariados %');
+  assert.match(rows[1], /^2026-06-10T08:00:00\.000Z,ABC1D23/);
+  assert.match(rows[1], /"Fazenda ""A"", Talhão 1"/);
+  assert.match(rows[2], /^2026-06-11T08:00:00\.000Z,DEF4G56/);
+});

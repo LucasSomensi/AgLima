@@ -51,6 +51,7 @@ const {
   renderWeighbridgeHomePage,
 } = require('./renderers/weighbridge-renderer');
 const { buildRedirect } = require('./utils');
+const { buildScaleInputsCsv, buildScaleOutputsCsv } = require('./weighbridge-csv');
 
 const router = express.Router();
 const canAccessWeighbridge = requireRole(ROLES.WEIGHBRIDGE_OPERATOR, ROLES.ADMIN);
@@ -147,6 +148,19 @@ router.get('/balanca/entradas', canAccessWeighbridge, async (req, res) => {
   } catch (error) {
     console.error('Error listing scale inputs:', error.message);
     return res.status(500).send('Não foi possível listar as entradas agora.');
+  }
+});
+
+router.get('/balanca/entradas.csv', canAccessWeighbridge, async (req, res) => {
+  try {
+    const inputs = await listScaleInputs({ order: 'asc' });
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="entradas-balanca.csv"');
+    return res.send(buildScaleInputsCsv(inputs));
+  } catch (error) {
+    console.error('Error exporting scale inputs CSV:', error.message);
+    return res.status(500).send('Não foi possível exportar as entradas agora.');
   }
 });
 
@@ -480,6 +494,19 @@ router.get('/balanca/saidas', canAccessWeighbridge, async (req, res) => {
   } catch (error) {
     console.error('Error listing scale outputs:', error.message);
     return res.status(500).send('Não foi possível listar as saídas agora.');
+  }
+});
+
+router.get('/balanca/saidas.csv', canAccessWeighbridge, async (req, res) => {
+  try {
+    const outputs = await listScaleOutputs({ order: 'asc' });
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="saidas-balanca.csv"');
+    return res.send(buildScaleOutputsCsv(outputs));
+  } catch (error) {
+    console.error('Error exporting scale outputs CSV:', error.message);
+    return res.status(500).send('Não foi possível exportar as saídas agora.');
   }
 });
 

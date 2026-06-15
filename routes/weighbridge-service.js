@@ -340,6 +340,7 @@ async function listScaleInputs(options = {}) {
 
   const limitClause = options.limit ? 'LIMIT $1' : '';
   const values = options.limit ? [options.limit] : [];
+  const orderDirection = options.order === 'asc' ? 'ASC' : 'DESC';
   const result = await pool.query(
     `
       SELECT id,
@@ -356,7 +357,7 @@ async function listScaleInputs(options = {}) {
              graos_avariados_percent,
              cliente_user_id
       FROM entradas_balanca
-      ORDER BY data_entrada DESC, id DESC
+      ORDER BY data_entrada ${orderDirection}, id ${orderDirection}
       ${limitClause}
     `,
     values
@@ -598,6 +599,7 @@ async function listScaleOutputs(options = {}) {
 
   const limitClause = options.limit ? 'LIMIT $1' : '';
   const values = options.limit ? [options.limit] : [];
+  const orderDirection = options.order === 'asc' ? 'ASC' : 'DESC';
   const result = await pool.query(
     `
       SELECT s.id,
@@ -613,7 +615,7 @@ async function listScaleOutputs(options = {}) {
       FROM saidas_balanca s
       LEFT JOIN contratos c ON c.id = s.contrato_id
       LEFT JOIN compradores comp ON comp.id = c.comprador_id
-      ORDER BY s.data_saida DESC, s.id DESC
+      ORDER BY s.data_saida ${orderDirection}, s.id ${orderDirection}
       ${limitClause}
     `,
     values

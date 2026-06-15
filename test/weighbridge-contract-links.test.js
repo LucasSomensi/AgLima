@@ -120,3 +120,39 @@ test('output payload creates output with tare and validates gross separately', (
   assert.equal(outputPayload.payload.pesoBrutoKg, undefined);
   assert.deepEqual(grossPayload.payload, { pesoBrutoKg: '30000' });
 });
+
+const { buildScaleOutputsCsv } = require('../routes/weighbridge-csv');
+
+test('weighbridge outputs list includes CSV download action', () => {
+  const html = renderPage(renderScaleOutputsListPage, {
+    outputs: [outputWithContract],
+  });
+
+  assert.match(html, /href="\/balanca\/saidas\.csv">Baixar CSV<\/a>/);
+});
+
+test('scale outputs CSV exports rows in the provided chronological order and escapes fields', () => {
+  const csv = buildScaleOutputsCsv([
+    {
+      ...outputWithContract,
+      data_saida: '2026-06-10T08:00:00.000Z',
+      comprador_nome: 'Comprador "Teste", LTDA',
+    },
+    {
+      ...outputWithContract,
+      id: 8,
+      data_saida: '2026-06-11T08:00:00.000Z',
+      placa_caminhao: 'DEF4G56',
+      contrato_id: null,
+      comprador_nome: null,
+    },
+  ]);
+
+  const rows = csv.replace(/^\uFEFF/, '').split('\r\n');
+
+  assert.equal(rows[0], 'Data/hora,Placa,Produto,Bruto kg,Tara kg,Liquido kg,Contrato,Comprador');
+  assert.match(rows[1], /^2026-06-10T08:00:00\.000Z,ABC1D23/);
+  assert.match(rows[1], /Contrato #42,"Comprador ""Teste"", LTDA"$/);
+  assert.match(rows[2], /^2026-06-11T08:00:00\.000Z,DEF4G56/);
+  assert.match(rows[2], /,Pendente,$/);
+});
