@@ -274,7 +274,8 @@ function renderAdminContractsPanel(summary = {}) {
         <section class="admin-section admin-notifications-panel admin-home-panel" aria-labelledby="admin-contracts-title">
           <div class="admin-section-header admin-notifications-header">
             <h2 id="admin-contracts-title">Contratos</h2>
-            <a class="btn-secondary-action" href="/admin/contratos">Ver contratos</a>
+            <a class="btn-secondary-action" href="/balanca/contratos">Ver contratos</a>
+            <a class="btn-secondary-action" href="/admin/contratos">Editar contratos</a>
           </div>
           <div class="admin-home-metrics-grid">
             ${renderAdminMetric('Contratos ativos', String(summary.contratos_ativos || 0))}
