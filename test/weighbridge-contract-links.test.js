@@ -194,3 +194,23 @@ test('scale inputs CSV formats weights and percentage decimals from database', (
   assert.equal(rows[0], 'Data;Hora;Placa;Produto;Bruto kg;Tara kg;Liquido kg;Origem;Umidade %;Impureza %;Graos avariados %');
   assert.match(rows[1], /^10\/06\/2026;05:00:00;ABC1D23;milho;30\.000;7\.654,321;22\.345,678;Fazenda Teste;14;1,25;0,125$/);
 });
+
+test('weighbridge contracts list defaults weights to kg and includes sacks toggle', () => {
+  const html = renderPage(require('../routes/renderers').renderScaleContractsListPage, {
+    contracts: [{
+      id: 42,
+      data_contrato: '2026-06-10T00:00:00.000Z',
+      comprador_nome: 'Comprador Teste',
+      produto: 'milho',
+      quantidade_kg: '60000',
+      quantidade_embarcada_kg: '30000',
+      saldo_kg: '30000',
+    }],
+  });
+
+  assert.match(html, /data-weight-unit="kg" aria-pressed="true">kg/);
+  assert.match(html, /data-weight-unit="sc" aria-pressed="false">sc/);
+  assert.match(html, /data-weight-kg="60000">60\.000 kg/);
+  assert.match(html, /data-weight-kg="30000">30\.000 kg/);
+  assert.match(html, /weightKg \/ 60/);
+});

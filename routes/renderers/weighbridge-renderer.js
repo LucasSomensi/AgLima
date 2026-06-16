@@ -45,15 +45,22 @@ function formatProductLabel(value) {
   return labels[value] || value || '-';
 }
 
-function formatKg(value) {
+function formatWeight(value, unit = 'kg') {
   if (value === null || value === undefined || value === '') {
     return '-';
   }
 
-  return `${Number(value).toLocaleString('pt-BR', {
+  const numericValue = Number(value);
+  const convertedValue = unit === 'sc' ? numericValue / 60 : numericValue;
+
+  return `${convertedValue.toLocaleString('pt-BR', {
     minimumFractionDigits: 0,
     maximumFractionDigits: 3,
-  })} kg`;
+  })} ${unit}`;
+}
+
+function formatKg(value) {
+  return formatWeight(value, 'kg');
 }
 
 function formatPercent(value) {
@@ -199,9 +206,9 @@ function buildScaleContractsRows(contracts) {
           <td>${escapeHtml(formatDate(contract.data_contrato))}</td>
           <td>${escapeHtml(contract.comprador_nome)}</td>
           <td>${escapeHtml(formatProductLabel(contract.produto))}</td>
-          <td>${escapeHtml(formatKg(contract.quantidade_kg))}</td>
-          <td>${escapeHtml(formatKg(contract.quantidade_embarcada_kg))}</td>
-          <td>${escapeHtml(formatKg(contract.saldo_kg))}</td>
+          <td><span class="weighbridge-contract-weight" data-weight-kg="${escapeHtml(contract.quantidade_kg)}">${escapeHtml(formatKg(contract.quantidade_kg))}</span></td>
+          <td><span class="weighbridge-contract-weight" data-weight-kg="${escapeHtml(contract.quantidade_embarcada_kg)}">${escapeHtml(formatKg(contract.quantidade_embarcada_kg))}</span></td>
+          <td><span class="weighbridge-contract-weight" data-weight-kg="${escapeHtml(contract.saldo_kg)}">${escapeHtml(formatKg(contract.saldo_kg))}</span></td>
         </tr>
       `)
     .join('') || '<tr><td colspan="7">Nenhum contrato com embarque pendente.</td></tr>';

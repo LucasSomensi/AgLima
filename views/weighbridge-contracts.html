@@ -22,6 +22,12 @@
           </div>
         </div>
 
+        <div class="contracts-weight-toggle" role="group" aria-label="Unidade de peso exibida">
+          <span class="admin-muted">Exibir pesos em:</span>
+          <button class="btn-secondary-action contracts-weight-toggle-button is-active" type="button" data-weight-unit="kg" aria-pressed="true">kg</button>
+          <button class="btn-secondary-action contracts-weight-toggle-button" type="button" data-weight-unit="sc" aria-pressed="false">sc</button>
+        </div>
+
         <div class="admin-table-wrapper">
           <table class="admin-table weighbridge-table">
             <thead>
@@ -42,5 +48,40 @@
         </div>
       </section>
     </main>
+    <script>
+      (function () {
+        const toggleButtons = Array.from(document.querySelectorAll('[data-weight-unit]'));
+        const weightFields = Array.from(document.querySelectorAll('.weighbridge-contract-weight[data-weight-kg]'));
+
+        function formatWeight(value, unit) {
+          const formatter = new Intl.NumberFormat('pt-BR', {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 3,
+          });
+          const weightKg = Number(value);
+          const displayWeight = unit === 'sc' ? weightKg / 60 : weightKg;
+
+          return formatter.format(displayWeight) + ' ' + unit;
+        }
+
+        function setWeightUnit(unit) {
+          weightFields.forEach(function (field) {
+            field.textContent = formatWeight(field.dataset.weightKg, unit);
+          });
+
+          toggleButtons.forEach(function (button) {
+            const isSelected = button.dataset.weightUnit === unit;
+            button.classList.toggle('is-active', isSelected);
+            button.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
+          });
+        }
+
+        toggleButtons.forEach(function (button) {
+          button.addEventListener('click', function () {
+            setWeightUnit(button.dataset.weightUnit);
+          });
+        });
+      }());
+    </script>
   </body>
 </html>
