@@ -146,6 +146,15 @@ function buildContractPayload(body) {
       valorCorretagemPercentual,
       corretagemPaga: normalizeBoolean(body.corretagem_paga),
       observacoes: normalizeText(body.observacoes) || null,
+      inscricaoEstadualVendedor: normalizeText(body.inscricao_estadual_vendedor) || null,
+      naturezaOperacao: normalizeText(body.natureza_operacao) || null,
+      cfop: normalizeText(body.cfop) || null,
+      informacoesInteresseContribuinte: normalizeText(body.informacoes_interesse_contribuinte) || null,
+      razaoSocialTransportadora: normalizeText(body.razao_social_transportadora) || null,
+      cnpjTransportadora: normalizeText(body.cnpj_transportadora) || null,
+      inscricaoEstadualTransportadora: normalizeText(body.inscricao_estadual_transportadora) || null,
+      ufTransportadora: normalizeText(body.uf_transportadora) || null,
+      email: normalizeText(body.email) || null,
     },
   };
 }
@@ -293,6 +302,15 @@ async function listContracts(options = {}) {
              c.valor_corretagem_percentual,
              c.corretagem_paga,
              c.observacoes,
+             c.inscricao_estadual_vendedor,
+             c.natureza_operacao,
+             c.cfop,
+             c.informacoes_interesse_contribuinte,
+             c.razao_social_transportadora,
+             c.cnpj_transportadora,
+             c.inscricao_estadual_transportadora,
+             c.uf_transportadora,
+             c.email,
              comp.nome AS comprador_nome,
              vend.nome AS vendedor_nome
       FROM contratos c
@@ -471,7 +489,16 @@ async function getContractById(id) {
              corretor,
              valor_corretagem_percentual,
              corretagem_paga,
-             observacoes
+             observacoes,
+             inscricao_estadual_vendedor,
+             natureza_operacao,
+             cfop,
+             informacoes_interesse_contribuinte,
+             razao_social_transportadora,
+             cnpj_transportadora,
+             inscricao_estadual_transportadora,
+             uf_transportadora,
+             email
       FROM contratos
       WHERE id = $1
       LIMIT 1
@@ -500,9 +527,18 @@ async function createContract(payload) {
         corretor,
         valor_corretagem_percentual,
         corretagem_paga,
-        observacoes
+        observacoes,
+        inscricao_estadual_vendedor,
+        natureza_operacao,
+        cfop,
+        informacoes_interesse_contribuinte,
+        razao_social_transportadora,
+        cnpj_transportadora,
+        inscricao_estadual_transportadora,
+        uf_transportadora,
+        email
       )
-      VALUES ($1::date, $2, $3, $4, $5, $6, $7, $8::date, $9, $10, $11, $12, $13)
+      VALUES ($1::date, $2, $3, $4, $5, $6, $7, $8::date, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
     `,
     [
       payload.dataContrato,
@@ -518,6 +554,15 @@ async function createContract(payload) {
       payload.valorCorretagemPercentual,
       payload.corretagemPaga,
       payload.observacoes,
+      payload.inscricaoEstadualVendedor,
+      payload.naturezaOperacao,
+      payload.cfop,
+      payload.informacoesInteresseContribuinte,
+      payload.razaoSocialTransportadora,
+      payload.cnpjTransportadora,
+      payload.inscricaoEstadualTransportadora,
+      payload.ufTransportadora,
+      payload.email,
     ]
   );
 }
@@ -608,8 +653,17 @@ async function updateContract(id, payload) {
           valor_corretagem_percentual = $11,
           corretagem_paga = $12,
           observacoes = $13,
+          inscricao_estadual_vendedor = $14,
+          natureza_operacao = $15,
+          cfop = $16,
+          informacoes_interesse_contribuinte = $17,
+          razao_social_transportadora = $18,
+          cnpj_transportadora = $19,
+          inscricao_estadual_transportadora = $20,
+          uf_transportadora = $21,
+          email = $22,
           atualizado_em = now()
-      WHERE id = $14
+      WHERE id = $23
     `,
     [
       payload.dataContrato,
@@ -625,6 +679,15 @@ async function updateContract(id, payload) {
       payload.valorCorretagemPercentual,
       payload.corretagemPaga,
       payload.observacoes,
+      payload.inscricaoEstadualVendedor,
+      payload.naturezaOperacao,
+      payload.cfop,
+      payload.informacoesInteresseContribuinte,
+      payload.razaoSocialTransportadora,
+      payload.cnpjTransportadora,
+      payload.inscricaoEstadualTransportadora,
+      payload.ufTransportadora,
+      payload.email,
       id,
     ]
   );

@@ -181,9 +181,42 @@
               <label class="contracts-checkbox"><input name="contrato_recebido" type="checkbox"{{CONTRACT_RECEBIDO_CHECKED}}> Contrato recebido</label>
               <label class="contracts-checkbox"><input name="corretagem_paga" type="checkbox"{{CONTRACT_CORRETAGEM_PAGA_CHECKED}}> Corretagem paga</label>
             </div>
-            <label>Observações
-              <textarea class="form-control" name="observacoes" rows="3" placeholder="contrato negociado por Lucas">{{CONTRACT_OBSERVACOES}}</textarea>
-            </label>
+            <details class="contracts-advanced-fields">
+              <summary class="btn-secondary-action contracts-advanced-toggle">avançado</summary>
+              <div class="contracts-form-grid">
+                <label>Inscrição estadual do vendedor
+                  <input class="form-control" name="inscricao_estadual_vendedor" type="text" value="{{CONTRACT_INSCRICAO_ESTADUAL_VENDEDOR}}" placeholder="ISENTO ou número da IE">
+                </label>
+                <label>Natureza da Operação
+                  <input class="form-control" name="natureza_operacao" type="text" value="{{CONTRACT_NATUREZA_OPERACAO}}" placeholder="Venda de produção do estabelecimento">
+                </label>
+                <label>CFOP
+                  <input class="form-control" name="cfop" type="text" value="{{CONTRACT_CFOP}}" placeholder="5101">
+                </label>
+                <label>Razão social da transportadora
+                  <input class="form-control" name="razao_social_transportadora" type="text" value="{{CONTRACT_RAZAO_SOCIAL_TRANSPORTADORA}}" placeholder="Transportadora Exemplo LTDA">
+                </label>
+                <label>CNPJ da transportadora
+                  <input class="form-control" name="cnpj_transportadora" type="text" value="{{CONTRACT_CNPJ_TRANSPORTADORA}}" placeholder="00.000.000/0001-00">
+                </label>
+                <label>Inscrição Estadual da Transportadora
+                  <input class="form-control" name="inscricao_estadual_transportadora" type="text" value="{{CONTRACT_INSCRICAO_ESTADUAL_TRANSPORTADORA}}" placeholder="ISENTO ou número da IE">
+                </label>
+                <label>UF da transportadora
+                  <input class="form-control" name="uf_transportadora" type="text" maxlength="2" value="{{CONTRACT_UF_TRANSPORTADORA}}" placeholder="PR">
+                </label>
+                <label>E-mail
+                  <input class="form-control" name="email" type="email" value="{{CONTRACT_EMAIL}}" placeholder="email@exemplo.com">
+                </label>
+              </div>
+              <label>Informações de interesse do contribuinte
+                <textarea class="form-control" name="informacoes_interesse_contribuinte" rows="3" placeholder="Informações complementares para a NF">{{CONTRACT_INFORMACOES_INTERESSE_CONTRIBUINTE}}</textarea>
+              </label>
+              <label>Observações
+                <textarea class="form-control" name="observacoes" rows="3" placeholder="contrato negociado por Lucas">{{CONTRACT_OBSERVACOES}}</textarea>
+              </label>
+              <p class="form-helper-text">Campos avançados em branco serão salvos como nulos.</p>
+            </details>
             <div class="contracts-form-actions">
               <button class="btn-primary-action" type="submit">{{CONTRACT_FORM_BUTTON}}</button>
               {{CONTRACT_CANCEL_LINK}}
