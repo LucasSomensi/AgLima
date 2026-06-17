@@ -249,6 +249,7 @@ test('output invoice renders NF fields in requested order with calculated ton va
       inscricao_estadual_transportadora: 'ISENTO',
       razao_social_transportadora: 'Transportadora Exemplo LTDA',
       uf_transportadora: 'PR',
+      email: 'nf@example.com',
       observacoes: 'Observação do contrato',
     },
     message: '',
@@ -276,6 +277,7 @@ test('output invoice renders NF fields in requested order with calculated ton va
     'Razão Social da transportadora',
     'UF da transportadora',
     'Placa',
+    'E-mail',
     'Observações do contrato',
   ];
   const detailHtml = html.slice(html.indexOf('<h2>Contrato #42</h2>'));
@@ -286,4 +288,5 @@ test('output invoice renders NF fields in requested order with calculated ton va
   assert.match(html, /<dt>Peso Líquido em ton<\/dt><dd><span class="copy-field-value">12,345678<\/span>/);
   assert.match(html, /<dt>Preço por kg<\/dt><dd><span class="copy-field-value">2,0083333333<\/span>/);
   assert.match(html, /<dt>Preço por ton<\/dt><dd><span class="copy-field-value">2008,3333333333<\/span>/);
+  assert.match(html, /<dt>E-mail<\/dt><dd><span class="copy-field-value">nf@example\.com<\/span>/);
 });
