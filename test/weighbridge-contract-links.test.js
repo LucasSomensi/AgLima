@@ -290,3 +290,41 @@ test('output invoice renders NF fields in requested order with calculated ton va
   assert.match(html, /<dt>Preço por ton<\/dt><dd><span class="copy-field-value">2008,3333333333<\/span>/);
   assert.match(html, /<dt>E-mail<\/dt><dd><span class="copy-field-value">nf@example\.com<\/span>/);
 });
+
+test('output invoice uses default NF values when optional contract fields are null', () => {
+  const { renderScaleOutputInvoicePage } = require('../routes/renderers');
+  const html = renderPage(renderScaleOutputInvoicePage, {
+    outputInfo: {
+      saida_id: 7,
+      data_saida: '2026-06-11T12:30:00.000Z',
+      placa_caminhao: 'ABC1D23',
+      produto: 'milho',
+      peso_liquido_kg: '12345.678',
+      contrato_id: 42,
+      vendedor_nome_completo: 'Vendedor Completo',
+      inscricao_estadual_vendedor: '1234567890',
+      comprador_cpf_cnpj: '12345678901234',
+      comprador_inscricao_estadual: '9876543210',
+      comprador_cep: '85800000',
+      comprador_endereco: 'Rua do Comprador',
+      comprador_numero: '100',
+      natureza_operacao: null,
+      informacoes_interesse_contribuinte: 'Informação complementar',
+      cfop: null,
+      preco_por_kg: '2.0083333333',
+      preco_por_ton: '2008.3333333333',
+      cnpj_transportadora: '00.000.000/0001-00',
+      inscricao_estadual_transportadora: 'ISENTO',
+      razao_social_transportadora: 'Transportadora Exemplo LTDA',
+      uf_transportadora: 'PR',
+      email: 'nf@example.com',
+      observacoes: 'Observação do contrato',
+    },
+    message: '',
+    error: '',
+  });
+
+  assert.match(html, /<dt>Natureza da operação<\/dt><dd><span class="copy-field-value">Venda<\/span>/);
+  assert.match(html, /<dt>CFOP<\/dt><dd><span class="copy-field-value">5101<\/span>/);
+});
+

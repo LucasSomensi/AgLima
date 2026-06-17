@@ -10,6 +10,9 @@ const {
 } = require('../utils');
 const { buildAlertHtml } = require('./template-utils');
 
+const DEFAULT_INVOICE_OPERATION_NATURE = 'Venda';
+const DEFAULT_INVOICE_CFOP = '5101';
+
 function formatMoney(value) {
   if (value === null || value === undefined || value === '') {
     return '-';
@@ -452,10 +455,10 @@ function buildScaleOutputInvoiceDetailHtml(outputInfo) {
     ['CEP do comprador', formatDigitsOnly(outputInfo.comprador_cep)],
     ['Endereço do comprador', outputInfo.comprador_endereco],
     ['Número do comprador', outputInfo.comprador_numero],
-    ['Natureza da operação', outputInfo.natureza_operacao],
+    ['Natureza da operação', outputInfo.natureza_operacao ?? DEFAULT_INVOICE_OPERATION_NATURE],
     ['Informações adicionais de interesse do contribuinte', outputInfo.informacoes_interesse_contribuinte, { fullWidth: true }],
     ['Produto', formatProductLabel(outputInfo.produto)],
-    ['CFOP', outputInfo.cfop],
+    ['CFOP', outputInfo.cfop ?? DEFAULT_INVOICE_CFOP],
     ['Peso Líquido em kg', formatPlainDecimal(outputInfo.peso_liquido_kg)],
     ['Peso Líquido em ton', formatPlainDecimal(Number(outputInfo.peso_liquido_kg) / 1000)],
     ['Preço por kg', formatPlainDecimal(outputInfo.preco_por_kg)],
