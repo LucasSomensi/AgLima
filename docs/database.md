@@ -102,7 +102,7 @@ Armazena os vendedores usados no cadastro de contratos.
 
 ## `contratos`
 
-Armazena contratos comerciais de compra/venda de grãos.
+Armazena contratos comerciais de compra/venda de grãos. A tabela também guarda campos opcionais usados como apoio ao preenchimento da nota fiscal; esses campos aceitam `NULL` e registros antigos permanecem nulos até edição manual.
 
 ### Colunas
 
@@ -124,6 +124,15 @@ Armazena contratos comerciais de compra/venda de grãos.
 | `observacoes` | `text` | Sim | — | Observações livres sobre o contrato. |
 | `criado_em` | `timestamp without time zone` | Não | `now()` | Data/hora de criação do registro. |
 | `atualizado_em` | `timestamp without time zone` | Não | `now()` | Data/hora da última atualização. |
+| `inscricao_estadual_vendedor` | `text` | Sim | — | Inscrição estadual do vendedor para apoio ao preenchimento da nota fiscal. |
+| `natureza_operacao` | `text` | Sim | — | Natureza da operação para apoio ao preenchimento da nota fiscal. |
+| `cfop` | `text` | Sim | — | CFOP informado no contrato para apoio à emissão da nota fiscal. |
+| `informacoes_interesse_contribuinte` | `text` | Sim | — | Informações de interesse do contribuinte que podem ser levadas para a nota fiscal. |
+| `razao_social_transportadora` | `text` | Sim | — | Razão social da transportadora usada na nota fiscal. |
+| `cnpj_transportadora` | `text` | Sim | — | CNPJ da transportadora usada na nota fiscal. |
+| `inscricao_estadual_transportadora` | `text` | Sim | — | Inscrição estadual da transportadora usada na nota fiscal. |
+| `uf_transportadora` | `text` | Sim | — | UF da transportadora usada na nota fiscal. |
+| `email` | `text` | Sim | — | E-mail relacionado ao contrato para apoio à emissão da nota fiscal. |
 
 ### Restrições
 
@@ -286,7 +295,7 @@ Armazena as saídas registradas pelo operador de balança. Cada saída nasce sem
 - A lista completa de saídas usa a mesma ordem cronológica reversa.
 - Saídas com `contrato_id IS NULL` exibem ação para associar comprador e contrato.
 - A associação filtra contratos pelo comprador escolhido, pelo mesmo `produto` da saída e por contratos com saldo de embarque positivo.
-- Após associação, a página de detalhe da saída mostra apenas os dados necessários para emissão da nota fiscal: nomes completos de vendedor e comprador, CPF/CNPJ e inscrição estadual do comprador, preço por saca, preço por kg truncado em 8 casas decimais e observações do contrato.
+- Após associação, a página de detalhe da saída mostra dados necessários para emissão da nota fiscal, incluindo nomes completos de vendedor e comprador, CPF/CNPJ e inscrição estadual do comprador, preço por saca, preço por kg truncado em 8 casas decimais, observações do contrato e campos fiscais opcionais cadastrados no contrato.
 
 ---
 

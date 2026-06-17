@@ -558,6 +558,15 @@ function renderAdminContractsPage(res, { buyers, sellers, contracts, selectedBuy
     .replace(/{{CONTRACT_VALOR_CORRETAGEM}}/g, escapeHtml(formatDecimalInput(selectedContract?.valor_corretagem_percentual)))
     .replace('{{CONTRACT_CORRETAGEM_PAGA_CHECKED}}', selectedContract?.corretagem_paga ? ' checked' : '')
     .replace(/{{CONTRACT_OBSERVACOES}}/g, escapeHtml(selectedContract?.observacoes || ''))
+    .replace(/{{CONTRACT_INSCRICAO_ESTADUAL_VENDEDOR}}/g, escapeHtml(selectedContract?.inscricao_estadual_vendedor || ''))
+    .replace(/{{CONTRACT_NATUREZA_OPERACAO}}/g, escapeHtml(selectedContract?.natureza_operacao || ''))
+    .replace(/{{CONTRACT_CFOP}}/g, escapeHtml(selectedContract?.cfop || ''))
+    .replace(/{{CONTRACT_INFORMACOES_INTERESSE_CONTRIBUINTE}}/g, escapeHtml(selectedContract?.informacoes_interesse_contribuinte || ''))
+    .replace(/{{CONTRACT_RAZAO_SOCIAL_TRANSPORTADORA}}/g, escapeHtml(selectedContract?.razao_social_transportadora || ''))
+    .replace(/{{CONTRACT_CNPJ_TRANSPORTADORA}}/g, escapeHtml(selectedContract?.cnpj_transportadora || ''))
+    .replace(/{{CONTRACT_INSCRICAO_ESTADUAL_TRANSPORTADORA}}/g, escapeHtml(selectedContract?.inscricao_estadual_transportadora || ''))
+    .replace(/{{CONTRACT_UF_TRANSPORTADORA}}/g, escapeHtml(selectedContract?.uf_transportadora || ''))
+    .replace(/{{CONTRACT_EMAIL}}/g, escapeHtml(selectedContract?.email || ''))
     .replace('{{CONTRACTS_ROWS}}', contractRows);
 
   res.send(contractsHtml);

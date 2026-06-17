@@ -1024,6 +1024,37 @@ button:disabled,
   height: 18px;
 }
 
+
+.contracts-advanced-fields {
+  margin-top: 16px;
+}
+
+.contracts-advanced-toggle {
+  display: inline-flex;
+  width: fit-content;
+  cursor: pointer;
+  list-style: none;
+}
+
+.contracts-advanced-toggle::-webkit-details-marker {
+  display: none;
+}
+
+.contracts-advanced-fields[open] .contracts-advanced-toggle {
+  margin-bottom: 16px;
+}
+
+.contracts-advanced-fields label + label,
+.contracts-advanced-fields .contracts-form-grid + label {
+  margin-top: 14px;
+}
+
+.form-helper-text {
+  margin: 10px 0 0;
+  color: var(--green-100);
+  font-size: 0.92rem;
+}
+
 .contracts-table-wrapper {
   margin-top: 16px;
 }
