@@ -465,6 +465,7 @@ function buildScaleOutputInvoiceDetailHtml(outputInfo) {
     ['Razão Social da transportadora', outputInfo.razao_social_transportadora],
     ['UF da transportadora', outputInfo.uf_transportadora],
     ['Placa', outputInfo.placa_caminhao],
+    ['E-mail', outputInfo.email],
     ['Observações do contrato', outputInfo.observacoes, { fullWidth: true }],
   ];
 

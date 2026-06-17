@@ -1128,6 +1128,7 @@ async function getScaleOutputDetailInfo(outputId) {
              round(c.preco_por_saca / 60 * 1000, 10) AS preco_por_ton,
              c.quantidade_kg,
              c.observacoes,
+             c.email,
              c.inscricao_estadual_vendedor,
              c.natureza_operacao,
              c.cfop,
