@@ -222,3 +222,68 @@ test('weighbridge contracts sacks toggle formats weights with at most one decima
 
   assert.match(html, /maximumFractionDigits: unit === 'sc' \? 1 : 3/);
 });
+
+test('output invoice renders NF fields in requested order with calculated ton values', () => {
+  const { renderScaleOutputInvoicePage } = require('../routes/renderers');
+  const html = renderPage(renderScaleOutputInvoicePage, {
+    outputInfo: {
+      saida_id: 7,
+      data_saida: '2026-06-11T12:30:00.000Z',
+      placa_caminhao: 'ABC1D23',
+      produto: 'milho',
+      peso_liquido_kg: '12345.678',
+      contrato_id: 42,
+      vendedor_nome_completo: 'Vendedor Completo',
+      inscricao_estadual_vendedor: '1234567890',
+      comprador_cpf_cnpj: '12345678901234',
+      comprador_inscricao_estadual: '9876543210',
+      comprador_cep: '85.800-000',
+      comprador_endereco: 'Rua do Comprador',
+      comprador_numero: '100',
+      natureza_operacao: 'Venda de produção do estabelecimento',
+      informacoes_interesse_contribuinte: 'Informação complementar',
+      cfop: '5101',
+      preco_por_kg: '2.0083333333',
+      preco_por_ton: '2008.3333333333',
+      cnpj_transportadora: '00.000.000/0001-00',
+      inscricao_estadual_transportadora: 'ISENTO',
+      razao_social_transportadora: 'Transportadora Exemplo LTDA',
+      uf_transportadora: 'PR',
+      observacoes: 'Observação do contrato',
+    },
+    message: '',
+    error: '',
+  });
+
+  const labels = [
+    'Nome completo do vendedor',
+    'Inscrição estadual do vendedor',
+    'CPF/CNPJ do comprador',
+    'Inscrição estadual do comprador',
+    'CEP do comprador',
+    'Endereço do comprador',
+    'Número do comprador',
+    'Natureza da operação',
+    'Informações adicionais de interesse do contribuinte',
+    'Produto',
+    'CFOP',
+    'Peso Líquido em kg',
+    'Peso Líquido em ton',
+    'Preço por kg',
+    'Preço por ton',
+    'CNPJ da transportadora',
+    'Inscrição Estadual da transportadora',
+    'Razão Social da transportadora',
+    'UF da transportadora',
+    'Placa',
+    'Observações do contrato',
+  ];
+  const detailHtml = html.slice(html.indexOf('<h2>Contrato #42</h2>'));
+  const positions = labels.map((label) => detailHtml.indexOf(`<dt>${label}</dt>`));
+
+  assert.deepEqual(positions.every((position) => position !== -1), true);
+  assert.deepEqual([...positions].sort((a, b) => a - b), positions);
+  assert.match(html, /<dt>Peso Líquido em ton<\/dt><dd><span class="copy-field-value">12,345678<\/span>/);
+  assert.match(html, /<dt>Preço por kg<\/dt><dd><span class="copy-field-value">2,0083333333<\/span>/);
+  assert.match(html, /<dt>Preço por ton<\/dt><dd><span class="copy-field-value">2008,3333333333<\/span>/);
+});
