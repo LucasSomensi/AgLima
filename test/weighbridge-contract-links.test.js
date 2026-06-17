@@ -280,7 +280,7 @@ test('output invoice renders NF fields in requested order with calculated ton va
     'E-mail',
     'Observações do contrato',
   ];
-  const detailHtml = html.slice(html.indexOf('<h2>Contrato #42</h2>'));
+  const detailHtml = html.slice(html.indexOf('<h2>Dados da Nota Fiscal</h2>'));
   const positions = labels.map((label) => detailHtml.indexOf(`<dt>${label}</dt>`));
 
   assert.deepEqual(positions.every((position) => position !== -1), true);

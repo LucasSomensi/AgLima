@@ -474,7 +474,7 @@ function buildScaleOutputInvoiceDetailHtml(outputInfo) {
 
   return `
         <section class="admin-section">
-          <h2>Contrato #${escapeHtml(outputInfo.contrato_id)}</h2>
+          <h2>Dados da Nota Fiscal</h2>
           <dl class="weighbridge-detail-grid">
             ${invoiceFields.map(([label, value, options]) => buildCopyFieldHtml(label, value, options)).join('\n            ')}
           </dl>
