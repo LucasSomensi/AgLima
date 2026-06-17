@@ -214,3 +214,11 @@ test('weighbridge contracts list defaults weights to kg and includes sacks toggl
   assert.match(html, /data-weight-kg="30000">30\.000 kg/);
   assert.match(html, /weightKg \/ 60/);
 });
+
+test('weighbridge contracts sacks toggle formats weights with at most one decimal place', () => {
+  const html = renderPage(require('../routes/renderers').renderScaleContractsListPage, {
+    contracts: [],
+  });
+
+  assert.match(html, /maximumFractionDigits: unit === 'sc' \? 1 : 3/);
+});

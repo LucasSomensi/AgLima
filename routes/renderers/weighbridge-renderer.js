@@ -55,7 +55,7 @@ function formatWeight(value, unit = 'kg') {
 
   return `${convertedValue.toLocaleString('pt-BR', {
     minimumFractionDigits: 0,
-    maximumFractionDigits: 3,
+    maximumFractionDigits: unit === 'sc' ? 1 : 3,
   })} ${unit}`;
 }
 
