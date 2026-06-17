@@ -426,6 +426,13 @@ function buildScaleOutputInvoiceLinkHtml(outputInfo) {
   return `<p><a class="btn-secondary-action" href="/balanca/saidas/${escapeHtml(outputInfo.saida_id)}/associar">Associar contrato</a></p>`;
 }
 
+function buildCopyFieldHtml(label, value, options = {}) {
+  const fieldClass = options.fullWidth ? ' class="weighbridge-detail-full"' : '';
+  const displayValue = value === null || value === undefined || value === '' ? '-' : value;
+
+  return `<div${fieldClass}><dt>${escapeHtml(label)}</dt><dd><span class="copy-field-value">${escapeHtml(displayValue)}</span><button class="copy-field-button" type="button" aria-label="Copiar ${escapeHtml(label)}">Copiar</button></dd></div>`;
+}
+
 function buildScaleOutputInvoiceDetailHtml(outputInfo) {
   if (!outputInfo.contrato_id) {
     return `
@@ -437,22 +444,35 @@ function buildScaleOutputInvoiceDetailHtml(outputInfo) {
     `;
   }
 
+  const invoiceFields = [
+    ['Nome completo do vendedor', outputInfo.vendedor_nome_completo],
+    ['Inscrição estadual do vendedor', outputInfo.inscricao_estadual_vendedor],
+    ['CPF/CNPJ do comprador', outputInfo.comprador_cpf_cnpj],
+    ['Inscrição estadual do comprador', outputInfo.comprador_inscricao_estadual],
+    ['CEP do comprador', formatDigitsOnly(outputInfo.comprador_cep)],
+    ['Endereço do comprador', outputInfo.comprador_endereco],
+    ['Número do comprador', outputInfo.comprador_numero],
+    ['Natureza da operação', outputInfo.natureza_operacao],
+    ['Informações adicionais de interesse do contribuinte', outputInfo.informacoes_interesse_contribuinte, { fullWidth: true }],
+    ['Produto', formatProductLabel(outputInfo.produto)],
+    ['CFOP', outputInfo.cfop],
+    ['Peso Líquido em kg', formatPlainDecimal(outputInfo.peso_liquido_kg)],
+    ['Peso Líquido em ton', formatPlainDecimal(Number(outputInfo.peso_liquido_kg) / 1000)],
+    ['Preço por kg', formatPlainDecimal(outputInfo.preco_por_kg)],
+    ['Preço por ton', formatPlainDecimal(outputInfo.preco_por_ton)],
+    ['CNPJ da transportadora', outputInfo.cnpj_transportadora],
+    ['Inscrição Estadual da transportadora', outputInfo.inscricao_estadual_transportadora],
+    ['Razão Social da transportadora', outputInfo.razao_social_transportadora],
+    ['UF da transportadora', outputInfo.uf_transportadora],
+    ['Placa', outputInfo.placa_caminhao],
+    ['Observações do contrato', outputInfo.observacoes, { fullWidth: true }],
+  ];
+
   return `
         <section class="admin-section">
           <h2>Contrato #${escapeHtml(outputInfo.contrato_id)}</h2>
           <dl class="weighbridge-detail-grid">
-            <div><dt>Data do contrato</dt><dd><span class="copy-field-value">${escapeHtml(formatDate(outputInfo.data_contrato))}</span><button class="copy-field-button" type="button" aria-label="Copiar Data do contrato">Copiar</button></dd></div>
-            <div><dt>Quantidade do contrato</dt><dd><span class="copy-field-value">${escapeHtml(formatPlainDecimal(outputInfo.quantidade_kg))}</span><button class="copy-field-button" type="button" aria-label="Copiar Quantidade do contrato">Copiar</button></dd></div>
-            <div><dt>Nome completo do vendedor</dt><dd><span class="copy-field-value">${escapeHtml(outputInfo.vendedor_nome_completo)}</span><button class="copy-field-button" type="button" aria-label="Copiar Nome completo do vendedor">Copiar</button></dd></div>
-            <div><dt>Nome completo do comprador</dt><dd><span class="copy-field-value">${escapeHtml(outputInfo.comprador_nome_completo)}</span><button class="copy-field-button" type="button" aria-label="Copiar Nome completo do comprador">Copiar</button></dd></div>
-            <div><dt>CPF/CNPJ do comprador</dt><dd><span class="copy-field-value">${escapeHtml(outputInfo.comprador_cpf_cnpj)}</span><button class="copy-field-button" type="button" aria-label="Copiar CPF/CNPJ do comprador">Copiar</button></dd></div>
-            <div><dt>Inscrição Estadual do comprador</dt><dd><span class="copy-field-value">${escapeHtml(outputInfo.comprador_inscricao_estadual)}</span><button class="copy-field-button" type="button" aria-label="Copiar Inscrição Estadual do comprador">Copiar</button></dd></div>
-            <div><dt>Endereço do comprador</dt><dd><span class="copy-field-value">${escapeHtml(outputInfo.comprador_endereco)}</span><button class="copy-field-button" type="button" aria-label="Copiar Endereço do comprador">Copiar</button></dd></div>
-            <div><dt>Número do comprador</dt><dd><span class="copy-field-value">${escapeHtml(outputInfo.comprador_numero)}</span><button class="copy-field-button" type="button" aria-label="Copiar Número do comprador">Copiar</button></dd></div>
-            <div><dt>CEP do comprador</dt><dd><span class="copy-field-value">${escapeHtml(formatDigitsOnly(outputInfo.comprador_cep))}</span><button class="copy-field-button" type="button" aria-label="Copiar CEP do comprador">Copiar</button></dd></div>
-            <div><dt>Preço por saca</dt><dd><span class="copy-field-value">${escapeHtml(formatPlainDecimal(outputInfo.preco_por_saca))}</span><button class="copy-field-button" type="button" aria-label="Copiar Preço por saca">Copiar</button></dd></div>
-            <div><dt>Preço por kg</dt><dd><span class="copy-field-value">${escapeHtml(formatPlainDecimal(outputInfo.preco_por_kg))}</span><button class="copy-field-button" type="button" aria-label="Copiar Preço por kg">Copiar</button></dd></div>
-            <div class="weighbridge-detail-full"><dt>Observações do contrato</dt><dd><span class="copy-field-value">${escapeHtml(outputInfo.observacoes || '-')}</span><button class="copy-field-button" type="button" aria-label="Copiar Observações do contrato">Copiar</button></dd></div>
+            ${invoiceFields.map(([label, value, options]) => buildCopyFieldHtml(label, value, options)).join('\n            ')}
           </dl>
           <div class="weighbridge-output-actions">
             <form action="/balanca/saidas/${escapeHtml(outputInfo.saida_id)}/desvincular-contrato" method="post" onsubmit="return confirm('Desvincular esta saída do contrato?');">

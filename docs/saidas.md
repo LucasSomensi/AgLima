@@ -179,11 +179,13 @@ Se a saída ainda não estiver associada, a tela informa que é necessário asso
 Se houver contrato, a tela exibe:
 
 - Resumo da saída: data/hora, placa, produto e peso líquido.
-- Dados do contrato: número, data, quantidade, preço por saca, preço por kg e observações.
-- Dados do vendedor: nome completo.
-- Dados do comprador: nome completo, CPF/CNPJ, inscrição estadual, endereço, número e CEP.
+- Dados fiscais do vendedor: nome completo e inscrição estadual.
+- Dados fiscais do comprador: CPF/CNPJ, inscrição estadual, CEP, endereço e número.
+- Dados da operação: natureza da operação, informações adicionais de interesse do contribuinte, produto, CFOP, peso líquido em kg e ton, preço por kg e preço por ton.
+- Dados da transportadora: CNPJ, inscrição estadual, razão social, UF e placa.
+- Observações do contrato.
 
-Todos os campos relevantes possuem botão “Copiar”. O preço por kg é calculado na query com `trunc(preco_por_saca / 60, 8)`.
+Todos os campos relevantes possuem botão “Copiar”. O preço por kg é calculado na query com `round(preco_por_saca / 60, 10)` e o preço por ton com `round(preco_por_saca / 60 * 1000, 10)`, limitando ambos a no máximo 10 casas decimais.
 
 ### 7. Dividir uma saída
 
