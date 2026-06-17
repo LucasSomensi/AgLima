@@ -452,6 +452,7 @@ function buildScaleOutputInvoiceDetailHtml(outputInfo) {
     ['Inscrição estadual do vendedor', outputInfo.inscricao_estadual_vendedor],
     ['CPF/CNPJ do comprador', outputInfo.comprador_cpf_cnpj],
     ['Inscrição estadual do comprador', outputInfo.comprador_inscricao_estadual],
+    ['Nome completo do comprador', outputInfo.comprador_nome_completo],
     ['CEP do comprador', formatDigitsOnly(outputInfo.comprador_cep)],
     ['Endereço do comprador', outputInfo.comprador_endereco],
     ['Número do comprador', outputInfo.comprador_numero],

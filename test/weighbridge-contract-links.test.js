@@ -237,6 +237,7 @@ test('output invoice renders NF fields in requested order with calculated ton va
       inscricao_estadual_vendedor: '1234567890',
       comprador_cpf_cnpj: '12345678901234',
       comprador_inscricao_estadual: '9876543210',
+      comprador_nome_completo: 'Comprador Completo LTDA',
       comprador_cep: '85.800-000',
       comprador_endereco: 'Rua do Comprador',
       comprador_numero: '100',
@@ -261,6 +262,7 @@ test('output invoice renders NF fields in requested order with calculated ton va
     'Inscrição estadual do vendedor',
     'CPF/CNPJ do comprador',
     'Inscrição estadual do comprador',
+    'Nome completo do comprador',
     'CEP do comprador',
     'Endereço do comprador',
     'Número do comprador',
@@ -285,6 +287,7 @@ test('output invoice renders NF fields in requested order with calculated ton va
 
   assert.deepEqual(positions.every((position) => position !== -1), true);
   assert.deepEqual([...positions].sort((a, b) => a - b), positions);
+  assert.match(html, /<dt>Nome completo do comprador<\/dt><dd><span class="copy-field-value">Comprador Completo LTDA<\/span>/);
   assert.match(html, /<dt>Peso Líquido em ton<\/dt><dd><span class="copy-field-value">12,345678<\/span>/);
   assert.match(html, /<dt>Preço por kg<\/dt><dd><span class="copy-field-value">2,0083333333<\/span>/);
   assert.match(html, /<dt>Preço por ton<\/dt><dd><span class="copy-field-value">2008,3333333333<\/span>/);
@@ -305,6 +308,7 @@ test('output invoice uses default NF values when optional contract fields are nu
       inscricao_estadual_vendedor: '1234567890',
       comprador_cpf_cnpj: '12345678901234',
       comprador_inscricao_estadual: '9876543210',
+      comprador_nome_completo: 'Comprador Completo LTDA',
       comprador_cep: '85800000',
       comprador_endereco: 'Rua do Comprador',
       comprador_numero: '100',
