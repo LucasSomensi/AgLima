@@ -488,6 +488,28 @@ function buildScaleOutputInvoiceDetailHtml(outputInfo) {
   `;
 }
 
+
+function getSplitFirstNetWeightSuggestion(outputInfo) {
+  if (!outputInfo || outputInfo.contrato_id === null || outputInfo.contrato_id === undefined) {
+    return '';
+  }
+
+  const netWeight = Number(outputInfo.peso_liquido_kg);
+  const contractBalance = Number(outputInfo.contrato_saldo_kg);
+
+  if (!Number.isFinite(netWeight) || !Number.isFinite(contractBalance) || contractBalance >= 0) {
+    return '';
+  }
+
+  const suggestedWeight = netWeight + contractBalance;
+
+  if (suggestedWeight <= 0 || suggestedWeight >= netWeight) {
+    return '';
+  }
+
+  return formatDecimalInput(suggestedWeight);
+}
+
 function buildScaleOutputActionsHtml(outputInfo) {
   if (outputInfo.peso_bruto_kg === null || outputInfo.peso_bruto_kg === undefined) {
     return `
@@ -504,6 +526,9 @@ function buildScaleOutputActionsHtml(outputInfo) {
     `;
   }
 
+  const suggestedFirstNetWeight = getSplitFirstNetWeightSuggestion(outputInfo);
+  const suggestedFirstNetWeightAttribute = suggestedFirstNetWeight ? ` value="${escapeHtml(suggestedFirstNetWeight)}"` : '';
+
   return `
         <section class="admin-section">
           <h2>Ações da saída</h2>
@@ -512,7 +537,7 @@ function buildScaleOutputActionsHtml(outputInfo) {
             <div class="form-row">
               <div class="form-group col-md-6">
                 <label for="peso-liquido-primeira">Peso líquido da primeira saída (kg)</label>
-                <input class="form-control" id="peso-liquido-primeira" name="peso_liquido_primeira_kg" type="number" min="0.001" max="${escapeHtml(formatDecimalInput(outputInfo.peso_liquido_kg))}" step="0.001" data-total-net="${escapeHtml(formatDecimalInput(outputInfo.peso_liquido_kg))}" required>
+                <input class="form-control" id="peso-liquido-primeira" name="peso_liquido_primeira_kg" type="number" min="0.001" max="${escapeHtml(formatDecimalInput(outputInfo.peso_liquido_kg))}" step="0.001" data-total-net="${escapeHtml(formatDecimalInput(outputInfo.peso_liquido_kg))}"${suggestedFirstNetWeightAttribute} required>
               </div>
               <div class="form-group col-md-6">
                 <label for="peso-liquido-segunda">Peso líquido da segunda saída (kg)</label>
