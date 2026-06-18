@@ -1127,6 +1127,7 @@ async function getScaleOutputDetailInfo(outputId) {
              round(c.preco_por_saca / 60, 10) AS preco_por_kg,
              round(c.preco_por_saca / 60 * 1000, 10) AS preco_por_ton,
              c.quantidade_kg,
+             c.quantidade_kg - COALESCE(SUM(s2.peso_liquido_kg) FILTER (WHERE s2.id IS NOT NULL), 0) AS contrato_saldo_kg,
              c.observacoes,
              c.email,
              c.inscricao_estadual_vendedor,
@@ -1148,7 +1149,23 @@ async function getScaleOutputDetailInfo(outputId) {
       LEFT JOIN contratos c ON c.id = s.contrato_id
       LEFT JOIN vendedores vend ON vend.id = c.vendedor_id
       LEFT JOIN compradores comp ON comp.id = c.comprador_id
+      LEFT JOIN saidas_balanca s2 ON s2.contrato_id = c.id
       WHERE s.id = $1
+      GROUP BY s.id,
+               s.data_saida,
+               s.placa_caminhao,
+               s.produto,
+               s.peso_tara_kg,
+               s.peso_bruto_kg,
+               s.peso_liquido_kg,
+               c.id,
+               vend.nome_completo,
+               comp.nome_completo,
+               comp.cpf_cnpj,
+               comp.inscricao_estadual,
+               comp.endereco,
+               comp.numero,
+               comp.cep
       LIMIT 1
     `,
     [outputId]

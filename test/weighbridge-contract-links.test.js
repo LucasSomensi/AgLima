@@ -1,6 +1,7 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
 const {
+  renderScaleOutputDetailPage,
   renderScaleOutputFormPage,
   renderScaleOutputsListPage,
   renderWeighbridgeHomePage,
@@ -221,6 +222,48 @@ test('weighbridge contracts sacks toggle formats weights with at most one decima
   });
 
   assert.match(html, /maximumFractionDigits: unit === 'sc' \? 1 : 3/);
+});
+
+
+test('output detail pre-fills split weight when associated contract has negative balance', () => {
+  const html = renderPage(renderScaleOutputDetailPage, {
+    outputInfo: {
+      saida_id: 7,
+      data_saida: '2026-06-11T12:30:00.000Z',
+      placa_caminhao: 'ABC1D23',
+      produto: 'milho',
+      peso_tara_kg: '10000',
+      peso_bruto_kg: '42000',
+      peso_liquido_kg: '32000',
+      contrato_id: 42,
+      comprador_nome_completo: 'Comprador Teste',
+      contrato_saldo_kg: '-12500',
+    },
+    error: '',
+  });
+
+  assert.match(html, /id="peso-liquido-primeira"[^>]+data-total-net="32000" value="19500" required/);
+  assert.match(html, /updateSecondNetWeight\(\);/);
+});
+
+test('output detail does not pre-fill split weight without a negative contract balance', () => {
+  const html = renderPage(renderScaleOutputDetailPage, {
+    outputInfo: {
+      saida_id: 7,
+      data_saida: '2026-06-11T12:30:00.000Z',
+      placa_caminhao: 'ABC1D23',
+      produto: 'milho',
+      peso_tara_kg: '10000',
+      peso_bruto_kg: '42000',
+      peso_liquido_kg: '32000',
+      contrato_id: 42,
+      comprador_nome_completo: 'Comprador Teste',
+      contrato_saldo_kg: '5000',
+    },
+    error: '',
+  });
+
+  assert.doesNotMatch(html, /id="peso-liquido-primeira"[^>]+ value="/);
 });
 
 test('output invoice renders NF fields in requested order with calculated ton values', () => {
