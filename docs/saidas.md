@@ -4,7 +4,7 @@ Este documento resume o contexto técnico e operacional do fluxo de saídas da b
 
 ## Objetivo do fluxo
 
-O operador de balança registra o carregamento de produto que sai da unidade, informando data/hora, placa, produto e tara; o peso bruto é adicionado depois nas listas da balança. A saída nasce sem contrato associado e, depois do lançamento, pode ser associada a um comprador/contrato com saldo disponível. A partir da associação, o sistema disponibiliza as informações necessárias para emissão de nota fiscal e atualiza o status de embarque do contrato quando o saldo é consumido.
+O operador de balança registra o carregamento de produto que sai da unidade, informando data/hora, placa, produto e tara; o peso bruto é adicionado depois nas listas da balança. A saída nasce sem contrato associado e, depois do lançamento, pode ser associada a um comprador/contrato com saldo disponível. A partir da associação, o sistema disponibiliza as informações necessárias para emissão de nota fiscal mantendo os saldos calculados nas listagens sem marcar automaticamente o contrato como embarcado.
 
 Além do lançamento e da associação, o operador pode consultar a lista completa de saídas, abrir a tela de detalhes, dividir uma saída em duas cargas, deletar uma saída e desvincular uma saída de um contrato quando for necessário corrigir a associação.
 
@@ -164,11 +164,11 @@ No envio do formulário, `associateScaleOutputToContract` executa a associação
 - Recalcula a quantidade já embarcada do contrato.
 - Rejeita contratos já embarcados ou sem saldo.
 - Atualiza `saidas_balanca.contrato_id`, `associado_por_user_id`, `associado_em` e `atualizado_em`.
-- Se a soma embarcada com a saída atual atingir ou ultrapassar a quantidade do contrato, marca `contratos.contrato_embarcado = TRUE`.
+- Não altera `contratos.contrato_embarcado`; mesmo que a soma embarcada atinja ou ultrapasse a quantidade do contrato, a marcação de embarcado depende de ação manual de administrador.
 
 Após sucesso, o operador retorna à tela inicial com “Saída associada ao contrato com sucesso.”
 
-> Observação: a implementação atual não rejeita uma saída cujo peso líquido seja maior que o saldo restante; nesses casos, o contrato é marcado como embarcado porque a soma fica maior ou igual à quantidade contratada.
+> Observação: a implementação atual não rejeita uma saída cujo peso líquido seja maior que o saldo restante; nesses casos, o saldo calculado pode chegar a zero ou ficar negativo, mas o contrato não é marcado como embarcado automaticamente.
 
 ### 6. Gerar e conferir informações para nota fiscal
 
@@ -204,7 +204,7 @@ A transação aplica a divisão assim:
 3. Cria uma nova saída com os mesmos `data_saida`, `placa_caminhao` e `produto`.
 4. Na nova saída, usa como tara o novo bruto da primeira saída e como bruto o bruto original.
 5. A nova saída nasce sem contrato associado.
-6. Recalcula o status de embarque do contrato originalmente associado, se houver.
+6. Não altera o status `contrato_embarcado` do contrato originalmente associado; os saldos continuam sendo calculados pelas consultas.
 
 Efeito importante: se a saída original já estava associada a um contrato, a associação fica na primeira saída após a divisão. A segunda saída gerada fica pendente de associação e deve ser associada manualmente, se aplicável.
 
@@ -217,7 +217,7 @@ A tela de detalhes possui o botão “Deletar saída”, com confirmação no na
 - Bloqueia a saída.
 - Verifica se ela existe.
 - Remove o registro de `saidas_balanca`.
-- Se havia contrato associado, chama `refreshContractShippedStatus` para recalcular `contrato_embarcado` conforme o total remanescente embarcado.
+- Se havia contrato associado, não altera `contrato_embarcado`; o total remanescente embarcado continua refletido nos cálculos de saldo das consultas.
 
 Após sucesso, o operador volta para `/balanca` com “Saída deletada com sucesso.”
 
@@ -232,7 +232,7 @@ A ação de desvincular aparece na tela de informações NF quando a saída est�
 - Garante que há contrato associado.
 - Limpa `contrato_id`, `associado_por_user_id` e `associado_em`.
 - Atualiza `atualizado_em`.
-- Recalcula o status `contrato_embarcado` do contrato que perdeu a saída.
+- Não altera o status `contrato_embarcado` do contrato que perdeu a saída; o saldo volta a ser refletido apenas pelos cálculos das consultas.
 
 Após sucesso, o operador volta para `/balanca/saidas/:id/nf` com a mensagem “Contrato desvinculado da saída com sucesso.” Como a saída fica sem contrato, a tela passa a oferecer associação novamente.
 
@@ -271,9 +271,9 @@ Contratos elegíveis precisam:
 
 ### Atualização automática de contrato embarcado
 
-Ao associar uma saída, se o total embarcado do contrato atingir ou ultrapassar `quantidade_kg`, o sistema marca `contrato_embarcado = TRUE`.
+Ao associar, adicionar bruto, dividir, deletar ou desvincular uma saída, o fluxo da balança não altera `contrato_embarcado`. O saldo do contrato continua sendo calculado pela diferença entre `quantidade_kg` e a soma dos pesos líquidos das saídas associadas, podendo chegar a zero ou ficar negativo. A marcação de contrato embarcado depende de ação manual de administrador.
 
-Ao deletar ou desvincular saída, o sistema recalcula o status com base no total ainda associado ao contrato.
+Assim, deleção, desvinculação e divisão apenas mudam as saídas associadas e, por consequência, os saldos calculados; nenhuma dessas ações finaliza ou reabre contrato automaticamente.
 
 ### Divisão de saída
 
@@ -301,8 +301,8 @@ As mensagens de criação, deleção, divisão e associação retornam para `/ba
 
 ## Pontos de atenção para manutenção
 
-- `associateScaleOutputToContract`, `splitScaleOutput`, `deleteScaleOutput` e `unlinkScaleOutputFromContract` usam transações porque alteram saída e, direta ou indiretamente, o status do contrato.
-- `refreshContractShippedStatus` é essencial para manter `contrato_embarcado` consistente após deleção, divisão ou desvinculação.
+- `associateScaleOutputToContract`, `splitScaleOutput`, `deleteScaleOutput` e `unlinkScaleOutputFromContract` usam transações porque alteram registros de saída e associação de contrato.
+- `refreshContractShippedStatus` não altera `contrato_embarcado`; a função permanece inofensiva para chamadas existentes e documenta que a finalização do contrato é manual.
 - A lista de saídas e as listas de contratos calculam saldos por agregação de `saidas_balanca.peso_liquido_kg`; qualquer mudança no cálculo de peso líquido ou na associação impacta esses saldos.
 - A página de NF depende de joins com `contratos`, `compradores` e `vendedores`; campos cadastrais faltantes nesses cadastros afetam a conferência da nota.
 - A rota genérica `GET /balanca/saidas/:id` fica depois das rotas específicas `/associar` e `/nf`, evitando conflito de roteamento.

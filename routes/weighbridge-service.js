@@ -774,7 +774,6 @@ async function associateScaleOutputToContract(outputId, buyerId, contractId, use
     );
     const shippedKg = Number(shippedResult.rows[0].quantidade_embarcada_kg);
     const contractKg = Number(contract.quantidade_kg);
-    const outputKg = Number(output.peso_liquido_kg);
 
     if (contract.contrato_embarcado || shippedKg >= contractKg) {
       throw new Error('Esse contrato já terminou de embarcar.');
@@ -791,19 +790,6 @@ async function associateScaleOutputToContract(outputId, buyerId, contractId, use
       `,
       [contractId, userId, outputId]
     );
-
-    if (shippedKg + outputKg >= contractKg) {
-      await client.query(
-        `
-          UPDATE contratos
-          SET contrato_embarcado = TRUE,
-              atualizado_em = now()
-          WHERE id = $1
-        `,
-        [contractId]
-      );
-    }
-
     await client.query('COMMIT');
   } catch (error) {
     await client.query('ROLLBACK');
@@ -866,24 +852,11 @@ async function unlinkScaleOutputFromContract(outputId) {
 
 
 async function refreshContractShippedStatus(client, contractId) {
-  if (!contractId) {
-    return;
-  }
-
-  await client.query(
-    `
-      UPDATE contratos c
-      SET contrato_embarcado = shipped.quantidade_embarcada_kg >= c.quantidade_kg,
-          atualizado_em = now()
-      FROM (
-        SELECT COALESCE(SUM(peso_liquido_kg), 0) AS quantidade_embarcada_kg
-        FROM saidas_balanca
-        WHERE contrato_id = $1
-      ) shipped
-      WHERE c.id = $1
-    `,
-    [contractId]
-  );
+  // A finalização de contratos embarcados é manual. Fluxos da balança
+  // preservam os cálculos de saldo nas consultas, mas não alteram
+  // contratos.contrato_embarcado automaticamente.
+  void client;
+  void contractId;
 }
 
 async function deleteScaleOutput(outputId) {
