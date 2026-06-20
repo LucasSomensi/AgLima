@@ -22,12 +22,10 @@
           </div>
         </div>
 
-        <div class="contracts-weight-toggle" aria-label="Unidade de peso exibida">
+        <div class="contracts-weight-toggle" role="group" aria-label="Unidade de peso exibida">
           <span class="admin-muted">Exibir pesos em:</span>
-          <div class="contracts-weight-switch" role="group" aria-label="Alternar unidade de peso entre quilogramas e sacas">
-            <button class="contracts-weight-toggle-button is-active" type="button" data-weight-unit="kg" aria-pressed="true">kg</button>
-            <button class="contracts-weight-toggle-button" type="button" data-weight-unit="sc" aria-pressed="false">sc</button>
-          </div>
+          <button class="btn-secondary-action contracts-weight-toggle-button is-active" type="button" data-weight-unit="kg" aria-pressed="true">kg</button>
+          <button class="btn-secondary-action contracts-weight-toggle-button" type="button" data-weight-unit="sc" aria-pressed="false">sc</button>
         </div>
 
         <div class="admin-table-wrapper">
@@ -76,11 +74,6 @@
             button.classList.toggle('is-active', isSelected);
             button.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
           });
-
-          const switchElement = document.querySelector('.contracts-weight-switch');
-          if (switchElement) {
-            switchElement.classList.toggle('is-sc', unit === 'sc');
-          }
         }
 
         toggleButtons.forEach(function (button) {
