@@ -7,6 +7,17 @@
  public       | armazenamento_recalibracoes |                5 | observacoes                        | text                        | YES         | 
  public       | armazenamento_recalibracoes |                6 | criado_por_user_id                 | uuid                        | NO          | 
  public       | armazenamento_recalibracoes |                7 | criado_em                          | timestamp with time zone    | NO          | now()
+ public       | auditoria_acoes             |                1 | id                                 | bigint                      | NO          | 
+ public       | auditoria_acoes             |                2 | tipo_acao                          | text                        | NO          | 
+ public       | auditoria_acoes             |                3 | entidade_tipo                      | text                        | NO          | 
+ public       | auditoria_acoes             |                4 | entidade_id                        | text                        | NO          | 
+ public       | auditoria_acoes             |                5 | usuario_id                         | uuid                        | NO          | 
+ public       | auditoria_acoes             |                6 | usuario_login                      | text                        | YES         | 
+ public       | auditoria_acoes             |                7 | grupo_acao_id                      | uuid                        | NO          | gen_random_uuid()
+ public       | auditoria_acoes             |                8 | dados_anteriores                   | jsonb                       | YES         | 
+ public       | auditoria_acoes             |                9 | dados_posteriores                  | jsonb                       | YES         | 
+ public       | auditoria_acoes             |               10 | detalhes                           | jsonb                       | NO          | '{}'::jsonb
+ public       | auditoria_acoes             |               11 | criado_em                          | timestamp with time zone    | NO          | now()
  public       | compradores                 |                1 | id                                 | bigint                      | NO          | nextval('compradores_id_seq'::regclass)
  public       | compradores                 |                2 | nome                               | character varying           | NO          | 
  public       | compradores                 |                3 | nome_completo                      | character varying           | NO          | 
