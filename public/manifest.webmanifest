@@ -1,0 +1,31 @@
+{
+  "name": "AgroLima Secador",
+  "short_name": "Secador",
+  "description": "Painel do secador de grãos da AgroLima para operadores do silo.",
+  "start_url": "/secador",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#052f19",
+  "theme_color": "#0f5f2e",
+  "icons": [
+    {
+      "src": "/icons/dryer-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/dryer-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/dryer-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
