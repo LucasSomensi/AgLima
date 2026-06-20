@@ -246,7 +246,7 @@ router.post('/balanca/entradas/:id', canAccessWeighbridge, async (req, res) => {
   }
 
   try {
-    const updatedInput = await updateScaleInput(req.params.id, payload, req.sessionUser.userId);
+    const updatedInput = await updateScaleInput(req.params.id, payload, req.sessionUser);
 
     if (!updatedInput) {
       return renderScaleInputDetailPage(res, {
@@ -271,7 +271,7 @@ router.post('/balanca/entradas/:id', canAccessWeighbridge, async (req, res) => {
 
 router.post('/balanca/entradas/:id/deletar', canAccessWeighbridge, async (req, res) => {
   try {
-    await deleteScaleInput(req.params.id);
+    await deleteScaleInput(req.params.id, req.sessionUser);
     return res.redirect(buildWeighbridgeRedirect({ entrada_deletada: '1' }));
   } catch (error) {
     console.error('Error deleting scale input:', error.message);
@@ -584,7 +584,7 @@ router.post('/balanca/saidas/:id/bruto', canAccessWeighbridge, async (req, res) 
       });
     }
 
-    const updatedOutput = await addScaleOutputGross(req.params.id, payload.pesoBrutoKg);
+    const updatedOutput = await addScaleOutputGross(req.params.id, payload.pesoBrutoKg, req.sessionUser);
 
     if (!updatedOutput) {
       return renderScaleOutputGrossFormPage(res, {
@@ -661,7 +661,7 @@ router.post('/balanca/saidas/:id/associar', canAccessWeighbridge, async (req, re
 
 router.post('/balanca/saidas/:id/deletar', canAccessWeighbridge, async (req, res) => {
   try {
-    await deleteScaleOutput(req.params.id);
+    await deleteScaleOutput(req.params.id, req.sessionUser);
     return res.redirect(buildWeighbridgeRedirect({ saida_deletada: '1' }));
   } catch (error) {
     console.error('Error deleting scale output:', error.message);
@@ -673,7 +673,7 @@ router.post('/balanca/saidas/:id/deletar', canAccessWeighbridge, async (req, res
 
 router.post('/balanca/saidas/:id/dividir', canAccessWeighbridge, async (req, res) => {
   try {
-    await splitScaleOutput(req.params.id, req.body.peso_liquido_primeira_kg, req.sessionUser.userId);
+    await splitScaleOutput(req.params.id, req.body.peso_liquido_primeira_kg, req.sessionUser);
     return res.redirect(buildWeighbridgeRedirect({ saida_dividida: '1' }));
   } catch (error) {
     return res.redirect(buildRedirect(`/balanca/saidas/${req.params.id}`, {
@@ -684,7 +684,7 @@ router.post('/balanca/saidas/:id/dividir', canAccessWeighbridge, async (req, res
 
 router.post('/balanca/saidas/:id/desvincular-contrato', canAccessWeighbridge, async (req, res) => {
   try {
-    await unlinkScaleOutputFromContract(req.params.id);
+    await unlinkScaleOutputFromContract(req.params.id, req.sessionUser);
     return res.redirect(buildRedirect(`/balanca/saidas/${req.params.id}/nf`, { contrato_desvinculado: '1' }));
   } catch (error) {
     return res.redirect(buildRedirect(`/balanca/saidas/${req.params.id}/nf`, {
