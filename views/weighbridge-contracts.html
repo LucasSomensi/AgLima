@@ -52,8 +52,10 @@
     </main>
     <script>
       (function () {
-        const toggleButtons = Array.from(document.querySelectorAll('[data-weight-unit]'));
+        const toggleButton = document.querySelector('[data-weight-toggle]');
+        const toggleLabels = Array.from(document.querySelectorAll('[data-weight-label]'));
         const weightFields = Array.from(document.querySelectorAll('.weighbridge-contract-weight[data-weight-kg]'));
+        let currentUnit = 'kg';
 
         function formatWeight(value, unit) {
           const formatter = new Intl.NumberFormat('pt-BR', {
@@ -67,14 +69,14 @@
         }
 
         function setWeightUnit(unit) {
+          currentUnit = unit;
+
           weightFields.forEach(function (field) {
             field.textContent = formatWeight(field.dataset.weightKg, unit);
           });
 
-          toggleButtons.forEach(function (button) {
-            const isSelected = button.dataset.weightUnit === unit;
-            button.classList.toggle('is-active', isSelected);
-            button.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
+          toggleLabels.forEach(function (label) {
+            label.classList.toggle('is-active', label.dataset.weightLabel === unit);
           });
 
           const switchElement = document.querySelector('.contracts-weight-switch');
@@ -83,11 +85,11 @@
           }
         }
 
-        toggleButtons.forEach(function (button) {
-          button.addEventListener('click', function () {
-            setWeightUnit(button.dataset.weightUnit);
+        if (toggleButton) {
+          toggleButton.addEventListener('click', function () {
+            setWeightUnit(currentUnit === 'kg' ? 'sc' : 'kg');
           });
-        });
+        }
       }());
     </script>
   </body>

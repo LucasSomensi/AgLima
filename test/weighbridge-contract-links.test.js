@@ -209,11 +209,13 @@ test('weighbridge contracts list defaults weights to kg and includes sacks toggl
     }],
   });
 
-  assert.match(html, /data-weight-unit="kg" aria-pressed="true">kg/);
-  assert.match(html, /data-weight-unit="sc" aria-pressed="false">sc/);
+  assert.match(html, /data-weight-label="kg">kg/);
+  assert.match(html, /data-weight-toggle aria-label="Alternar unidade de peso entre quilogramas e sacas" aria-pressed="false"><\/button>/);
+  assert.match(html, /data-weight-label="sc">sc/);
   assert.match(html, /data-weight-kg="60000">60\.000 kg/);
   assert.match(html, /data-weight-kg="30000">30\.000 kg/);
   assert.match(html, /weightKg \/ 60/);
+  assert.match(html, /currentUnit === 'kg' \? 'sc' : 'kg'/);
 });
 
 test('weighbridge contracts sacks toggle formats weights with at most one decimal place', () => {
