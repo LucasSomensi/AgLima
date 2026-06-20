@@ -1015,7 +1015,7 @@ async function listOpenContractsForWeighbridge() {
   return result.rows;
 }
 
-async function getOpenContractDetailForWeighbridge(contractId) {
+async function getContractDetailForWeighbridge(contractId) {
   ensureDatabaseConfigured();
 
   const contractResult = await pool.query(
@@ -1048,8 +1048,6 @@ async function getOpenContractDetailForWeighbridge(contractId) {
         GROUP BY contrato_id
       ) shipped ON shipped.contrato_id = c.id
       WHERE c.id = $1
-        AND c.contrato_embarcado IS NOT TRUE
-        AND c.quantidade_kg - COALESCE(shipped.quantidade_embarcada_kg, 0) > 0
       LIMIT 1
     `,
     [contractId]
@@ -1164,7 +1162,7 @@ module.exports = {
   defineScaleInputOrigin,
   deleteScaleInput,
   deleteScaleOutput,
-  getOpenContractDetailForWeighbridge,
+  getContractDetailForWeighbridge,
   getPreviousTareForPlate,
   getScaleInputById,
   getScaleOutputById,

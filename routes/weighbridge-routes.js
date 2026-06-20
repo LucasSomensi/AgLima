@@ -18,7 +18,7 @@ const {
   defineScaleInputOrigin,
   deleteScaleInput,
   deleteScaleOutput,
-  getOpenContractDetailForWeighbridge,
+  getContractDetailForWeighbridge,
   getPreviousTareForPlate,
   getScaleInputById,
   getScaleOutputById,
@@ -474,10 +474,10 @@ router.get('/balanca/contratos', canAccessWeighbridge, async (req, res) => {
 
 router.get('/balanca/contratos/:id', canAccessWeighbridge, async (req, res) => {
   try {
-    const contractInfo = await getOpenContractDetailForWeighbridge(req.params.id);
+    const contractInfo = await getContractDetailForWeighbridge(req.params.id);
 
     if (!contractInfo) {
-      return res.redirect(buildWeighbridgeRedirect({ error: 'Contrato não encontrado ou já finalizado.' }));
+      return res.redirect(buildWeighbridgeRedirect({ error: 'Contrato não encontrado.' }));
     }
 
     return renderScaleContractDetailPage(res, contractInfo);
