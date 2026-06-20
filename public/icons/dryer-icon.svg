@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">AgroLima Secador</title>
+  <desc id="desc">Ícone do painel do secador de grãos da AgroLima.</desc>
+  <rect width="512" height="512" rx="96" fill="#052f19"/>
+  <circle cx="256" cy="256" r="214" fill="#0f5f2e"/>
+  <path d="M164 364h184l-22-214H186l-22 214Z" fill="#eaf6ee"/>
+  <path d="M196 150h120l-15-52h-90l-15 52Z" fill="#c9ffd8"/>
+  <path d="M197 202h118M190 252h132M183 302h146" stroke="#0f5f2e" stroke-width="24" stroke-linecap="round"/>
+  <path d="M156 388h200" stroke="#ffd17a" stroke-width="28" stroke-linecap="round"/>
+  <path d="M256 78c34 42 50 78 50 108 0 33-22 58-50 58s-50-25-50-58c0-30 16-66 50-108Z" fill="#ffd17a" opacity="0.95"/>
+</svg>
