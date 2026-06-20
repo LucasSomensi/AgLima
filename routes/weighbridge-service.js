@@ -4,6 +4,73 @@ const { parseOptionalDateTime } = require('./utils');
 const PRODUCT_VALUES = ['milho', 'soja'];
 const MAX_INPUT_GROSS_WEIGHT_KG = 80000;
 
+function getAuditActor(userOrId) {
+  if (userOrId && typeof userOrId === 'object') {
+    return {
+      userId: userOrId.userId || userOrId.id,
+      login: userOrId.login || null,
+    };
+  }
+
+  return {
+    userId: userOrId,
+    login: null,
+  };
+}
+
+async function recordAuditAction(client, {
+  tipoAcao,
+  entidadeTipo,
+  entidadeId,
+  user,
+  dadosAnteriores = null,
+  dadosPosteriores = null,
+  detalhes = {},
+  grupoAcaoId = null,
+}) {
+  const actor = getAuditActor(user);
+
+  if (!actor.userId) {
+    throw new Error('Usuário responsável pela auditoria não informado.');
+  }
+
+  const columns = [
+    'tipo_acao',
+    'entidade_tipo',
+    'entidade_id',
+    'usuario_id',
+    'usuario_login',
+    'dados_anteriores',
+    'dados_posteriores',
+    'detalhes',
+  ];
+  const values = [
+    tipoAcao,
+    entidadeTipo,
+    String(entidadeId),
+    actor.userId,
+    actor.login,
+    dadosAnteriores,
+    dadosPosteriores,
+    detalhes,
+  ];
+
+  if (grupoAcaoId) {
+    columns.push('grupo_acao_id');
+    values.push(grupoAcaoId);
+  }
+
+  const placeholders = values.map((_, index) => `$${index + 1}`).join(', ');
+
+  await client.query(
+    `
+      INSERT INTO auditoria_acoes (${columns.join(', ')})
+      VALUES (${placeholders})
+    `,
+    values
+  );
+}
+
 function normalizeText(value) {
   return String(value || '').trim();
 }
@@ -433,7 +500,7 @@ async function getScaleInputById(inputId) {
   return result.rows[0] || null;
 }
 
-async function updateScaleInput(inputId, payload, userId) {
+async function updateScaleInput(inputId, payload, user) {
   ensureDatabaseConfigured();
 
   const hasTare = payload.pesoTaraKg !== null && payload.pesoTaraKg !== undefined;
@@ -445,55 +512,115 @@ async function updateScaleInput(inputId, payload, userId) {
     && payload.graosAvariadosPercent !== null
     && payload.graosAvariadosPercent !== undefined;
 
-  const result = await pool.query(
-    `
-      UPDATE entradas_balanca
-      SET data_entrada = $2,
-          placa_caminhao = $3,
-          produto = $4,
-          peso_bruto_kg = $5,
-          peso_tara_kg = $6,
-          tara_usada_de_entrada_id = NULL,
-          tara_adicionada_por_user_id = CASE WHEN $7::boolean THEN $11 ELSE NULL END,
-          tara_adicionada_em = CASE WHEN $7::boolean THEN COALESCE(tara_adicionada_em, now()) ELSE NULL END,
-          origem = $8,
-          origem_definida_por_user_id = CASE WHEN $9::boolean THEN $11 ELSE NULL END,
-          origem_definida_em = CASE WHEN $9::boolean THEN COALESCE(origem_definida_em, now()) ELSE NULL END,
-          umidade_percent = $12,
-          impureza_percent = $13,
-          graos_avariados_percent = $14,
-          classificado_por_user_id = CASE WHEN $10::boolean THEN $11 ELSE NULL END,
-          classificado_em = CASE WHEN $10::boolean THEN COALESCE(classificado_em, now()) ELSE NULL END,
-          atualizado_em = now()
-      WHERE id = $1
-        AND ($6::numeric IS NULL OR $5::numeric > $6::numeric)
-      RETURNING id
-    `,
-    [
-      inputId,
-      payload.dataEntrada,
-      payload.placaCaminhao,
-      payload.produto,
-      payload.pesoBrutoKg,
-      payload.pesoTaraKg,
-      hasTare,
-      payload.origem,
-      hasOrigin,
-      hasClassification,
-      userId,
-      payload.umidadePercent,
-      payload.impurezaPercent,
-      payload.graosAvariadosPercent,
-    ]
-  );
+  const client = await pool.connect();
 
-  return result.rows[0] || null;
+  try {
+    await client.query('BEGIN');
+
+    const previousResult = await client.query(
+      'SELECT * FROM entradas_balanca WHERE id = $1 FOR UPDATE',
+      [inputId]
+    );
+    const previousInput = previousResult.rows[0] || null;
+
+    if (!previousInput) {
+      await client.query('COMMIT');
+      return null;
+    }
+
+    const result = await client.query(
+      `
+        UPDATE entradas_balanca
+        SET data_entrada = $2,
+            placa_caminhao = $3,
+            produto = $4,
+            peso_bruto_kg = $5,
+            peso_tara_kg = $6,
+            tara_usada_de_entrada_id = NULL,
+            tara_adicionada_por_user_id = CASE WHEN $7::boolean THEN $11 ELSE NULL END,
+            tara_adicionada_em = CASE WHEN $7::boolean THEN COALESCE(tara_adicionada_em, now()) ELSE NULL END,
+            origem = $8,
+            origem_definida_por_user_id = CASE WHEN $9::boolean THEN $11 ELSE NULL END,
+            origem_definida_em = CASE WHEN $9::boolean THEN COALESCE(origem_definida_em, now()) ELSE NULL END,
+            umidade_percent = $12,
+            impureza_percent = $13,
+            graos_avariados_percent = $14,
+            classificado_por_user_id = CASE WHEN $10::boolean THEN $11 ELSE NULL END,
+            classificado_em = CASE WHEN $10::boolean THEN COALESCE(classificado_em, now()) ELSE NULL END,
+            atualizado_em = now()
+        WHERE id = $1
+          AND ($6::numeric IS NULL OR $5::numeric > $6::numeric)
+        RETURNING *
+      `,
+      [
+        inputId,
+        payload.dataEntrada,
+        payload.placaCaminhao,
+        payload.produto,
+        payload.pesoBrutoKg,
+        payload.pesoTaraKg,
+        hasTare,
+        payload.origem,
+        hasOrigin,
+        hasClassification,
+        getAuditActor(user).userId,
+        payload.umidadePercent,
+        payload.impurezaPercent,
+        payload.graosAvariadosPercent,
+      ]
+    );
+    const updatedInput = result.rows[0] || null;
+
+    if (updatedInput) {
+      await recordAuditAction(client, {
+        tipoAcao: 'editar_entrada',
+        entidadeTipo: 'entradas_balanca',
+        entidadeId: inputId,
+        user,
+        dadosAnteriores: previousInput,
+        dadosPosteriores: updatedInput,
+      });
+    }
+
+    await client.query('COMMIT');
+    return updatedInput ? { id: updatedInput.id } : null;
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
 }
 
-async function deleteScaleInput(inputId) {
+async function deleteScaleInput(inputId, user) {
   ensureDatabaseConfigured();
 
-  await pool.query('DELETE FROM entradas_balanca WHERE id = $1', [inputId]);
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    const inputResult = await client.query('SELECT * FROM entradas_balanca WHERE id = $1 FOR UPDATE', [inputId]);
+    const input = inputResult.rows[0] || null;
+
+    if (input) {
+      await client.query('DELETE FROM entradas_balanca WHERE id = $1', [inputId]);
+      await recordAuditAction(client, {
+        tipoAcao: 'deletar_entrada',
+        entidadeTipo: 'entradas_balanca',
+        entidadeId: inputId,
+        user,
+        dadosAnteriores: input,
+      });
+    }
+
+    await client.query('COMMIT');
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
 }
 
 async function addScaleInputTare(inputId, pesoTaraKg, userId) {
@@ -517,13 +644,21 @@ async function addScaleInputTare(inputId, pesoTaraKg, userId) {
   return result.rows[0] || null;
 }
 
-async function addScaleOutputGross(outputId, pesoBrutoKg) {
+async function addScaleOutputGross(outputId, pesoBrutoKg, user) {
   ensureDatabaseConfigured();
 
   const client = await pool.connect();
 
   try {
     await client.query('BEGIN');
+
+    const previousResult = await client.query('SELECT * FROM saidas_balanca WHERE id = $1 FOR UPDATE', [outputId]);
+    const previousOutput = previousResult.rows[0] || null;
+
+    if (!previousOutput) {
+      await client.query('COMMIT');
+      return null;
+    }
 
     const result = await client.query(
       `
@@ -533,18 +668,27 @@ async function addScaleOutputGross(outputId, pesoBrutoKg) {
         WHERE id = $1
           AND peso_bruto_kg IS NULL
           AND $2 > peso_tara_kg
-        RETURNING id, contrato_id
+        RETURNING *
       `,
       [outputId, pesoBrutoKg]
     );
     const updatedOutput = result.rows[0] || null;
 
     if (updatedOutput) {
+      await recordAuditAction(client, {
+        tipoAcao: 'editar_saida',
+        entidadeTipo: 'saidas_balanca',
+        entidadeId: outputId,
+        user,
+        dadosAnteriores: previousOutput,
+        dadosPosteriores: updatedOutput,
+        detalhes: { campo_editado: 'peso_bruto_kg' },
+      });
       await refreshContractShippedStatus(client, updatedOutput.contrato_id);
     }
 
     await client.query('COMMIT');
-    return updatedOutput;
+    return updatedOutput ? { id: updatedOutput.id, contrato_id: updatedOutput.contrato_id } : null;
   } catch (error) {
     await client.query('ROLLBACK');
     throw error;
@@ -800,7 +944,7 @@ async function associateScaleOutputToContract(outputId, buyerId, contractId, use
 }
 
 
-async function unlinkScaleOutputFromContract(outputId) {
+async function unlinkScaleOutputFromContract(outputId, user) {
   ensureDatabaseConfigured();
 
   const client = await pool.connect();
@@ -809,12 +953,7 @@ async function unlinkScaleOutputFromContract(outputId) {
     await client.query('BEGIN');
 
     const outputResult = await client.query(
-      `
-        SELECT id, contrato_id
-        FROM saidas_balanca
-        WHERE id = $1
-        FOR UPDATE
-      `,
+      'SELECT * FROM saidas_balanca WHERE id = $1 FOR UPDATE',
       [outputId]
     );
     const output = outputResult.rows[0];
@@ -827,7 +966,7 @@ async function unlinkScaleOutputFromContract(outputId) {
       throw new Error('Essa saída não está associada a um contrato.');
     }
 
-    await client.query(
+    const updateResult = await client.query(
       `
         UPDATE saidas_balanca
         SET contrato_id = NULL,
@@ -835,9 +974,21 @@ async function unlinkScaleOutputFromContract(outputId) {
             associado_em = NULL,
             atualizado_em = now()
         WHERE id = $1
+        RETURNING *
       `,
       [outputId]
     );
+    const updatedOutput = updateResult.rows[0];
+
+    await recordAuditAction(client, {
+      tipoAcao: 'desvincular_contrato_saida',
+      entidadeTipo: 'saidas_balanca',
+      entidadeId: outputId,
+      user,
+      dadosAnteriores: output,
+      dadosPosteriores: updatedOutput,
+      detalhes: { contrato_id_desvinculado: output.contrato_id },
+    });
 
     await refreshContractShippedStatus(client, output.contrato_id);
 
@@ -849,7 +1000,6 @@ async function unlinkScaleOutputFromContract(outputId) {
     client.release();
   }
 }
-
 
 async function refreshContractShippedStatus(client, contractId) {
   // A finalização de contratos embarcados é manual. Fluxos da balança
@@ -859,7 +1009,7 @@ async function refreshContractShippedStatus(client, contractId) {
   void contractId;
 }
 
-async function deleteScaleOutput(outputId) {
+async function deleteScaleOutput(outputId, user) {
   ensureDatabaseConfigured();
 
   const client = await pool.connect();
@@ -868,12 +1018,7 @@ async function deleteScaleOutput(outputId) {
     await client.query('BEGIN');
 
     const outputResult = await client.query(
-      `
-        SELECT id, contrato_id
-        FROM saidas_balanca
-        WHERE id = $1
-        FOR UPDATE
-      `,
+      'SELECT * FROM saidas_balanca WHERE id = $1 FOR UPDATE',
       [outputId]
     );
     const output = outputResult.rows[0];
@@ -883,6 +1028,13 @@ async function deleteScaleOutput(outputId) {
     }
 
     await client.query('DELETE FROM saidas_balanca WHERE id = $1', [outputId]);
+    await recordAuditAction(client, {
+      tipoAcao: 'deletar_saida',
+      entidadeTipo: 'saidas_balanca',
+      entidadeId: outputId,
+      user,
+      dadosAnteriores: output,
+    });
     await refreshContractShippedStatus(client, output.contrato_id);
 
     await client.query('COMMIT');
@@ -894,7 +1046,7 @@ async function deleteScaleOutput(outputId) {
   }
 }
 
-async function splitScaleOutput(outputId, firstNetWeightKg, userId) {
+async function splitScaleOutput(outputId, firstNetWeightKg, user) {
   ensureDatabaseConfigured();
 
   const normalizedFirstNetWeightKg = normalizeDecimal(firstNetWeightKg);
@@ -909,19 +1061,7 @@ async function splitScaleOutput(outputId, firstNetWeightKg, userId) {
     await client.query('BEGIN');
 
     const outputResult = await client.query(
-      `
-        SELECT id,
-               data_saida,
-               placa_caminhao,
-               produto,
-               peso_tara_kg,
-               peso_bruto_kg,
-               peso_liquido_kg,
-               contrato_id
-        FROM saidas_balanca
-        WHERE id = $1
-        FOR UPDATE
-      `,
+      'SELECT * FROM saidas_balanca WHERE id = $1 FOR UPDATE',
       [outputId]
     );
     const output = outputResult.rows[0];
@@ -945,15 +1085,17 @@ async function splitScaleOutput(outputId, firstNetWeightKg, userId) {
 
     const firstGrossWeight = originalTareWeight + firstNetWeight;
 
-    await client.query(
+    const updatedOutputResult = await client.query(
       `
         UPDATE saidas_balanca
         SET peso_bruto_kg = $1,
             atualizado_em = now()
         WHERE id = $2
+        RETURNING *
       `,
       [firstGrossWeight, outputId]
     );
+    const updatedOutput = updatedOutputResult.rows[0];
 
     const newOutputResult = await client.query(
       `
@@ -966,7 +1108,7 @@ async function splitScaleOutput(outputId, firstNetWeightKg, userId) {
           criado_por_user_id
         )
         VALUES ($1, $2, $3, $4, $5, $6)
-        RETURNING id
+        RETURNING *
       `,
       [
         output.data_saida,
@@ -974,14 +1116,47 @@ async function splitScaleOutput(outputId, firstNetWeightKg, userId) {
         output.produto,
         firstGrossWeight,
         originalGrossWeight,
-        userId,
+        getAuditActor(user).userId,
       ]
     );
+
+    const newOutput = newOutputResult.rows[0];
+    const groupResult = await client.query('SELECT gen_random_uuid() AS id');
+    const groupId = groupResult.rows[0].id;
+
+    await recordAuditAction(client, {
+      tipoAcao: 'dividir_saida',
+      entidadeTipo: 'saidas_balanca',
+      entidadeId: outputId,
+      user,
+      dadosAnteriores: output,
+      dadosPosteriores: updatedOutput,
+      detalhes: {
+        registro_criado_tipo: 'saidas_balanca',
+        registro_criado_id: newOutput.id,
+        peso_liquido_primeira_kg: normalizedFirstNetWeightKg,
+        peso_liquido_original_kg: output.peso_liquido_kg,
+      },
+      grupoAcaoId: groupId,
+    });
+
+    await recordAuditAction(client, {
+      tipoAcao: 'dividir_saida',
+      entidadeTipo: 'saidas_balanca',
+      entidadeId: newOutput.id,
+      user,
+      dadosPosteriores: newOutput,
+      detalhes: {
+        registro_origem_tipo: 'saidas_balanca',
+        registro_origem_id: outputId,
+      },
+      grupoAcaoId: groupId,
+    });
 
     await refreshContractShippedStatus(client, output.contrato_id);
 
     await client.query('COMMIT');
-    return newOutputResult.rows[0];
+    return { id: newOutput.id };
   } catch (error) {
     await client.query('ROLLBACK');
     throw error;

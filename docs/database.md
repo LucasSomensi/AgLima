@@ -15,6 +15,7 @@ Este documento descreve o schema `public` do banco PostgreSQL usado pela aplica�
   - [`armazenamento_recalibracoes`](#armazenamento_recalibracoes)
   - [`entradas_balanca`](#entradas_balanca)
   - [`saidas_balanca`](#saidas_balanca)
+  - [`auditoria_acoes`](#auditoria_acoes)
   - [`users`](#users)
   - [`dryer_settings`](#dryer_settings)
   - [`dryer_batches`](#dryer_batches)
@@ -36,6 +37,7 @@ Este documento descreve o schema `public` do banco PostgreSQL usado pela aplica�
 | `saidas_balanca` | `contrato_id` | `contratos` | `id` | Associação opcional da saída da balança ao contrato embarcado. |
 | `saidas_balanca` | `criado_por_user_id` | `users` | `id` | Registra o operador que lançou a saída. |
 | `saidas_balanca` | `associado_por_user_id` | `users` | `id` | Registra o operador que associou a saída ao contrato. |
+| `auditoria_acoes` | `usuario_id` | `users` | `id` | Registra o usuário responsável pela ação auditada. |
 | `dryer_batches` | `started_by_user_id` | `users` | `id` | Registra o usuário que iniciou a batelada. |
 | `dryer_batches` | `completed_by_user_id` | `users` | `id` | Registra o usuário que concluiu/parou a batelada. |
 | `dryer_moisture_readings` | `batch_id` | `dryer_batches` | `id` | Vincula medições de umidade a uma batelada. |
@@ -298,6 +300,62 @@ Armazena as saídas registradas pelo operador de balança. Cada saída nasce sem
 - Após associação, a página de detalhe da saída mostra dados necessários para emissão da nota fiscal, incluindo nomes completos de vendedor e comprador, CPF/CNPJ e inscrição estadual do comprador, preço por saca, preço por kg truncado em 8 casas decimais, observações do contrato e campos fiscais opcionais cadastrados no contrato.
 
 ---
+
+
+## `auditoria_acoes`
+
+Registra ações sensíveis executadas por usuários em entidades operacionais da balança. A tabela foi desenhada para ser flexível: novos tipos de ação podem ser gravados em `tipo_acao` sem criar novo enum ou alterar constraints de domínio. Os snapshots em `jsonb` guardam o estado anterior e posterior necessário para auditoria e eventual reversão manual.
+
+### Colunas
+
+| Coluna | Tipo | Nulo? | Default | Descrição |
+| --- | --- | --- | --- | --- |
+| `id` | `bigint` | Não | identity | Identificador sequencial da ação auditada. |
+| `tipo_acao` | `text` | Não | — | Tipo lógico da ação, como `editar_entrada`, `deletar_saida`, `desvincular_contrato_saida` ou `dividir_saida`. |
+| `entidade_tipo` | `text` | Não | — | Entidade afetada pela ação, como `entradas_balanca` ou `saidas_balanca`. |
+| `entidade_id` | `text` | Não | — | Identificador da entidade afetada, armazenado como texto para manter compatibilidade com identificadores futuros. |
+| `usuario_id` | `uuid` | Não | — | Usuário responsável pela ação. FK para `users.id`. |
+| `usuario_login` | `text` | Sim | — | Snapshot do login do usuário no momento da ação. |
+| `grupo_acao_id` | `uuid` | Não | `gen_random_uuid()` | Agrupa múltiplas linhas de auditoria da mesma operação lógica. |
+| `dados_anteriores` | `jsonb` | Sim | — | Snapshot JSON do estado anterior da entidade, quando aplicável. |
+| `dados_posteriores` | `jsonb` | Sim | — | Snapshot JSON do estado posterior da entidade, quando aplicável. |
+| `detalhes` | `jsonb` | Não | `'{}'::jsonb` | Metadados específicos da ação. |
+| `criado_em` | `timestamp with time zone` | Não | `now()` | Data/hora em que a auditoria foi registrada. |
+
+### Restrições
+
+| Tipo | Nome | Coluna(s) / referência |
+| --- | --- | --- |
+| Primary key | `auditoria_acoes_pkey` | `id` |
+| Foreign key | `auditoria_acoes_usuario_id_fkey` | `usuario_id` → `users.id` |
+| Check | `auditoria_acoes_tipo_acao_texto_check` | `tipo_acao` |
+| Check | `auditoria_acoes_entidade_tipo_texto_check` | `entidade_tipo` |
+| Check | `auditoria_acoes_entidade_id_texto_check` | `entidade_id` |
+| Check | `auditoria_acoes_usuario_login_texto_check` | `usuario_login` |
+| Check | `auditoria_acoes_dados_anteriores_objeto_check` | `dados_anteriores` |
+| Check | `auditoria_acoes_dados_posteriores_objeto_check` | `dados_posteriores` |
+| Check | `auditoria_acoes_detalhes_objeto_check` | `detalhes` |
+| Check / not null | constraints `auditoria_acoes_*_not_null` | `id`, `tipo_acao`, `entidade_tipo`, `entidade_id`, `usuario_id`, `grupo_acao_id`, `detalhes`, `criado_em` |
+
+### Índices operacionais
+
+| Índice | Coluna(s) | Uso |
+| --- | --- | --- |
+| `auditoria_acoes_entidade_idx` | `entidade_tipo`, `entidade_id`, `criado_em DESC` | Consultar o histórico de uma entrada, saída ou outra entidade. |
+| `auditoria_acoes_usuario_idx` | `usuario_id`, `criado_em DESC` | Consultar ações por usuário. |
+| `auditoria_acoes_tipo_acao_idx` | `tipo_acao`, `criado_em DESC` | Consultar ações por tipo. |
+| `auditoria_acoes_grupo_acao_idx` | `grupo_acao_id` | Recuperar todas as linhas geradas por uma operação composta, como divisão. |
+| `auditoria_acoes_criado_em_idx` | `criado_em DESC` | Listagens cronológicas de auditoria. |
+
+### Comportamento na aplicação
+
+- O serviço da balança grava auditoria para edição e exclusão de entradas, exclusão de saídas, adição de peso bruto de saída, desvinculação de contrato e divisão de saída.
+- As ações auditáveis são executadas em transação: a linha afetada é lida com `FOR UPDATE`, a mutação é aplicada e a auditoria é gravada antes do `COMMIT`.
+- Para exclusões, `dados_anteriores` contém a linha removida e `dados_posteriores` fica nulo.
+- Para edições, os dois snapshots são preenchidos.
+- Para divisão de saída, duas linhas são gravadas com o mesmo `grupo_acao_id`: uma para a saída original alterada e outra para a nova saída criada.
+- Consulte também [`docs/auditoria.md`](auditoria.md) para detalhes operacionais.
+
 
 ## `users`
 
