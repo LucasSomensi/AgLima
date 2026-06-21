@@ -397,24 +397,25 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 42px;
-  padding: 10px 16px;
+  min-height: 48px;
+  min-width: 48px;
+  padding: 12px 24px;
   color: #ffffff;
-  background: #b42318;
-  border: 0;
+  background: rgba(180, 35, 24, 0.22);
+  border: 1px solid rgba(255, 196, 190, 0.42);
   border-radius: 999px;
   font-weight: 700;
   line-height: 1;
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
 }
 
 .btn-danger-action:hover,
 .btn-danger-action:focus {
   color: #ffffff;
-  background: #912018;
+  background: rgba(180, 35, 24, 0.34);
   box-shadow: 0 12px 24px rgba(180, 35, 24, 0.28);
-  transform: translateY(-1px);
+  transform: translateY(-2px);
 }
 
 @media (max-width: 800px) {
@@ -1447,7 +1448,11 @@ button:disabled,
 .deletion-reason-form {
   display: grid;
   gap: 10px;
-  max-width: 560px;
+  width: 100%;
+  padding: 18px;
+  border: 1px solid rgba(234, 246, 238, 0.16);
+  border-radius: 18px;
+  background: rgba(5, 48, 25, 0.2);
 }
 
 .deletion-reason-form label {
