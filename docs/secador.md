@@ -10,7 +10,7 @@ O sistema considera que todos os usuários com perfil `silo_operator` compartilh
 
 ## Banco de dados
 
-As tabelas principais são `dryer_settings`, `dryer_batches` e `dryer_moisture_readings`.
+As tabelas principais são `dryer_settings`, `dryer_batches`, `dryer_moisture_readings` e, para sugerir a umidade inicial, `entradas_balanca`.
 
 ### `dryer_settings`
 
@@ -38,6 +38,7 @@ Campos centrais:
 - `started_by_user_id`: usuário que iniciou a batelada.
 - `completed_by_user_id`: usuário que concluiu/parou a batelada.
 - `target_moisture`: umidade alvo copiada de `dryer_settings` no momento do início da batelada.
+- `umidade_inicial`: umidade inicial digitada pelo operador ao confirmar o início da batelada. Aceita valores decimais entre `5%` e `50%`.
 - `notes`: observações, atualmente sem uso direto nas telas principais.
 
 ### `dryer_moisture_readings`
@@ -69,8 +70,9 @@ Campos centrais:
 
 ### Operador de secador
 
-- `GET /secador`: mostra o painel operacional com status, início da batelada, previsão ou horário de descarga, formulário de umidade, ação principal e medições da batelada ativa.
-- `POST /secador/bateladas`: inicia uma nova batelada. Se já houver batelada ativa sem descarga iniciada, rejeita a ação.
+- `GET /secador`: mostra o painel operacional com status, início da batelada, previsão ou horário de descarga, umidade inicial da batelada ativa, formulário de umidade, ação principal e medições da batelada ativa.
+- `GET /secador/bateladas/nova`: mostra a etapa de confirmação para iniciar nova batelada, com o campo editável de umidade inicial preenchido pela média das 5 últimas entradas classificadas da balança ou por `28%` quando não houver 5 entradas com umidade disponível.
+- `POST /secador/bateladas`: inicia uma nova batelada usando a umidade inicial confirmada. Se já houver batelada ativa sem descarga iniciada, rejeita a ação.
 - `POST /secador/bateladas/descarga`: registra o início da descarga da batelada ativa.
 - `POST /secador/bateladas/parar`: para o secador e conclui imediatamente a batelada ativa.
 - `POST /secador/umidades`: registra uma medição de umidade na batelada ativa.
@@ -100,15 +102,18 @@ O operador entra em `/secador`. O painel mostra três estados principais:
 
 ### 2. Iniciar uma nova batelada
 
-Quando não há batelada ativa, o operador clica em “Iniciar nova batelada”. O backend grava:
+Quando não há batelada ativa, o operador clica em “Iniciar nova batelada” e é levado para uma página de confirmação. Nessa página, precisa revisar ou editar a `umidade_inicial` antes de confirmar. O campo vem preenchido pela média de `umidade_percent` das 5 últimas linhas de `entradas_balanca` que tenham umidade disponível, ordenadas pelas datas mais recentes de entrada/criação. Se a consulta encontrar menos de 5 entradas com umidade, o campo usa `28%`.
+
+Ao confirmar, o backend grava:
 
 - `grain_type = 'corn'`;
+- `umidade_inicial` com o valor decimal confirmado pelo operador, validado entre `5%` e `50%`;
 - `status = 'active'`;
 - `started_at` com o horário atual do servidor;
 - `started_by_user_id` com o usuário logado;
 - `target_moisture` copiada da configuração global vigente em `dryer_settings`.
 
-Se já existir uma batelada ativa com descarga iniciada, o mesmo botão inicia a próxima batelada e encerra a anterior no mesmo horário. A batelada anterior recebe `status = 'completed'`, `completed_at` igual ao início da nova batelada e `completed_by_user_id` do operador logado.
+Se já existir uma batelada ativa com descarga iniciada, o mesmo botão abre a confirmação e, depois da confirmação, inicia a próxima batelada e encerra a anterior no mesmo horário. A batelada anterior recebe `status = 'completed'`, `completed_at` igual ao início da nova batelada e `completed_by_user_id` do operador logado.
 
 Se já existir uma batelada ativa sem descarga iniciada, o sistema bloqueia a nova batelada e orienta o operador a iniciar a descarga da batelada atual antes.
 

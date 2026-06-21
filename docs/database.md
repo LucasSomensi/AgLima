@@ -436,6 +436,7 @@ Armazena as bateladas do secador.
 | `started_by_user_id` | `uuid` | Sim | — | Usuário que iniciou a batelada. FK para `users.id`. |
 | `completed_by_user_id` | `uuid` | Sim | — | Usuário que concluiu/parou a batelada. FK para `users.id`. |
 | `target_moisture` | `numeric` | Não | `14.5` | Umidade alvo copiada de `dryer_settings` no início da batelada. |
+| `umidade_inicial` | `numeric` | Não | `28` | Umidade inicial informada pelo operador ao iniciar a batelada. A aplicação sugere a média das 5 últimas entradas da balança com `umidade_percent` disponível; se houver menos de 5, sugere `28%`. |
 | `notes` | `text` | Sim | — | Observações da batelada, atualmente sem uso direto nas queries principais. |
 | `created_at` | `timestamp with time zone` | Não | `now()` | Data/hora de criação do registro. |
 | `updated_at` | `timestamp with time zone` | Não | `now()` | Data/hora da última atualização. |
@@ -452,7 +453,8 @@ Armazena as bateladas do secador.
 | Check | `dryer_batches_status_check` | `status` |
 | Check | `dryer_batches_completed_at_check` | `status`, `completed_at` |
 | Check | `dryer_batches_target_moisture_check` | `target_moisture` |
-| Check / not null | constraints `dryer_batches_*_not_null` | `id`, `grain_type`, `status`, `started_at`, `target_moisture`, `created_at`, `updated_at` |
+| Check | `dryer_batches_umidade_inicial_check` | `umidade_inicial` |
+| Check / not null | constraints `dryer_batches_*_not_null` | `id`, `grain_type`, `status`, `started_at`, `target_moisture`, `umidade_inicial`, `created_at`, `updated_at` |
 
 ---
 

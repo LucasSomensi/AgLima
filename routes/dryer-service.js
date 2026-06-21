@@ -39,7 +39,7 @@ async function getActiveDryerBatch() {
 
   const result = await pool.query(
     `
-      SELECT id, grain_type, status, started_at, discharge_started_at, completed_at, target_moisture, created_at
+      SELECT id, grain_type, status, started_at, discharge_started_at, completed_at, target_moisture, umidade_inicial, created_at
       FROM dryer_batches
       WHERE status = 'active'
       ORDER BY started_at DESC
@@ -55,7 +55,7 @@ async function getDryerBatchById(batchId) {
 
   const result = await pool.query(
     `
-      SELECT id, grain_type, status, started_at, discharge_started_at, completed_at, target_moisture, created_at
+      SELECT id, grain_type, status, started_at, discharge_started_at, completed_at, target_moisture, umidade_inicial, created_at
       FROM dryer_batches
       WHERE id = $1
       LIMIT 1
@@ -71,7 +71,7 @@ async function listCompletedDryerBatches() {
 
   const result = await pool.query(
     `
-      SELECT id, grain_type, status, started_at, discharge_started_at, completed_at, target_moisture, created_at
+      SELECT id, grain_type, status, started_at, discharge_started_at, completed_at, target_moisture, umidade_inicial, created_at
       FROM dryer_batches
       WHERE status <> 'active'
       ORDER BY started_at DESC, created_at DESC
@@ -101,7 +101,32 @@ async function listDryerMoistureReadings(batchId) {
   return result.rows;
 }
 
-async function startDryerBatch({ startedAt, grainType, user }) {
+async function getDefaultInitialMoisture() {
+  ensureDatabaseConfigured();
+
+  const result = await pool.query(
+    `
+      SELECT COUNT(*)::int AS reading_count, AVG(umidade_percent) AS average_moisture
+      FROM (
+        SELECT umidade_percent
+        FROM entradas_balanca
+        WHERE umidade_percent IS NOT NULL
+        ORDER BY data_entrada DESC, criado_em DESC, id DESC
+        LIMIT 5
+      ) recent_entries
+    `
+  );
+
+  const row = result.rows[0];
+
+  if (row?.reading_count === 5 && row.average_moisture !== null) {
+    return Number(Number(row.average_moisture).toFixed(2));
+  }
+
+  return 28;
+}
+
+async function startDryerBatch({ startedAt, grainType, initialMoisture, user }) {
   ensureDatabaseConfigured();
 
   const client = await pool.connect();
@@ -156,12 +181,13 @@ async function startDryerBatch({ startedAt, grainType, user }) {
           status,
           started_at,
           started_by_user_id,
-          target_moisture
+          target_moisture,
+          umidade_inicial
         )
-        VALUES ($1, 'active', $2, $3, $4)
+        VALUES ($1, 'active', $2, $3, $4, $5)
         RETURNING id
       `,
-      [grainType, startedAt, user.userId, targetMoisture]
+      [grainType, startedAt, user.userId, targetMoisture, initialMoisture]
     );
 
     await client.query('COMMIT');
@@ -295,6 +321,7 @@ module.exports = {
   addDryerMoistureReading,
   getActiveDryerBatch,
   getDryerBatchById,
+  getDefaultInitialMoisture,
   getDryerSettings,
   listCompletedDryerBatches,
   listDryerMoistureReadings,
