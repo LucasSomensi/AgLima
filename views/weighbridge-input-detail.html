@@ -85,11 +85,16 @@
 
         <section class="admin-section">
           <h2>Excluir entrada</h2>
-          <form action="/balanca/entradas/{{ENTRADA_ID}}/deletar" method="post" onsubmit="return confirm('Tem certeza que quer deletar essa entrada? Essa operação não pode ser desfeita.');">
-            <button class="btn-danger-action" type="submit">Deletar entrada</button>
+          <form class="deletion-reason-form" action="/balanca/entradas/{{ENTRADA_ID}}/deletar" method="post" onsubmit="return confirm('Tem certeza que quer deletar essa entrada? Essa operação não pode ser desfeita.');">
+            <label for="motivo-delecao-entrada">Motivo da deleção
+              <textarea class="form-control deletion-reason-input" id="motivo-delecao-entrada" name="motivo_delecao" rows="3" minlength="20" maxlength="500" placeholder="Descreva o motivo da deleção (mínimo de 20 caracteres)." required></textarea>
+            </label>
+            <p class="admin-muted deletion-reason-help">Digite pelo menos 20 caracteres para habilitar o botão.</p>
+            <button class="btn-danger-action deletion-reason-submit" type="submit" disabled>Deletar entrada</button>
           </form>
         </section>
       </section>
     </main>
+    <script src="/js/deletion-reason.js"></script>
   </body>
 </html>

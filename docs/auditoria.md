@@ -29,9 +29,9 @@ A estratégia principal é manter a tabela flexível: `tipo_acao`, `entidade_tip
 | `tipo_acao` | Quando é gravada | Entidade |
 | --- | --- | --- |
 | `editar_entrada` | Ao salvar o formulário de detalhes de uma entrada. | `entradas_balanca` |
-| `deletar_entrada` | Ao deletar uma entrada. | `entradas_balanca` |
+| `deletar_entrada` | Ao deletar uma entrada. O motivo obrigatório informado pelo operador é salvo em `detalhes.motivo_delecao`. | `entradas_balanca` |
 | `editar_saida` | Ao adicionar o peso bruto de uma saída, que altera os dados operacionais da saída. | `saidas_balanca` |
-| `deletar_saida` | Ao deletar uma saída. | `saidas_balanca` |
+| `deletar_saida` | Ao deletar uma saída. O motivo obrigatório informado pelo operador é salvo em `detalhes.motivo_delecao`. | `saidas_balanca` |
 | `desvincular_contrato_saida` | Ao remover o vínculo entre uma saída e um contrato. | `saidas_balanca` |
 | `dividir_saida` | Ao dividir uma saída em duas linhas. | `saidas_balanca` |
 

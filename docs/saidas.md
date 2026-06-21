@@ -212,7 +212,7 @@ Após sucesso, o operador volta para `/balanca` com “Saída dividida com suces
 
 ### 8. Deletar uma saída
 
-A tela de detalhes possui o botão “Deletar saída”, com confirmação no navegador. O `POST /balanca/saidas/:id/deletar` executa `deleteScaleOutput` em transação:
+A tela de detalhes possui o campo “Motivo da deleção” antes do botão “Deletar saída”, com confirmação no navegador. O botão fica desabilitado até o motivo ter pelo menos 20 caracteres. O `POST /balanca/saidas/:id/deletar` valida o motivo e executa `deleteScaleOutput` em transação:
 
 - Bloqueia a saída.
 - Verifica se ela existe.

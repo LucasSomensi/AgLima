@@ -510,6 +510,19 @@ function getSplitFirstNetWeightSuggestion(outputInfo) {
   return formatDecimalInput(suggestedWeight);
 }
 
+
+function buildDeletionReasonFormHtml({ action, buttonLabel, textareaId }) {
+  return `
+            <form class="deletion-reason-form" action="${escapeHtml(action)}" method="post" onsubmit="return confirm('Tem certeza que quer deletar esse registro? Essa operação não pode ser desfeita.');">
+              <label for="${escapeHtml(textareaId)}">Motivo da deleção
+                <textarea class="form-control deletion-reason-input" id="${escapeHtml(textareaId)}" name="motivo_delecao" rows="3" minlength="20" maxlength="500" placeholder="Descreva o motivo da deleção (mínimo de 20 caracteres)." required></textarea>
+              </label>
+              <p class="admin-muted deletion-reason-help">Digite pelo menos 20 caracteres para habilitar o botão.</p>
+              <button class="btn-danger-action deletion-reason-submit" type="submit" disabled>${escapeHtml(buttonLabel)}</button>
+            </form>
+  `;
+}
+
 function buildScaleOutputActionsHtml(outputInfo) {
   if (outputInfo.peso_bruto_kg === null || outputInfo.peso_bruto_kg === undefined) {
     return `
@@ -518,9 +531,11 @@ function buildScaleOutputActionsHtml(outputInfo) {
           <p class="admin-muted">Adicione o peso bruto para calcular o peso líquido antes de dividir a saída ou associar contrato.</p>
           <div class="weighbridge-output-actions">
             <a class="btn-secondary-action" href="/balanca/saidas/${escapeHtml(outputInfo.saida_id)}/bruto">Adicionar bruto</a>
-            <form action="/balanca/saidas/${escapeHtml(outputInfo.saida_id)}/deletar" method="post" onsubmit="return confirm('Tem certeza que quer deletar essa saída? Essa operação não pode ser desfeita.');">
-              <button class="btn-danger-action" type="submit">Deletar saída</button>
-            </form>
+${buildDeletionReasonFormHtml({
+              action: `/balanca/saidas/${outputInfo.saida_id}/deletar`,
+              buttonLabel: 'Deletar saída',
+              textareaId: `motivo-delecao-saida-${outputInfo.saida_id}`,
+            })}
           </div>
         </section>
     `;
@@ -548,9 +563,11 @@ function buildScaleOutputActionsHtml(outputInfo) {
           </form>
 
           <div class="weighbridge-output-actions">
-            <form action="/balanca/saidas/${escapeHtml(outputInfo.saida_id)}/deletar" method="post" onsubmit="return confirm('Tem certeza que quer deletar essa saída? Essa operação não pode ser desfeita.');">
-              <button class="btn-danger-action" type="submit">Deletar saída</button>
-            </form>
+${buildDeletionReasonFormHtml({
+              action: `/balanca/saidas/${outputInfo.saida_id}/deletar`,
+              buttonLabel: 'Deletar saída',
+              textareaId: `motivo-delecao-saida-${outputInfo.saida_id}`,
+            })}
           </div>
         </section>
   `;
