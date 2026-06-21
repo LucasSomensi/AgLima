@@ -20,6 +20,10 @@
         <div class="admin-header">
           <div>
             <h1 id="dryer-title" class="page-title">Secador de grãos</h1>
+            <div class="dryer-connection-status" data-connection-status role="status" aria-live="polite">
+              <span class="dryer-connection-dot" aria-hidden="true"></span>
+              <span data-connection-status-text>Verificando conexão...</span>
+            </div>
           </div>
           <form action="/logout" method="post">
             <button class="btn-secondary-action" type="submit">Sair</button>
@@ -45,12 +49,14 @@
         </section>
 
         <section class="admin-section dryer-actions-stack" aria-label="Ações do secador">
-          <form class="dryer-moisture-form" action="/secador/umidades" method="post">
-            <input class="form-control" id="moisture_percent" name="moisture_percent" type="number" min="7" max="40" step="0.1" placeholder="Umidade (%)" aria-label="Umidade em porcentagem" inputmode="decimal" required {{MOISTURE_FORM_DISABLED}}>
-            <button class="btn-primary-action" type="submit" {{MOISTURE_FORM_DISABLED}}>Registrar</button>
+          <form class="dryer-moisture-form" action="/secador/umidades" method="post" data-loading-message="Registrando umidade...">
+            <label class="dryer-field-label" for="moisture_percent">Umidade medida (%)</label>
+            <input class="form-control" id="moisture_percent" name="moisture_percent" type="number" min="7" max="40" step="0.1" placeholder="Ex.: 13,5" aria-label="Umidade em porcentagem" inputmode="decimal" required {{MOISTURE_FORM_DISABLED}}>
+            <button class="btn-primary-action" type="submit" {{MOISTURE_FORM_DISABLED}}>Registrar umidade</button>
+            <p class="dryer-action-helper" aria-live="polite">{{MOISTURE_ACTION_HELPER}}</p>
           </form>
 
-          <form class="dryer-quick-action" action="{{BATCH_ACTION_URL}}" method="post" onsubmit="return confirm('{{BATCH_ACTION_CONFIRM}}');">
+          <form class="dryer-quick-action" action="{{BATCH_ACTION_URL}}" method="post" data-confirm-message="{{BATCH_ACTION_CONFIRM}}" data-loading-message="{{BATCH_ACTION_LOADING}}">
             <button class="{{BATCH_ACTION_CLASS}}" type="submit">{{BATCH_ACTION_LABEL}}</button>
           </form>
         </section>
@@ -76,6 +82,62 @@
     </main>
     <script src="/js/dryer-pwa.js" defer></script>
     <script>
+      const connectionStatus = document.querySelector('[data-connection-status]');
+      const connectionStatusText = document.querySelector('[data-connection-status-text]');
+
+      function updateConnectionStatus() {
+        if (!connectionStatus || !connectionStatusText) {
+          return;
+        }
+
+        const isOnline = navigator.onLine;
+        connectionStatus.classList.toggle('is-online', isOnline);
+        connectionStatus.classList.toggle('is-offline', !isOnline);
+        connectionStatusText.textContent = isOnline ? 'Online' : 'Offline - aguarde conexão';
+      }
+
+      updateConnectionStatus();
+      window.addEventListener('online', updateConnectionStatus);
+      window.addEventListener('offline', updateConnectionStatus);
+
+      document.querySelectorAll('.dryer-moisture-form, .dryer-quick-action, .dryer-stop-action').forEach((form) => {
+        form.addEventListener('submit', (event) => {
+          if (form.dataset.submitting === 'true') {
+            event.preventDefault();
+            return;
+          }
+
+          const confirmMessage = form.dataset.confirmMessage;
+          if (confirmMessage && !window.confirm(confirmMessage)) {
+            event.preventDefault();
+            return;
+          }
+
+          form.dataset.submitting = 'true';
+          form.classList.add('is-submitting');
+
+          const loadingMessage = form.dataset.loadingMessage;
+          if (loadingMessage) {
+            form.setAttribute('aria-busy', 'true');
+            let loadingEl = form.querySelector('.dryer-loading-message');
+            if (!loadingEl) {
+              loadingEl = document.createElement('p');
+              loadingEl.className = 'dryer-loading-message';
+              loadingEl.setAttribute('role', 'status');
+              loadingEl.setAttribute('aria-live', 'polite');
+              form.appendChild(loadingEl);
+            }
+            loadingEl.textContent = loadingMessage;
+          }
+
+          form.querySelectorAll('button[type="submit"]').forEach((button) => {
+            button.disabled = true;
+            button.dataset.originalText = button.textContent;
+            button.textContent = 'Aguarde...';
+          });
+        });
+      });
+
       document.querySelectorAll('.dryer-reading-row').forEach((row) => {
         row.addEventListener('click', () => {
           const detailRow = document.getElementById(row.dataset.detailTarget);
