@@ -72,7 +72,7 @@ function renderDryerPanelPage(res, { batch, readings, settings, message, error }
       };
   const stopDryerAction = batch
     ? `
-          <form class="dryer-stop-action" action="/secador/bateladas/parar" method="post" onsubmit="return confirm('Parar o secador e concluir a batelada atual?');">
+          <form class="dryer-stop-action" action="/secador/bateladas/parar" method="post" data-confirm-message="Parar o secador e concluir a batelada atual?" data-loading-message="Parando batelada...">
             <button class="btn-danger-action" type="submit">Parar secador</button>
           </form>`
     : '';
@@ -90,6 +90,8 @@ function renderDryerPanelPage(res, { batch, readings, settings, message, error }
     READINGS_ROWS: readingsRows || emptyReadings,
     STOP_DRYER_ACTION: stopDryerAction,
     MOISTURE_FORM_DISABLED: moistureFormDisabled,
+    MOISTURE_ACTION_HELPER: batch ? 'Digite a umidade medida e toque em Registrar umidade.' : 'Inicie uma batelada para liberar o registro de umidade.',
+    BATCH_ACTION_LOADING: batch && !batch.discharge_started_at ? 'Iniciando descarga...' : 'Iniciando batelada...',
   });
 
   res.send(dryerHtml);
