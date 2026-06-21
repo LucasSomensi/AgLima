@@ -65,6 +65,7 @@
  public       | dryer_batches               |               10 | created_at                         | timestamp with time zone    | NO          | now()
  public       | dryer_batches               |               11 | updated_at                         | timestamp with time zone    | NO          | now()
  public       | dryer_batches               |               12 | discharge_started_at               | timestamp with time zone    | YES         | 
+ public       | dryer_batches               |               13 | umidade_inicial                    | numeric                     | NO          | 28.00
  public       | dryer_moisture_readings     |                1 | id                                 | uuid                        | NO          | gen_random_uuid()
  public       | dryer_moisture_readings     |                2 | batch_id                           | uuid                        | NO          | 
  public       | dryer_moisture_readings     |                3 | measured_at                        | timestamp with time zone    | NO          | now()

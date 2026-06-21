@@ -68,6 +68,8 @@
  dryer_batches               | dryer_batches_status_not_null                                  | CHECK           |                               | dryer_batches               | status
  dryer_batches               | dryer_batches_target_moisture_check                            | CHECK           |                               | dryer_batches               | target_moisture
  dryer_batches               | dryer_batches_target_moisture_not_null                         | CHECK           |                               | dryer_batches               | target_moisture
+ dryer_batches               | dryer_batches_umidade_inicial_check                            | CHECK           |                               | dryer_batches               | umidade_inicial
+ dryer_batches               | dryer_batches_umidade_inicial_not_null                         | CHECK           |                               | dryer_batches               | umidade_inicial
  dryer_batches               | dryer_batches_updated_at_not_null                              | CHECK           |                               | dryer_batches               | updated_at
  dryer_batches               | dryer_batches_completed_by_user_id_fkey                        | FOREIGN KEY     | completed_by_user_id          | users                       | id
  dryer_batches               | dryer_batches_started_by_user_id_fkey                          | FOREIGN KEY     | started_by_user_id            | users                       | id
@@ -90,35 +92,35 @@
  dryer_settings              | dryer_settings_updated_by_user_id_fkey                         | FOREIGN KEY     | updated_by_user_id            | users                       | id
  dryer_settings              | dryer_settings_pkey                                            | PRIMARY KEY     | id                            | dryer_settings              | id
  entradas_balanca            | entradas_balanca_atualizado_em_not_null                        | CHECK           |                               | entradas_balanca            | atualizado_em
- entradas_balanca            | entradas_balanca_classificacao_completa_check                  | CHECK           |                               | entradas_balanca            | umidade_percent
- entradas_balanca            | entradas_balanca_classificacao_completa_check                  | CHECK           |                               | entradas_balanca            | impureza_percent
  entradas_balanca            | entradas_balanca_classificacao_completa_check                  | CHECK           |                               | entradas_balanca            | classificado_em
+ entradas_balanca            | entradas_balanca_classificacao_completa_check                  | CHECK           |                               | entradas_balanca            | umidade_percent
  entradas_balanca            | entradas_balanca_classificacao_completa_check                  | CHECK           |                               | entradas_balanca            | graos_avariados_percent
  entradas_balanca            | entradas_balanca_classificacao_completa_check                  | CHECK           |                               | entradas_balanca            | classificado_por_user_id
+ entradas_balanca            | entradas_balanca_classificacao_completa_check                  | CHECK           |                               | entradas_balanca            | impureza_percent
  entradas_balanca            | entradas_balanca_cliente_completo_check                        | CHECK           |                               | entradas_balanca            | cliente_associado_por_user_id
- entradas_balanca            | entradas_balanca_cliente_completo_check                        | CHECK           |                               | entradas_balanca            | cliente_user_id
  entradas_balanca            | entradas_balanca_cliente_completo_check                        | CHECK           |                               | entradas_balanca            | cliente_associado_em
+ entradas_balanca            | entradas_balanca_cliente_completo_check                        | CHECK           |                               | entradas_balanca            | cliente_user_id
  entradas_balanca            | entradas_balanca_criado_em_not_null                            | CHECK           |                               | entradas_balanca            | criado_em
  entradas_balanca            | entradas_balanca_criado_por_user_id_not_null                   | CHECK           |                               | entradas_balanca            | criado_por_user_id
  entradas_balanca            | entradas_balanca_data_entrada_not_null                         | CHECK           |                               | entradas_balanca            | data_entrada
  entradas_balanca            | entradas_balanca_graos_avariados_intervalo_check               | CHECK           |                               | entradas_balanca            | graos_avariados_percent
  entradas_balanca            | entradas_balanca_id_not_null                                   | CHECK           |                               | entradas_balanca            | id
  entradas_balanca            | entradas_balanca_impureza_intervalo_check                      | CHECK           |                               | entradas_balanca            | impureza_percent
+ entradas_balanca            | entradas_balanca_origem_completa_check                         | CHECK           |                               | entradas_balanca            | origem_definida_em
  entradas_balanca            | entradas_balanca_origem_completa_check                         | CHECK           |                               | entradas_balanca            | origem
  entradas_balanca            | entradas_balanca_origem_completa_check                         | CHECK           |                               | entradas_balanca            | origem_definida_por_user_id
- entradas_balanca            | entradas_balanca_origem_completa_check                         | CHECK           |                               | entradas_balanca            | origem_definida_em
  entradas_balanca            | entradas_balanca_origem_texto_check                            | CHECK           |                               | entradas_balanca            | origem
  entradas_balanca            | entradas_balanca_peso_bruto_kg_not_null                        | CHECK           |                               | entradas_balanca            | peso_bruto_kg
- entradas_balanca            | entradas_balanca_peso_bruto_maior_tara_check                   | CHECK           |                               | entradas_balanca            | peso_bruto_kg
  entradas_balanca            | entradas_balanca_peso_bruto_maior_tara_check                   | CHECK           |                               | entradas_balanca            | peso_tara_kg
+ entradas_balanca            | entradas_balanca_peso_bruto_maior_tara_check                   | CHECK           |                               | entradas_balanca            | peso_bruto_kg
  entradas_balanca            | entradas_balanca_peso_bruto_positivo_check                     | CHECK           |                               | entradas_balanca            | peso_bruto_kg
  entradas_balanca            | entradas_balanca_peso_tara_positivo_check                      | CHECK           |                               | entradas_balanca            | peso_tara_kg
  entradas_balanca            | entradas_balanca_placa_caminhao_formato_check                  | CHECK           |                               | entradas_balanca            | placa_caminhao
  entradas_balanca            | entradas_balanca_placa_caminhao_not_null                       | CHECK           |                               | entradas_balanca            | placa_caminhao
  entradas_balanca            | entradas_balanca_produto_not_null                              | CHECK           |                               | entradas_balanca            | produto
- entradas_balanca            | entradas_balanca_tara_manual_auditoria_check                   | CHECK           |                               | entradas_balanca            | peso_tara_kg
- entradas_balanca            | entradas_balanca_tara_manual_auditoria_check                   | CHECK           |                               | entradas_balanca            | tara_adicionada_em
  entradas_balanca            | entradas_balanca_tara_manual_auditoria_check                   | CHECK           |                               | entradas_balanca            | tara_adicionada_por_user_id
+ entradas_balanca            | entradas_balanca_tara_manual_auditoria_check                   | CHECK           |                               | entradas_balanca            | tara_adicionada_em
+ entradas_balanca            | entradas_balanca_tara_manual_auditoria_check                   | CHECK           |                               | entradas_balanca            | peso_tara_kg
  entradas_balanca            | entradas_balanca_tara_origem_valida_check                      | CHECK           |                               | entradas_balanca            | tara_usada_de_entrada_id
  entradas_balanca            | entradas_balanca_tara_origem_valida_check                      | CHECK           |                               | entradas_balanca            | peso_tara_kg
  entradas_balanca            | entradas_balanca_umidade_intervalo_check                       | CHECK           |                               | entradas_balanca            | umidade_percent
@@ -138,8 +140,8 @@
  saidas_balanca              | saidas_balanca_criado_por_user_id_not_null                     | CHECK           |                               | saidas_balanca              | criado_por_user_id
  saidas_balanca              | saidas_balanca_data_saida_not_null                             | CHECK           |                               | saidas_balanca              | data_saida
  saidas_balanca              | saidas_balanca_id_not_null                                     | CHECK           |                               | saidas_balanca              | id
- saidas_balanca              | saidas_balanca_peso_bruto_maior_tara_check                     | CHECK           |                               | saidas_balanca              | peso_bruto_kg
  saidas_balanca              | saidas_balanca_peso_bruto_maior_tara_check                     | CHECK           |                               | saidas_balanca              | peso_tara_kg
+ saidas_balanca              | saidas_balanca_peso_bruto_maior_tara_check                     | CHECK           |                               | saidas_balanca              | peso_bruto_kg
  saidas_balanca              | saidas_balanca_peso_bruto_positivo_check                       | CHECK           |                               | saidas_balanca              | peso_bruto_kg
  saidas_balanca              | saidas_balanca_peso_tara_kg_not_null                           | CHECK           |                               | saidas_balanca              | peso_tara_kg
  saidas_balanca              | saidas_balanca_peso_tara_positivo_check                        | CHECK           |                               | saidas_balanca              | peso_tara_kg
