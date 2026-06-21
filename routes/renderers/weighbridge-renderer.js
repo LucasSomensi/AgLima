@@ -6,6 +6,7 @@ const {
   formatDateTime,
   formatDigitsOnly,
   formatPlainDecimal,
+  toDateOnlyInputValue,
   toDateTimeLocalValue,
 } = require('../utils');
 const { buildAlertHtml } = require('./template-utils');
@@ -436,6 +437,15 @@ function buildCopyFieldHtml(label, value, options = {}) {
   return `<div${fieldClass}><dt>${escapeHtml(label)}</dt><dd><span class="copy-field-value">${escapeHtml(displayValue)}</span><button class="copy-field-button" type="button" aria-label="Copiar ${escapeHtml(label)}">Copiar</button></dd></div>`;
 }
 
+function buildScaleOutputInvoiceName(outputInfo) {
+  const outputDate = toDateOnlyInputValue(outputInfo.data_saida) || '-';
+  const plate = outputInfo.placa_caminhao || '-';
+  const product = formatProductLabel(outputInfo.produto).toUpperCase();
+  const outputNumber = outputInfo.saida_id || '-';
+
+  return `${outputDate} ${plate} ${product} ${outputNumber}`;
+}
+
 function buildScaleOutputInvoiceDetailHtml(outputInfo) {
   if (!outputInfo.contrato_id) {
     return `
@@ -469,6 +479,7 @@ function buildScaleOutputInvoiceDetailHtml(outputInfo) {
     ['Razão Social da transportadora', outputInfo.razao_social_transportadora],
     ['UF da transportadora', outputInfo.uf_transportadora],
     ['Placa', outputInfo.placa_caminhao],
+    ['Nome da NF', buildScaleOutputInvoiceName(outputInfo)],
     ['E-mail', outputInfo.email],
     ['Observações do contrato', outputInfo.observacoes, { fullWidth: true }],
   ];
