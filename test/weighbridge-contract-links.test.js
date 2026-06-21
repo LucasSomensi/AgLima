@@ -7,6 +7,7 @@ const {
   renderWeighbridgeHomePage,
 } = require('../routes/renderers');
 const {
+  buildDeletionReasonPayload,
   buildScaleOutputPayload,
   buildScaleOutputGrossPayload,
 } = require('../routes/weighbridge-service');
@@ -244,6 +245,36 @@ test('output detail pre-fills split weight when associated contract has negative
 
   assert.match(html, /id="peso-liquido-primeira"[^>]+data-total-net="32000" value="19500" required/);
   assert.match(html, /updateSecondNetWeight\(\);/);
+});
+
+test('output detail requires a deletion reason before enabling delete', () => {
+  const html = renderPage(renderScaleOutputDetailPage, {
+    outputInfo: {
+      saida_id: 7,
+      data_saida: '2026-06-11T12:30:00.000Z',
+      placa_caminhao: 'ABC1D23',
+      produto: 'milho',
+      peso_tara_kg: '10000',
+      peso_bruto_kg: null,
+      peso_liquido_kg: null,
+      contrato_id: null,
+    },
+    error: '',
+  });
+
+  assert.match(html, /name="motivo_delecao"[^>]+minlength="20"/);
+  assert.match(html, /class="btn-danger-action deletion-reason-submit" type="submit" disabled>Deletar saída/);
+  assert.match(html, /src="\/js\/deletion-reason.js"/);
+});
+
+test('deletion reason payload normalizes and validates minimum length', () => {
+  const invalidPayload = buildDeletionReasonPayload({ motivo_delecao: 'curto' });
+  const validPayload = buildDeletionReasonPayload({ motivo_delecao: '  Correção   operacional necessária  ' });
+
+  assert.match(invalidPayload.error, /pelo menos 20 caracteres/);
+  assert.deepEqual(validPayload.payload, {
+    motivoDelecao: 'Correção operacional necessária',
+  });
 });
 
 test('output detail does not pre-fill split weight without a negative contract balance', () => {

@@ -3,6 +3,7 @@ const { parseOptionalDateTime } = require('./utils');
 
 const PRODUCT_VALUES = ['milho', 'soja'];
 const MAX_INPUT_GROSS_WEIGHT_KG = 80000;
+const MIN_DELETE_REASON_LENGTH = 20;
 
 function getAuditActor(userOrId) {
   if (userOrId && typeof userOrId === 'object') {
@@ -93,6 +94,24 @@ function normalizeDecimal(value) {
 
 function normalizePlate(value) {
   return normalizeText(value).replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+}
+
+function normalizeDeletionReason(value) {
+  return normalizeText(value).replace(/\s+/g, ' ');
+}
+
+function buildDeletionReasonPayload(body) {
+  const motivoDelecao = normalizeDeletionReason(body?.motivo_delecao);
+
+  if (motivoDelecao.length < MIN_DELETE_REASON_LENGTH) {
+    return { error: `Informe um motivo para deleção com pelo menos ${MIN_DELETE_REASON_LENGTH} caracteres.` };
+  }
+
+  return {
+    payload: {
+      motivoDelecao,
+    },
+  };
 }
 
 function buildScaleOutputPayload(body) {
@@ -592,7 +611,7 @@ async function updateScaleInput(inputId, payload, user) {
   }
 }
 
-async function deleteScaleInput(inputId, user) {
+async function deleteScaleInput(inputId, user, motivoDelecao) {
   ensureDatabaseConfigured();
 
   const client = await pool.connect();
@@ -611,6 +630,7 @@ async function deleteScaleInput(inputId, user) {
         entidadeId: inputId,
         user,
         dadosAnteriores: input,
+        detalhes: { motivo_delecao: motivoDelecao },
       });
     }
 
@@ -1009,7 +1029,7 @@ async function refreshContractShippedStatus(client, contractId) {
   void contractId;
 }
 
-async function deleteScaleOutput(outputId, user) {
+async function deleteScaleOutput(outputId, user, motivoDelecao) {
   ensureDatabaseConfigured();
 
   const client = await pool.connect();
@@ -1034,6 +1054,7 @@ async function deleteScaleOutput(outputId, user) {
       entidadeId: outputId,
       user,
       dadosAnteriores: output,
+      detalhes: { motivo_delecao: motivoDelecao },
     });
     await refreshContractShippedStatus(client, output.contrato_id);
 
@@ -1325,6 +1346,7 @@ module.exports = {
   addScaleInputTare,
   addScaleOutputGross,
   associateScaleOutputToContract,
+  buildDeletionReasonPayload,
   buildScaleInputClassificationPayload,
   buildScaleInputEditPayload,
   buildScaleInputOriginPayload,

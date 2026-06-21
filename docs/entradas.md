@@ -122,5 +122,5 @@ Na gravação, valide novamente que o usuário selecionado ainda tem `role = 'cl
 2. Se a origem deixar de ser texto livre e virar cadastro, crie uma tabela própria e migre `entradas_balanca.origem` para uma FK ou mantenha ambos durante transição.
 3. Se a classificação precisar gerar descontos ou peso líquido ajustado, crie colunas separadas; não altere `peso_liquido_kg`, que hoje representa apenas `peso_bruto_kg - peso_tara_kg`.
 4. Se a tara anterior precisar considerar apenas entradas concluídas/classificadas, altere `getPreviousTareForPlate` em `routes/weighbridge-service.js`.
-5. A exclusão de entradas usa `DELETE` simples. Se uma entrada estiver referenciada por `tara_usada_de_entrada_id` de outra entrada, o banco pode bloquear a exclusão pela FK; mantenha a mensagem amigável na rota.
+5. A exclusão de entradas exige `motivo_delecao` com pelo menos 20 caracteres e usa `DELETE` simples. Se uma entrada estiver referenciada por `tara_usada_de_entrada_id` de outra entrada, o banco pode bloquear a exclusão pela FK; mantenha a mensagem amigável na rota.
 6. Se o operador puder editar origem/classificação, remova as travas de interface/queries que assumem preenchimento único e mantenha auditoria de atualização.

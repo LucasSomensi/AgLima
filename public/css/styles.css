@@ -1443,3 +1443,26 @@ button:disabled,
   gap: 0.75rem;
   align-items: center;
 }
+
+.deletion-reason-form {
+  display: grid;
+  gap: 10px;
+  max-width: 560px;
+}
+
+.deletion-reason-form label {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  color: var(--cream);
+  font-weight: 700;
+}
+
+.deletion-reason-form .form-control {
+  min-height: 92px;
+  resize: vertical;
+}
+
+.deletion-reason-help {
+  margin: 0;
+}

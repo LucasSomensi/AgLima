@@ -213,6 +213,9 @@ test('input detail edit form exposes tare, origin, and classification fields', (
   assert.match(html, /name="umidade_percent"[^>]+value="14"/);
   assert.match(html, /name="impureza_percent"[^>]+value="1"/);
   assert.match(html, /name="graos_avariados_percent"[^>]+value="0"/);
+  assert.match(html, /name="motivo_delecao"[^>]+minlength="20"/);
+  assert.match(html, /class="btn-danger-action deletion-reason-submit" type="submit" disabled>Deletar entrada/);
+  assert.match(html, /src="\/js\/deletion-reason.js"/);
 });
 
 test('input edit payload accepts complete editable data and blank optional fields', () => {

@@ -6,6 +6,7 @@ const {
   addScaleInputTare,
   addScaleOutputGross,
   associateScaleOutputToContract,
+  buildDeletionReasonPayload,
   buildScaleInputClassificationPayload,
   buildScaleInputEditPayload,
   buildScaleInputOriginPayload,
@@ -270,8 +271,14 @@ router.post('/balanca/entradas/:id', canAccessWeighbridge, async (req, res) => {
 });
 
 router.post('/balanca/entradas/:id/deletar', canAccessWeighbridge, async (req, res) => {
+  const { payload, error } = buildDeletionReasonPayload(req.body);
+
+  if (error) {
+    return res.redirect(buildRedirect(`/balanca/entradas/${req.params.id}`, { error }));
+  }
+
   try {
-    await deleteScaleInput(req.params.id, req.sessionUser);
+    await deleteScaleInput(req.params.id, req.sessionUser, payload.motivoDelecao);
     return res.redirect(buildWeighbridgeRedirect({ entrada_deletada: '1' }));
   } catch (error) {
     console.error('Error deleting scale input:', error.message);
@@ -660,8 +667,14 @@ router.post('/balanca/saidas/:id/associar', canAccessWeighbridge, async (req, re
 
 
 router.post('/balanca/saidas/:id/deletar', canAccessWeighbridge, async (req, res) => {
+  const { payload, error } = buildDeletionReasonPayload(req.body);
+
+  if (error) {
+    return res.redirect(buildRedirect(`/balanca/saidas/${req.params.id}`, { error }));
+  }
+
   try {
-    await deleteScaleOutput(req.params.id, req.sessionUser);
+    await deleteScaleOutput(req.params.id, req.sessionUser, payload.motivoDelecao);
     return res.redirect(buildWeighbridgeRedirect({ saida_deletada: '1' }));
   } catch (error) {
     console.error('Error deleting scale output:', error.message);
