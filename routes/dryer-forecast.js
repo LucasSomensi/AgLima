@@ -99,6 +99,13 @@ function calculateDischargeForecast({ batch, readings, now = new Date() }) {
     };
   }
 
+  const batchStartedAt = toValidTimestamp(batch.started_at);
+  const initialMoisture = toFiniteNumber(batch.umidade_inicial);
+
+  if (batchStartedAt === null || initialMoisture === null) {
+    return { status: 'unavailable' };
+  }
+
   const validReadings = readings
     .map((reading) => ({
       ...reading,
@@ -107,17 +114,23 @@ function calculateDischargeForecast({ batch, readings, now = new Date() }) {
     .filter((reading) => reading.measuredAtTimestamp !== null && toFiniteNumber(reading.moisture_percent) !== null)
     .sort((left, right) => left.measuredAtTimestamp - right.measuredAtTimestamp);
 
-  if (validReadings.length === 0) {
-    return { status: 'unavailable' };
-  }
-
-  const batchStartedAt = toValidTimestamp(batch.started_at);
   const lastReading = validReadings[validReadings.length - 1];
-  const periodEnd = lastReading.measuredAtTimestamp;
+  const periodEnd = lastReading ? lastReading.measuredAtTimestamp : batchStartedAt;
   const lookbackStart = periodEnd - DISCHARGE_FORECAST_LOOKBACK_MINUTES * MILLISECONDS_PER_MINUTE;
-  const periodStart = Math.max(batchStartedAt || lookbackStart, lookbackStart);
+  const periodStart = lookbackStart;
+  const readingsWithInitialMoisture = [
+    {
+      measured_at: new Date(lookbackStart),
+      moisture_percent: initialMoisture,
+    },
+    {
+      measured_at: new Date(batchStartedAt),
+      moisture_percent: initialMoisture,
+    },
+    ...validReadings,
+  ];
   const averageMoisture = calculateAverageMoisture({
-    readings: validReadings,
+    readings: readingsWithInitialMoisture,
     periodStart,
     periodEnd,
   });
@@ -136,12 +149,7 @@ function calculateDischargeForecast({ batch, readings, now = new Date() }) {
     return { status: 'unavailable', averageMoisture };
   }
 
-  const isReadingInInitialWindow = batchStartedAt !== null
-    && periodEnd - batchStartedAt < DISCHARGE_FORECAST_LOOKBACK_MINUTES * MILLISECONDS_PER_MINUTE;
-  const forecastBaseTimestamp = isReadingInInitialWindow
-    ? batchStartedAt + DISCHARGE_FORECAST_OFFSET_MINUTES * MILLISECONDS_PER_MINUTE
-    : periodEnd;
-  const forecastAt = new Date(forecastBaseTimestamp + minutesRemaining * MILLISECONDS_PER_MINUTE);
+  const forecastAt = new Date(periodEnd + minutesRemaining * MILLISECONDS_PER_MINUTE);
   const nowTimestamp = toValidTimestamp(now) || Date.now();
 
   if (nowTimestamp > forecastAt.getTime()) {
