@@ -1,10 +1,11 @@
-const CACHE_VERSION = 'agrolima-secador-v2';
+const CACHE_VERSION = 'agrolima-secador-v3';
 const STATIC_ASSETS = [
   '/css/styles.css',
   '/favicon.ico',
   '/icons/dryer-icon-192.png',
   '/icons/dryer-icon-512.png',
-  '/manifest.webmanifest'
+  '/manifest.webmanifest',
+  '/js/dryer-pwa.js'
 ];
 
 self.addEventListener('install', (event) => {

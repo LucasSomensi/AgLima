@@ -5,13 +5,14 @@ const {
   addDryerMoistureReading,
   getActiveDryerBatch,
   getDryerSettings,
+  getDefaultInitialMoisture,
   listDryerMoistureReadings,
   startDryerBatch,
   startDryerBatchDischarge,
   stopDryerBatch,
 } = require('./dryer-service');
-const { renderDryerPanelPage } = require('./renderers/dryer-renderer');
-const { buildRedirect, parseMoisturePercent } = require('./utils');
+const { renderDryerPanelPage, renderDryerStartBatchPage } = require('./renderers/dryer-renderer');
+const { buildRedirect, parseInitialMoisturePercent, parseMoisturePercent } = require('./utils');
 
 const router = express.Router();
 const canAccessDryer = requireRole(ROLES.SILO_OPERATOR, ROLES.ROOT);
@@ -46,16 +47,36 @@ router.get('/secador', canAccessDryer, async (req, res) => {
   }
 });
 
+
+router.get('/secador/bateladas/nova', canAccessDryer, async (req, res) => {
+  try {
+    const defaultInitialMoisture = await getDefaultInitialMoisture();
+
+    return renderDryerStartBatchPage(res, {
+      defaultInitialMoisture,
+      error: req.query.error || '',
+    });
+  } catch (error) {
+    console.error('Error loading dryer batch start page:', error.message);
+    return res.status(500).send('Não foi possível carregar a página de início de batelada agora.');
+  }
+});
+
 router.post('/secador/bateladas', canAccessDryer, async (req, res) => {
   const startedAt = new Date();
   const grainType = 'corn';
+  const initialMoisture = parseInitialMoisturePercent(req.body.initial_moisture);
+
+  if (initialMoisture === null) {
+    return res.redirect(buildRedirect('/secador/bateladas/nova', { error: 'Informe uma umidade inicial entre 5,00% e 50,00%.' }));
+  }
 
   try {
-    await startDryerBatch({ startedAt, grainType, user: req.sessionUser });
+    await startDryerBatch({ startedAt, grainType, initialMoisture, user: req.sessionUser });
     return res.redirect(buildDryerRedirect({ started: '1' }));
   } catch (error) {
     if (error.code === 'DISCHARGE_NOT_STARTED') {
-      return res.redirect(buildDryerRedirect({ error: error.message }));
+      return res.redirect(buildRedirect('/secador/bateladas/nova', { error: error.message }));
     }
 
     console.error('Error starting dryer batch:', error.message);

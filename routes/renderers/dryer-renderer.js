@@ -3,6 +3,7 @@ const {
   escapeHtml,
   formatDateTime,
   formatMoisture,
+  formatPlainDecimal,
   formatTime,
 } = require('../utils');
 const { buildAlertHtml, renderTemplate } = require('./template-utils');
@@ -35,10 +36,20 @@ function formatDryerStatus(batch) {
   return `<span class="status-pill status-active">Secando</span>`;
 }
 
+function renderDryerStartBatchPage(res, { defaultInitialMoisture, error }) {
+  const dryerHtml = renderTemplate('dryer-start-batch.html', {
+    DRYER_ERROR: buildAlertHtml(error, 'error'),
+    DEFAULT_INITIAL_MOISTURE: escapeHtml(formatPlainDecimal(defaultInitialMoisture)),
+  });
+
+  res.send(dryerHtml);
+}
+
 function renderDryerPanelPage(res, { batch, readings, settings, message, error }) {
   const dischargeForecast = calculateDischargeForecast({ batch, readings });
   const startedAt = batch ? formatDateTime(batch.started_at) : 'Nenhuma batelada ativa';
   const dischargeStartedAt = formatDischargeForecast(dischargeForecast);
+  const initialMoisture = batch ? `${formatMoisture(batch.umidade_inicial)}%` : '-';
   const readingsRows = readings
     .map((reading) => {
       const detailId = `reading-detail-${reading.id}`;
@@ -65,10 +76,11 @@ function renderDryerPanelPage(res, { batch, readings, settings, message, error }
         confirm: 'Registrar início da descarga para os silos?',
       }
     : {
-        action: '/secador/bateladas',
+        action: '/secador/bateladas/nova',
+        method: 'get',
         label: 'Iniciar nova batelada',
         cssClass: batch?.discharge_started_at ? 'btn-new-batch-action' : 'btn-primary-action',
-        confirm: batch ? 'Iniciar uma nova batelada e encerrar a batelada ativa?' : 'Iniciar uma nova batelada?',
+        confirm: '',
       };
   const stopDryerAction = batch
     ? `
@@ -83,7 +95,9 @@ function renderDryerPanelPage(res, { batch, readings, settings, message, error }
     BATCH_STATUS: batchStatusHtml,
     BATCH_STARTED_AT: escapeHtml(startedAt),
     DISCHARGE_STARTED_AT: escapeHtml(dischargeStartedAt),
+    INITIAL_MOISTURE: escapeHtml(initialMoisture),
     BATCH_ACTION_URL: escapeHtml(batchAction.action),
+    BATCH_ACTION_METHOD: escapeHtml(batchAction.method || 'post'),
     BATCH_ACTION_CONFIRM: escapeHtml(batchAction.confirm),
     BATCH_ACTION_CLASS: escapeHtml(batchAction.cssClass),
     BATCH_ACTION_LABEL: escapeHtml(batchAction.label),
@@ -99,4 +113,5 @@ function renderDryerPanelPage(res, { batch, readings, settings, message, error }
 
 module.exports = {
   renderDryerPanelPage,
+  renderDryerStartBatchPage,
 };

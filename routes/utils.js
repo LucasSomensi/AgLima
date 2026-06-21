@@ -230,6 +230,22 @@ function parseMoisturePercent(rawValue) {
   return Number(value.toFixed(1));
 }
 
+function parseInitialMoisturePercent(rawValue) {
+  const normalizedValue = String(rawValue || '').trim().replace(',', '.');
+
+  if (!/^\d{1,2}(?:\.\d{1,2})?$/.test(normalizedValue)) {
+    return null;
+  }
+
+  const value = Number(normalizedValue);
+
+  if (!Number.isFinite(value) || value < 5 || value > 50) {
+    return null;
+  }
+
+  return Number(value.toFixed(2));
+}
+
 function buildRedirect(path, params) {
   const searchParams = new URLSearchParams(params);
 
@@ -247,6 +263,7 @@ module.exports = {
   formatTime,
   getHomePathForRole,
   getRoleLabel,
+  parseInitialMoisturePercent,
   parseMoisturePercent,
   parseOptionalDateTime,
   toDateInputValue,

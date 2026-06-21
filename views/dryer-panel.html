@@ -46,6 +46,10 @@
             <span class="dryer-card-label">Previsão / início da descarga</span>
             <strong>{{DISCHARGE_STARTED_AT}}</strong>
           </article>
+          <article class="dryer-status-card">
+            <span class="dryer-card-label">Umidade inicial</span>
+            <strong>{{INITIAL_MOISTURE}}</strong>
+          </article>
         </section>
 
         <section class="admin-section dryer-actions-stack" aria-label="Ações do secador">
@@ -56,7 +60,7 @@
             <p class="dryer-action-helper" aria-live="polite">{{MOISTURE_ACTION_HELPER}}</p>
           </form>
 
-          <form class="dryer-quick-action" action="{{BATCH_ACTION_URL}}" method="post" data-confirm-message="{{BATCH_ACTION_CONFIRM}}" data-loading-message="{{BATCH_ACTION_LOADING}}">
+          <form class="dryer-quick-action" action="{{BATCH_ACTION_URL}}" method="{{BATCH_ACTION_METHOD}}" data-confirm-message="{{BATCH_ACTION_CONFIRM}}" data-loading-message="{{BATCH_ACTION_LOADING}}">
             <button class="{{BATCH_ACTION_CLASS}}" type="submit">{{BATCH_ACTION_LABEL}}</button>
           </form>
         </section>
