@@ -353,6 +353,7 @@ test('output invoice renders NF fields in requested order with calculated ton va
     'Razão Social da transportadora',
     'UF da transportadora',
     'Placa',
+    'Nome da NF',
     'E-mail',
     'Observações do contrato',
   ];
@@ -365,6 +366,7 @@ test('output invoice renders NF fields in requested order with calculated ton va
   assert.match(html, /<dt>Peso Líquido em ton<\/dt><dd><span class="copy-field-value">12,345678<\/span>/);
   assert.match(html, /<dt>Preço por kg<\/dt><dd><span class="copy-field-value">2,0083333333<\/span>/);
   assert.match(html, /<dt>Preço por ton<\/dt><dd><span class="copy-field-value">2008,3333333333<\/span>/);
+  assert.match(html, /<dt>Nome da NF<\/dt><dd><span class="copy-field-value">2026-06-11 ABC1D23 MILHO 7<\/span>/);
   assert.match(html, /<dt>E-mail<\/dt><dd><span class="copy-field-value">nf@example\.com<\/span>/);
 });
 
