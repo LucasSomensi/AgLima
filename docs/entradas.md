@@ -104,7 +104,7 @@ Os valores padrão do formulário são:
 
 Os três campos são salvos em conjunto, junto com `classificado_por_user_id` e `classificado_em`. A mesma gravação é usada tanto por `/balanca/entradas/:id/classificacao` quanto por `/secador/entradas/:id/classificacao`.
 
-No painel `/secador`, cada entrada com `classificado_em IS NULL` aparece como uma notificação individual contendo a placa do caminhão e um botão “Classificar”. Quando não há entradas nessa condição, o quadro de notificações não é renderizado. A rota mobile do secador bloqueia a abertura ou gravação se a entrada já tiver sido classificada, evitando sobrescrever uma classificação existente.
+No painel `/secador`, cada entrada com `classificado_em IS NULL` aparece como um botão direto no formato “Classificar PLACA HH:MM”, usando a placa do caminhão e o horário da entrada. Quando não há entradas nessa condição, o quadro de notificações não é renderizado. A rota mobile do secador bloqueia a abertura ou gravação se a entrada já tiver sido classificada, evitando sobrescrever uma classificação existente.
 
 ### Origem
 

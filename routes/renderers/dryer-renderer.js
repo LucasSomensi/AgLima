@@ -53,30 +53,16 @@ function renderUnclassifiedInputNotifications(inputs = []) {
     return '';
   }
 
-  const notificationItems = inputs
+  const notificationButtons = inputs
     .map((input) => `
-          <article class="dryer-classification-notification">
-            <div>
-              <span class="dryer-card-label">Entrada sem classificação</span>
-              <strong>${escapeHtml(input.placa_caminhao)}</strong>
-              <p>${escapeHtml(formatDateTime(input.data_entrada))} · ${escapeHtml(formatProductLabel(input.produto))}</p>
-            </div>
-            <a class="btn-primary-action" href="/secador/entradas/${escapeHtml(input.id)}/classificacao">Classificar</a>
-          </article>
+            <a class="btn-primary-action" href="/secador/entradas/${escapeHtml(input.id)}/classificacao">Classificar ${escapeHtml(input.placa_caminhao)} ${escapeHtml(formatTime(input.data_entrada))}</a>
         `)
     .join('');
 
   return `
-        <section class="admin-section dryer-notifications" aria-labelledby="dryer-notifications-title">
-          <div class="dryer-notifications-header">
-            <div>
-              <span class="eyebrow">Classificação</span>
-              <h2 id="dryer-notifications-title">Entradas pendentes</h2>
-            </div>
-            <span class="status-pill status-warning">${escapeHtml(inputs.length)} pendente${inputs.length === 1 ? '' : 's'}</span>
-          </div>
+        <section class="admin-section dryer-notifications" aria-label="Classificações pendentes">
           <div class="dryer-notifications-list">
-            ${notificationItems}
+            ${notificationButtons}
           </div>
         </section>
       `;

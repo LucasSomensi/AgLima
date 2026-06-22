@@ -71,7 +71,7 @@ Campos centrais:
 
 ### Operador de secador
 
-- `GET /secador`: mostra o painel operacional com status, início da batelada, previsão ou horário de descarga, umidade inicial da batelada ativa, formulário de umidade, ação principal, medições da batelada ativa e, quando existirem, notificações de entradas da balança sem classificação.
+- `GET /secador`: mostra o painel operacional com status, início da batelada, previsão ou horário de descarga, umidade inicial da batelada ativa, formulário de umidade, ação principal, medições da batelada ativa e, quando existirem, botões de classificação para entradas da balança sem classificação.
 - `GET /secador/entradas/:id/classificacao`: abre o formulário mobile de classificação para uma entrada da balança ainda sem `classificado_em`.
 - `POST /secador/entradas/:id/classificacao`: valida e grava `umidade_percent`, `impureza_percent`, `graos_avariados_percent`, `classificado_por_user_id` e `classificado_em` para a entrada, usando as mesmas regras do fluxo da balança.
 - `GET /secador/bateladas/nova`: mostra a etapa de confirmação para iniciar nova batelada, com o campo editável de umidade inicial preenchido pela média das 5 últimas entradas classificadas da balança ou por `28%` quando não houver 5 entradas com umidade disponível.
@@ -99,7 +99,7 @@ Campos centrais:
 
 O operador entra em `/secador`. No cabeçalho, o botão “Atualizar” recarrega a página para buscar o estado operacional mais recente. O botão de sair fica no final do painel e exige dois cliques: o primeiro muda o rótulo para “Confirmar saída” e o segundo envia o logout. Se o segundo clique não ocorrer em poucos segundos, o botão volta para “Sair”.
 
-Quando existem linhas em `entradas_balanca` com `classificado_em IS NULL`, o painel exibe um quadro “Entradas pendentes” antes dos cartões de status. Cada entrada pendente gera uma notificação própria com a placa do caminhão e o botão “Classificar”, apontando para `/secador/entradas/:id/classificacao`. Se a consulta não retorna entradas pendentes, o renderer devolve string vazia para o placeholder e o quadro não ocupa espaço na tela.
+Quando existem linhas em `entradas_balanca` com `classificado_em IS NULL`, o painel exibe antes dos cartões de status apenas botões no formato “Classificar PLACA HH:MM”, apontando para `/secador/entradas/:id/classificacao`. O botão não mostra título, data completa, produto ou texto auxiliar. Se a consulta não retorna entradas pendentes, o renderer devolve string vazia para o placeholder e o quadro não ocupa espaço na tela.
 
 O painel mostra três estados principais:
 
@@ -110,7 +110,7 @@ O painel mostra três estados principais:
 
 ### 2. Classificar entrada pendente da balança
 
-O operador do silo pode tocar em “Classificar” em uma notificação do painel para abrir uma página otimizada para celular. Essa tela mostra o resumo da entrada e os mesmos três campos de classificação usados pela balança:
+O operador do silo pode tocar no botão “Classificar PLACA HH:MM” no painel para abrir uma página otimizada para celular. Essa tela mostra o resumo da entrada e os mesmos três campos de classificação usados pela balança:
 
 - `umidade_percent`, com padrão `14`;
 - `impureza_percent`, com padrão `1`;
