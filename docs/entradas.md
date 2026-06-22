@@ -4,7 +4,7 @@ Este documento resume o contexto técnico do fluxo de entradas da balança para 
 
 ## Objetivo do fluxo
 
-O operador de balança registra a chegada de um veículo com produto. O lançamento inicial guarda data/hora, placa, produto e peso bruto. Depois, a entrada pode receber tara, classificação e origem, além de poder ser consultada em uma tela de detalhes para edição ou exclusão. O banco já possui campos para associação futura a cliente, mas essa ação ainda não aparece na interface.
+O operador de balança registra a chegada de um veículo com produto. O lançamento inicial guarda data/hora, placa, produto e peso bruto. Depois, a entrada pode receber tara, classificação e origem, além de poder ser consultada em uma tela de detalhes para edição ou exclusão. A classificação também pode ser feita pelo operador do silo a partir do painel `/secador`, quando a entrada ainda não possui classificação. O banco já possui campos para associação futura a cliente, mas essa ação ainda não aparece na interface.
 
 ## Banco de dados
 
@@ -33,7 +33,8 @@ Campos centrais:
 - `views/weighbridge-input-detail.html`: página de detalhes da entrada, com edição e exclusão.
 - `views/weighbridge-input-form.html`: formulário de nova entrada e autocomplete de placas.
 - `views/weighbridge-input-tare-form.html`: formulário para adicionar tara manual.
-- `views/weighbridge-input-classification-form.html`: formulário para adicionar classificação.
+- `views/weighbridge-input-classification-form.html`: formulário para adicionar classificação no fluxo da balança.
+- `views/dryer-input-classification-form.html`: formulário mobile para adicionar classificação no fluxo do secador/silo.
 - `views/weighbridge-input-origin-form.html`: formulário para definir origem.
 - `public/css/styles.css`: estilos compartilhados e específicos do fluxo.
 
@@ -51,7 +52,9 @@ Campos centrais:
 - `GET /balanca/entradas/:id/tara`: abre formulário de tara manual.
 - `POST /balanca/entradas/:id/tara`: grava tara manual.
 - `GET /balanca/entradas/:id/classificacao`: abre formulário de classificação.
-- `POST /balanca/entradas/:id/classificacao`: grava classificação.
+- `POST /balanca/entradas/:id/classificacao`: grava classificação pelo fluxo da balança.
+- `GET /secador/entradas/:id/classificacao`: abre o formulário mobile de classificação para operadores de silo.
+- `POST /secador/entradas/:id/classificacao`: grava classificação pelo fluxo do secador, reutilizando a validação e persistência da balança.
 - `GET /balanca/entradas/:id/origem`: abre formulário de origem.
 - `POST /balanca/entradas/:id/origem`: grava origem.
 
@@ -99,7 +102,9 @@ Os valores padrão do formulário são:
 - impureza: `1`;
 - grãos avariados: `0`.
 
-Os três campos são salvos em conjunto, junto com `classificado_por_user_id` e `classificado_em`.
+Os três campos são salvos em conjunto, junto com `classificado_por_user_id` e `classificado_em`. A mesma gravação é usada tanto por `/balanca/entradas/:id/classificacao` quanto por `/secador/entradas/:id/classificacao`.
+
+No painel `/secador`, cada entrada com `classificado_em IS NULL` aparece como uma notificação individual contendo a placa do caminhão e um botão “Classificar”. Quando não há entradas nessa condição, o quadro de notificações não é renderizado. A rota mobile do secador bloqueia a abertura ou gravação se a entrada já tiver sido classificada, evitando sobrescrever uma classificação existente.
 
 ### Origem
 

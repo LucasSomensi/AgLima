@@ -58,8 +58,9 @@ Campos centrais:
 - `routes/dryer-routes.js`: rotas HTTP do painel operacional do secador.
 - `routes/dryer-service.js`: queries, transações e regras de negócio do secador.
 - `routes/dryer-forecast.js`: cálculo da previsão de início da descarga.
-- `routes/renderers/dryer-renderer.js`: renderização do painel `/secador`.
+- `routes/renderers/dryer-renderer.js`: renderização do painel `/secador`, do quadro de notificações de entradas pendentes e da tela mobile de classificação.
 - `views/dryer-panel.html`: template HTML do painel operacional.
+- `views/dryer-input-classification-form.html`: formulário mobile de classificação de entrada usado pelo operador do silo.
 - `public/js/app.js`: comportamentos compartilhados de confirmação, carregamento e interação da interface.
 - `public/js/dryer-pwa.js`: registro do service worker do painel do secador.
 - `public/sw.js`: regras de cache; rotas autenticadas do secador consultam a rede. Sempre incremente `CACHE_VERSION` quando alterar assets estáticos usados pelo PWA, como CSS ou JavaScript.
@@ -70,7 +71,9 @@ Campos centrais:
 
 ### Operador de secador
 
-- `GET /secador`: mostra o painel operacional com status, início da batelada, previsão ou horário de descarga, umidade inicial da batelada ativa, formulário de umidade, ação principal e medições da batelada ativa.
+- `GET /secador`: mostra o painel operacional com status, início da batelada, previsão ou horário de descarga, umidade inicial da batelada ativa, formulário de umidade, ação principal, medições da batelada ativa e, quando existirem, notificações de entradas da balança sem classificação.
+- `GET /secador/entradas/:id/classificacao`: abre o formulário mobile de classificação para uma entrada da balança ainda sem `classificado_em`.
+- `POST /secador/entradas/:id/classificacao`: valida e grava `umidade_percent`, `impureza_percent`, `graos_avariados_percent`, `classificado_por_user_id` e `classificado_em` para a entrada, usando as mesmas regras do fluxo da balança.
 - `GET /secador/bateladas/nova`: mostra a etapa de confirmação para iniciar nova batelada, com o campo editável de umidade inicial preenchido pela média das 5 últimas entradas classificadas da balança ou por `28%` quando não houver 5 entradas com umidade disponível.
 - `POST /secador/bateladas`: inicia uma nova batelada usando a umidade inicial confirmada. Se já houver batelada ativa sem descarga iniciada, rejeita a ação.
 - `POST /secador/bateladas/descarga`: registra o início da descarga da batelada ativa.
@@ -96,13 +99,28 @@ Campos centrais:
 
 O operador entra em `/secador`. No cabeçalho, o botão “Atualizar” recarrega a página para buscar o estado operacional mais recente. O botão de sair fica no final do painel e exige dois cliques: o primeiro muda o rótulo para “Confirmar saída” e o segundo envia o logout. Se o segundo clique não ocorrer em poucos segundos, o botão volta para “Sair”.
 
+Quando existem linhas em `entradas_balanca` com `classificado_em IS NULL`, o painel exibe um quadro “Entradas pendentes” antes dos cartões de status. Cada entrada pendente gera uma notificação própria com a placa do caminhão e o botão “Classificar”, apontando para `/secador/entradas/:id/classificacao`. Se a consulta não retorna entradas pendentes, o renderer devolve string vazia para o placeholder e o quadro não ocupa espaço na tela.
+
 O painel mostra três estados principais:
 
 - **Parado**: não existe batelada ativa. O registro de umidade fica desabilitado e a ação principal é “Iniciar nova batelada”.
 - **Secando**: existe batelada ativa sem `discharge_started_at`. O operador pode registrar umidades, iniciar a descarga ou parar o secador.
 - **Descarregando**: existe batelada ativa com `discharge_started_at`. O operador ainda pode registrar umidades, pode parar o secador ou iniciar uma nova batelada, o que encerra a batelada atual.
 
-### 2. Iniciar uma nova batelada
+
+### 2. Classificar entrada pendente da balança
+
+O operador do silo pode tocar em “Classificar” em uma notificação do painel para abrir uma página otimizada para celular. Essa tela mostra o resumo da entrada e os mesmos três campos de classificação usados pela balança:
+
+- `umidade_percent`, com padrão `14`;
+- `impureza_percent`, com padrão `1`;
+- `graos_avariados_percent`, com padrão `0`.
+
+A rota do secador reutiliza `buildScaleInputClassificationPayload` para validar percentuais entre `0` e `100` e `addScaleInputClassification` para gravar a classificação. Antes de renderizar ou salvar, a rota carrega a entrada por ID e rejeita entradas inexistentes ou que já possuam `classificado_em`, redirecionando o operador de volta para `/secador` com mensagem de erro.
+
+Ao salvar com sucesso, o operador volta para `/secador` com mensagem de sucesso. Na próxima carga, aquela entrada deixa de aparecer no quadro porque `classificado_em` foi preenchido.
+
+### 3. Iniciar uma nova batelada
 
 Quando não há batelada ativa, o operador clica em “Iniciar nova batelada” e é levado para uma página de confirmação. Nessa página, precisa revisar ou editar a `umidade_inicial` antes de confirmar. O campo vem preenchido pela média de `umidade_percent` das 5 últimas linhas de `entradas_balanca` que tenham umidade disponível, ordenadas pelas datas mais recentes de entrada/criação. Se a consulta encontrar menos de 5 entradas com umidade, o campo usa `28%`.
 
@@ -119,7 +137,7 @@ Se já existir uma batelada ativa com descarga iniciada, o mesmo botão abre a c
 
 Se já existir uma batelada ativa sem descarga iniciada, o sistema bloqueia a nova batelada e orienta o operador a iniciar a descarga da batelada atual antes.
 
-### 3. Registrar medições de umidade
+### 4. Registrar medições de umidade
 
 Com uma batelada ativa, o operador informa a umidade medida e clica em “Registrar umidade”.
 
@@ -133,7 +151,7 @@ Regras atuais:
 
 A lista exibida no painel mostra apenas as medições da batelada ativa, ordenadas por horário de medição. Medições de bateladas anteriores permanecem no banco para consulta posterior pela administração.
 
-### 4. Acompanhar a previsão de descarga
+### 5. Acompanhar a previsão de descarga
 
 Enquanto a descarga ainda não foi iniciada, o painel calcula uma previsão para auxiliar o operador a decidir quando começar a descarga. A previsão já pode ser calculada desde o início da batelada, antes da primeira medição, usando `m` igual à umidade inicial e tratando o horário da última medição como o horário de início da batelada.
 
@@ -160,19 +178,19 @@ hora prevista para início da descarga = hora da última medição + minutos res
 
 Se o horário atual do servidor já for maior que o horário previsto, o painel mostra “Descarga imediata”. Depois que o operador clica em “Iniciar descarga”, toda essa lógica deixa de ser recalculada para a batelada e o painel passa a mostrar o horário em que a descarga realmente começou.
 
-### 5. Iniciar descarga
+### 6. Iniciar descarga
 
 Enquanto a batelada está secando, a ação principal é “Iniciar descarga”. Ao confirmar, o backend grava `discharge_started_at` com o horário atual do servidor. O status visual muda de **Secando** para **Descarregando**.
 
 A descarga só pode ser iniciada se houver batelada ativa e se ela ainda não tiver descarga registrada. Tentativas duplicadas retornam mensagem amigável para o operador.
 
-### 6. Iniciar a próxima batelada depois da descarga
+### 7. Iniciar a próxima batelada depois da descarga
 
 Depois que a descarga foi iniciada, a ação principal passa a ser “Iniciar nova batelada”. Ao confirmar, o sistema encerra a batelada ativa e cria a nova batelada em uma única transação.
 
 Essa regra evita abrir uma batelada nova antes de registrar quando a produção anterior começou a ser enviada para os silos.
 
-### 7. Parar o secador
+### 8. Parar o secador
 
 Em qualquer batelada ativa, o operador pode usar “Parar secador”. A ação pede confirmação e encerra imediatamente a batelada ativa, gravando:
 

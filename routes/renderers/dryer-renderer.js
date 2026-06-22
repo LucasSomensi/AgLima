@@ -8,6 +8,18 @@ const {
 } = require('../utils');
 const { buildAlertHtml, renderTemplate } = require('./template-utils');
 
+function formatProductLabel(value) {
+  const labels = { milho: 'Milho', soja: 'Soja' };
+  return labels[value] || value || '-';
+}
+
+function formatDecimalInput(value) {
+  if (value === null || value === undefined || value === '') {
+    return '';
+  }
+  return String(value).replace(',', '.');
+}
+
 function formatDischargeForecast(dischargeForecast) {
   if (!dischargeForecast || dischargeForecast.status === 'unavailable') {
     return '-';
@@ -36,6 +48,53 @@ function formatDryerStatus(batch) {
   return `<span class="status-pill status-active">Secando</span>`;
 }
 
+function renderUnclassifiedInputNotifications(inputs = []) {
+  if (!inputs.length) {
+    return '';
+  }
+
+  const notificationItems = inputs
+    .map((input) => `
+          <article class="dryer-classification-notification">
+            <div>
+              <span class="dryer-card-label">Entrada sem classificação</span>
+              <strong>${escapeHtml(input.placa_caminhao)}</strong>
+              <p>${escapeHtml(formatDateTime(input.data_entrada))} · ${escapeHtml(formatProductLabel(input.produto))}</p>
+            </div>
+            <a class="btn-primary-action" href="/secador/entradas/${escapeHtml(input.id)}/classificacao">Classificar</a>
+          </article>
+        `)
+    .join('');
+
+  return `
+        <section class="admin-section dryer-notifications" aria-labelledby="dryer-notifications-title">
+          <div class="dryer-notifications-header">
+            <div>
+              <span class="eyebrow">Classificação</span>
+              <h2 id="dryer-notifications-title">Entradas pendentes</h2>
+            </div>
+            <span class="status-pill status-warning">${escapeHtml(inputs.length)} pendente${inputs.length === 1 ? '' : 's'}</span>
+          </div>
+          <div class="dryer-notifications-list">
+            ${notificationItems}
+          </div>
+        </section>
+      `;
+}
+
+function renderDryerInputClassificationPage(res, { input, formValues = {}, error }) {
+  const html = renderTemplate('dryer-input-classification-form.html', {
+    DRYER_CLASSIFICATION_ERROR: buildAlertHtml(error, 'error'),
+    ENTRADA_ID: escapeHtml(input.id),
+    INPUT_SUMMARY: escapeHtml(`${formatDateTime(input.data_entrada)} · ${input.placa_caminhao} · ${formatProductLabel(input.produto)}`),
+    UMIDADE_PERCENT: escapeHtml(formatDecimalInput(formValues.umidade_percent ?? input.umidade_percent ?? 14)),
+    IMPUREZA_PERCENT: escapeHtml(formatDecimalInput(formValues.impureza_percent ?? input.impureza_percent ?? 1)),
+    GRAOS_AVARIADOS_PERCENT: escapeHtml(formatDecimalInput(formValues.graos_avariados_percent ?? input.graos_avariados_percent ?? 0)),
+  });
+
+  res.send(html);
+}
+
 function renderDryerStartBatchPage(res, { defaultInitialMoisture, error }) {
   const dryerHtml = renderTemplate('dryer-start-batch.html', {
     DRYER_ERROR: buildAlertHtml(error, 'error'),
@@ -45,7 +104,7 @@ function renderDryerStartBatchPage(res, { defaultInitialMoisture, error }) {
   res.send(dryerHtml);
 }
 
-function renderDryerPanelPage(res, { batch, readings, settings, message, error }) {
+function renderDryerPanelPage(res, { batch, readings, settings, message, error, unclassifiedInputs = [] }) {
   const dischargeForecast = calculateDischargeForecast({ batch, readings });
   const startedAt = batch ? formatDateTime(batch.started_at) : 'Nenhuma batelada ativa';
   const dischargeStartedAt = formatDischargeForecast(dischargeForecast);
@@ -92,6 +151,7 @@ function renderDryerPanelPage(res, { batch, readings, settings, message, error }
   const dryerHtml = renderTemplate('dryer-panel.html', {
     DRYER_MESSAGE: buildAlertHtml(message),
     DRYER_ERROR: buildAlertHtml(error, 'error'),
+    DRYER_NOTIFICATIONS: renderUnclassifiedInputNotifications(unclassifiedInputs),
     BATCH_STATUS: batchStatusHtml,
     BATCH_STARTED_AT: escapeHtml(startedAt),
     DISCHARGE_STARTED_AT: escapeHtml(dischargeStartedAt),
@@ -112,6 +172,7 @@ function renderDryerPanelPage(res, { batch, readings, settings, message, error }
 }
 
 module.exports = {
+  renderDryerInputClassificationPage,
   renderDryerPanelPage,
   renderDryerStartBatchPage,
 };
