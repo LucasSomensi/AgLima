@@ -62,7 +62,7 @@ Campos centrais:
 - `views/dryer-panel.html`: template HTML do painel operacional.
 - `public/js/app.js`: comportamentos compartilhados de confirmação, carregamento e interação da interface.
 - `public/js/dryer-pwa.js`: registro do service worker do painel do secador.
-- `public/sw.js`: regras de cache; rotas autenticadas do secador consultam a rede.
+- `public/sw.js`: regras de cache; rotas autenticadas do secador consultam a rede. Sempre incremente `CACHE_VERSION` quando alterar assets estáticos usados pelo PWA, como CSS ou JavaScript.
 - `public/manifest.webmanifest`: metadados de instalação/PWA do painel.
 - `routes/admin-routes.js` e `routes/renderers/admin-renderer.js`: telas administrativas de consulta do secador e ajuste de umidade alvo.
 
@@ -94,7 +94,9 @@ Campos centrais:
 
 ### 1. Acessar o painel
 
-O operador entra em `/secador`. O painel mostra três estados principais:
+O operador entra em `/secador`. No cabeçalho, o botão “Atualizar” recarrega a página para buscar o estado operacional mais recente. O botão de sair fica no final do painel e exige dois cliques: o primeiro muda o rótulo para “Confirmar saída” e o segundo envia o logout. Se o segundo clique não ocorrer em poucos segundos, o botão volta para “Sair”.
+
+O painel mostra três estados principais:
 
 - **Parado**: não existe batelada ativa. O registro de umidade fica desabilitado e a ação principal é “Iniciar nova batelada”.
 - **Secando**: existe batelada ativa sem `discharge_started_at`. O operador pode registrar umidades, iniciar a descarga ou parar o secador.
@@ -208,7 +210,9 @@ O fluxo operacional atual inicia bateladas com `grain_type = 'corn'`. Se outros 
 
 ### PWA e cache
 
-O painel do secador possui manifesto e registro de service worker para facilitar uso em dispositivos de operação. As rotas `/secador` e `/secador/*` não devem ser atendidas por cache estático, pois exibem dados operacionais autenticados e sensíveis ao tempo.
+O painel do secador possui manifesto e registro de service worker para facilitar uso em dispositivos de operação. As rotas `/secador` e `/secador/*` não devem ser atendidas por cache estático, pois exibem dados operacionais autenticados e sensíveis ao tempo. O botão “Atualizar” funciona no PWA porque chama `window.location.reload()` na própria página `/secador`, que o service worker sempre busca na rede. O logout também funciona no PWA porque usa `POST /logout`; métodos diferentes de `GET` não são interceptados pelo service worker.
+
+Quando CSS, JavaScript ou outros assets estáticos do PWA mudarem, incremente `CACHE_VERSION` em `public/sw.js`. Isso força a ativação de um novo cache e evita que instalações existentes continuem usando estilos antigos.
 
 ## Pontos de atenção para mudanças futuras
 

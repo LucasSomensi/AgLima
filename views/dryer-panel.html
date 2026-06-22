@@ -25,9 +25,7 @@
               <span data-connection-status-text>Verificando conexão...</span>
             </div>
           </div>
-          <form action="/logout" method="post">
-            <button class="btn-secondary-action" type="submit">Sair</button>
-          </form>
+          <button class="btn-secondary-action" type="button" data-refresh-page>Atualizar</button>
         </div>
 
         {{DRYER_MESSAGE}}
@@ -82,6 +80,12 @@
           </div>
           {{STOP_DRYER_ACTION}}
         </section>
+
+        <section class="admin-section dryer-logout-section" aria-label="Sair do painel do secador">
+          <form class="dryer-logout-action" action="/logout" method="post" data-double-click-logout>
+            <button class="btn-secondary-action" type="button" data-logout-button>Sair</button>
+          </form>
+        </section>
       </section>
     </main>
     <script src="/js/dryer-pwa.js" defer></script>
@@ -103,6 +107,31 @@
       updateConnectionStatus();
       window.addEventListener('online', updateConnectionStatus);
       window.addEventListener('offline', updateConnectionStatus);
+
+      document.querySelector('[data-refresh-page]')?.addEventListener('click', () => {
+        window.location.reload();
+      });
+
+      document.querySelectorAll('[data-double-click-logout]').forEach((form) => {
+        const button = form.querySelector('[data-logout-button]');
+        let logoutArmed = false;
+        let resetLogoutTimer;
+
+        button?.addEventListener('click', () => {
+          if (logoutArmed) {
+            form.submit();
+            return;
+          }
+
+          logoutArmed = true;
+          button.textContent = 'Confirmar saída';
+          clearTimeout(resetLogoutTimer);
+          resetLogoutTimer = window.setTimeout(() => {
+            logoutArmed = false;
+            button.textContent = 'Sair';
+          }, 4000);
+        });
+      });
 
       document.querySelectorAll('.dryer-moisture-form, .dryer-quick-action, .dryer-stop-action').forEach((form) => {
         form.addEventListener('submit', (event) => {
