@@ -441,6 +441,7 @@ async function listScaleInputs(options = {}) {
              umidade_percent,
              impureza_percent,
              graos_avariados_percent,
+             classificado_em,
              cliente_user_id
       FROM entradas_balanca
       ORDER BY data_entrada ${orderDirection}, id ${orderDirection}
@@ -491,6 +492,25 @@ async function listRecentInputPlates(search = '') {
   return result.rows;
 }
 
+async function listUnclassifiedScaleInputs() {
+  ensureDatabaseConfigured();
+
+  const result = await pool.query(
+    `
+      SELECT id,
+             data_entrada,
+             placa_caminhao,
+             produto,
+             peso_bruto_kg
+      FROM entradas_balanca
+      WHERE classificado_em IS NULL
+      ORDER BY data_entrada ASC, criado_em ASC, id ASC
+    `
+  );
+
+  return result.rows;
+}
+
 async function getScaleInputById(inputId) {
   ensureDatabaseConfigured();
 
@@ -508,6 +528,7 @@ async function getScaleInputById(inputId) {
              umidade_percent,
              impureza_percent,
              graos_avariados_percent,
+             classificado_em,
              cliente_user_id
       FROM entradas_balanca
       WHERE id = $1
@@ -1368,6 +1389,7 @@ module.exports = {
   listEligibleContractsForOutput,
   listOpenContractsForWeighbridge,
   listRecentInputPlates,
+  listUnclassifiedScaleInputs,
   listScaleInputs,
   listScaleOutputs,
   splitScaleOutput,

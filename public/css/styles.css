@@ -1482,3 +1482,105 @@ button:disabled,
 .deletion-reason-help {
   margin: 0;
 }
+
+.dryer-notifications {
+  margin-bottom: 22px;
+  padding: 18px;
+  border: 1px solid rgba(255, 209, 122, 0.42);
+  border-radius: 18px;
+  background: rgba(217, 182, 109, 0.14);
+}
+
+.dryer-notifications-header,
+.dryer-classification-notification {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dryer-notifications-header {
+  margin-bottom: 14px;
+}
+
+.dryer-notifications-header h2 {
+  margin: 0;
+}
+
+.dryer-notifications-list {
+  display: grid;
+  gap: 12px;
+}
+
+.dryer-classification-notification {
+  padding: 14px;
+  border: 1px solid rgba(234, 246, 238, 0.16);
+  border-radius: 16px;
+  background: rgba(5, 48, 25, 0.38);
+}
+
+.dryer-classification-notification strong {
+  display: block;
+  color: #fff;
+  font-size: 1.45rem;
+  letter-spacing: 0.04em;
+}
+
+.dryer-classification-notification p {
+  margin: 4px 0 0;
+  color: var(--green-100);
+  font-weight: 700;
+}
+
+.dryer-classification-notification .btn-primary-action {
+  min-width: 150px;
+  text-align: center;
+}
+
+.dryer-mobile-classification-form {
+  display: grid;
+  gap: 16px;
+}
+
+.dryer-mobile-classification-form label {
+  color: #fff;
+  font-weight: 700;
+}
+
+.dryer-mobile-classification-form .form-control {
+  min-height: 60px;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.dryer-classification-actions {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.dryer-classification-actions .btn-primary-action,
+.dryer-classification-actions .btn-secondary-action {
+  width: 100%;
+  min-height: 58px;
+  text-align: center;
+}
+
+@media (max-width: 620px) {
+  .dryer-notifications {
+    padding: 12px;
+    border-radius: 14px;
+  }
+
+  .dryer-notifications-header,
+  .dryer-classification-notification {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .dryer-classification-notification .btn-primary-action {
+    width: 100%;
+    min-height: 56px;
+    text-align: center;
+  }
+}

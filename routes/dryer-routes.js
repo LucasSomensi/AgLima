@@ -11,7 +11,13 @@ const {
   startDryerBatchDischarge,
   stopDryerBatch,
 } = require('./dryer-service');
-const { renderDryerPanelPage, renderDryerStartBatchPage } = require('./renderers/dryer-renderer');
+const {
+  addScaleInputClassification,
+  buildScaleInputClassificationPayload,
+  getScaleInputById,
+  listUnclassifiedScaleInputs,
+} = require('./weighbridge-service');
+const { renderDryerInputClassificationPage, renderDryerPanelPage, renderDryerStartBatchPage } = require('./renderers/dryer-renderer');
 const { buildRedirect, parseInitialMoisturePercent, parseMoisturePercent } = require('./utils');
 
 const router = express.Router();
@@ -23,22 +29,29 @@ function buildDryerRedirect(params) {
 
 router.get('/secador', canAccessDryer, async (req, res) => {
   try {
-    const [settings, batch] = await Promise.all([getDryerSettings(), getActiveDryerBatch()]);
+    const [settings, batch, unclassifiedInputs] = await Promise.all([
+      getDryerSettings(),
+      getActiveDryerBatch(),
+      listUnclassifiedScaleInputs(),
+    ]);
     const readings = await listDryerMoistureReadings(batch?.id);
 
     return renderDryerPanelPage(res, {
       batch,
       readings,
       settings,
-      message: req.query.started
-        ? 'Nova batelada iniciada com sucesso.'
-        : req.query.reading
-          ? 'Medição de umidade registrada com sucesso.'
-          : req.query.discharge
-            ? 'Início da descarga registrado com sucesso.'
-            : req.query.stopped
-              ? 'Secador parado com sucesso.'
-              : '',
+      unclassifiedInputs,
+      message: req.query.entrada_classificada
+        ? 'Classificação adicionada à entrada com sucesso.'
+        : req.query.started
+          ? 'Nova batelada iniciada com sucesso.'
+          : req.query.reading
+            ? 'Medição de umidade registrada com sucesso.'
+            : req.query.discharge
+              ? 'Início da descarga registrado com sucesso.'
+              : req.query.stopped
+                ? 'Secador parado com sucesso.'
+                : '',
       error: req.query.error || '',
     });
   } catch (error) {
@@ -47,6 +60,61 @@ router.get('/secador', canAccessDryer, async (req, res) => {
   }
 });
 
+router.get('/secador/entradas/:id/classificacao', canAccessDryer, async (req, res) => {
+  try {
+    const input = await getScaleInputById(req.params.id);
+
+    if (!input) {
+      return res.redirect(buildDryerRedirect({ error: 'Entrada não encontrada.' }));
+    }
+
+    if (input.classificado_em) {
+      return res.redirect(buildDryerRedirect({ error: 'Esta entrada já foi classificada.' }));
+    }
+
+    return renderDryerInputClassificationPage(res, {
+      input,
+      formValues: {},
+      error: req.query.error || '',
+    });
+  } catch (error) {
+    console.error('Error loading dryer input classification form:', error.message);
+    return res.redirect(buildDryerRedirect({ error: 'Não foi possível carregar a classificação agora.' }));
+  }
+});
+
+router.post('/secador/entradas/:id/classificacao', canAccessDryer, async (req, res) => {
+  const { payload, error } = buildScaleInputClassificationPayload(req.body);
+  const input = await getScaleInputById(req.params.id).catch(() => null);
+
+  if (!input) {
+    return res.redirect(buildDryerRedirect({ error: 'Entrada não encontrada.' }));
+  }
+
+  if (input.classificado_em) {
+    return res.redirect(buildDryerRedirect({ error: 'Esta entrada já foi classificada.' }));
+  }
+
+  if (error) {
+    return renderDryerInputClassificationPage(res, {
+      input,
+      formValues: req.body,
+      error,
+    });
+  }
+
+  try {
+    await addScaleInputClassification(req.params.id, payload, req.sessionUser.userId);
+    return res.redirect(buildDryerRedirect({ entrada_classificada: '1' }));
+  } catch (error) {
+    console.error('Error adding dryer input classification:', error.message);
+    return renderDryerInputClassificationPage(res, {
+      input,
+      formValues: req.body,
+      error: 'Não foi possível salvar a classificação agora.',
+    });
+  }
+});
 
 router.get('/secador/bateladas/nova', canAccessDryer, async (req, res) => {
   try {
