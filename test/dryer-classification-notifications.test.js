@@ -48,11 +48,12 @@ test('dryer panel renders one classification notification per pending input', ()
     unclassifiedInputs: [pendingInput, { ...pendingInput, id: 12, placa_caminhao: 'DEF4G56' }],
   });
 
-  assert.match(html, /Entradas pendentes/);
-  assert.match(html, /ABC1D23/);
-  assert.match(html, /DEF4G56/);
-  assert.match(html, /href="\/secador\/entradas\/11\/classificacao">Classificar/);
-  assert.match(html, /href="\/secador\/entradas\/12\/classificacao">Classificar/);
+  assert.doesNotMatch(html, /Entradas pendentes/);
+  assert.doesNotMatch(html, /Entrada sem classificação/);
+  assert.doesNotMatch(html, /Milho/);
+  assert.doesNotMatch(html, /12\/06\/2026/);
+  assert.match(html, /href="\/secador\/entradas\/11\/classificacao">Classificar ABC1D23 09:30<\/a>/);
+  assert.match(html, /href="\/secador\/entradas\/12\/classificacao">Classificar DEF4G56 09:30<\/a>/);
 });
 
 test('dryer classification form posts to the dryer mobile classification route', () => {
