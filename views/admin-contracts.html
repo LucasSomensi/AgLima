@@ -39,47 +39,13 @@
           <div class="admin-section-header">
             <h2 id="buyers-title">Compradores</h2>
           </div>
-          <form class="contact-form contracts-form" action="{{BUYER_FORM_ACTION}}" method="post">
-            <h3>{{BUYER_FORM_TITLE}}</h3>
-            <div class="contracts-form-grid">
-              <label>Nome
-                <input class="form-control" name="nome" type="text" value="{{BUYER_NOME}}" placeholder="Semegrão" required>
-              </label>
-              <label>Nome completo
-                <input class="form-control" name="nome_completo" type="text" value="{{BUYER_NOME_COMPLETO}}" placeholder="SEMEGRAO COMERCIAL AGRICOLA LTDA" required>
-              </label>
-              <label>Endereço
-                <input class="form-control" name="endereco" type="text" value="{{BUYER_ENDERECO}}" placeholder="Rodovia BR-376" required>
-              </label>
-              <label>Número
-                <input class="form-control" name="numero" type="text" value="{{BUYER_NUMERO}}" placeholder="258 ou SN" required>
-              </label>
-              <label>CEP
-                <input class="form-control" name="cep" type="text" inputmode="numeric" value="{{BUYER_CEP}}" placeholder="84043450" required>
-              </label>
-              <label>Inscrição Estadual
-                <input class="form-control" name="inscricao_estadual" type="text" inputmode="numeric" value="{{BUYER_INSCRICAO_ESTADUAL}}" placeholder="9090884295" required>
-              </label>
-              <label>CPF ou CNPJ
-                <input class="form-control" name="cpf_cnpj" type="text" inputmode="numeric" value="{{BUYER_CPF_CNPJ}}" placeholder="11 ou 14 dígitos" required>
-              </label>
-            </div>
-            <div class="contracts-form-actions">
-              <button class="btn-primary-action" type="submit">{{BUYER_FORM_BUTTON}}</button>
-              {{BUYER_CANCEL_LINK}}
-            </div>
-          </form>
+          <a class="btn-primary-action" href="/admin/contratos/compradores/novo">Novo comprador</a>
 
           <div class="admin-table-wrapper contracts-table-wrapper">
             <table class="admin-table contracts-table">
               <thead>
                 <tr>
                   <th>Nome</th>
-                  <th>Nome completo</th>
-                  <th>Endereço</th>
-                  <th>CEP</th>
-                  <th>Inscrição Estadual</th>
-                  <th>CPF/CNPJ</th>
                   <th>Ações</th>
                 </tr>
               </thead>
@@ -94,28 +60,13 @@
           <div class="admin-section-header">
             <h2 id="sellers-title">Vendedores</h2>
           </div>
-          <form class="contact-form contracts-form" action="{{SELLER_FORM_ACTION}}" method="post">
-            <h3>{{SELLER_FORM_TITLE}}</h3>
-            <div class="contracts-form-grid contracts-form-grid-two">
-              <label>Nome
-                <input class="form-control" name="nome" type="text" value="{{SELLER_NOME}}" placeholder="Paulo" required>
-              </label>
-              <label>Nome completo
-                <input class="form-control" name="nome_completo" type="text" value="{{SELLER_NOME_COMPLETO}}" placeholder="Paulo Roberto de Lima" required>
-              </label>
-            </div>
-            <div class="contracts-form-actions">
-              <button class="btn-primary-action" type="submit">{{SELLER_FORM_BUTTON}}</button>
-              {{SELLER_CANCEL_LINK}}
-            </div>
-          </form>
+          <a class="btn-primary-action" href="/admin/contratos/vendedores/novo">Novo vendedor</a>
 
           <div class="admin-table-wrapper contracts-table-wrapper">
             <table class="admin-table contracts-table contracts-table-compact">
               <thead>
                 <tr>
                   <th>Nome</th>
-                  <th>Nome completo</th>
                   <th>Ações</th>
                 </tr>
               </thead>
@@ -135,111 +86,17 @@
             </nav>
           </div>
           <p class="contracts-filter-help">Por padrão, contratos fechados ficam ocultos. Contratos em aberto são aqueles que ainda não embarcaram, não foram recebidos ou cuja corretagem ainda não foi paga.</p>
-          <form class="contact-form contracts-form" action="{{CONTRACT_FORM_ACTION}}" method="post">
-            <h3>{{CONTRACT_FORM_TITLE}}</h3>
-            <div class="contracts-form-grid">
-              <label>Data do contrato
-                <input class="form-control" name="data_contrato" type="date" value="{{CONTRACT_DATA_CONTRATO}}" required>
-              </label>
-              <label>Produto
-                <select class="form-control" name="produto" required>
-                  <option value="">Selecione</option>
-                  <option value="milho"{{PRODUCT_MILHO_SELECTED}}>Milho</option>
-                  <option value="soja"{{PRODUCT_SOJA_SELECTED}}>Soja</option>
-                </select>
-              </label>
-              <label>Preço por saca
-                <input class="form-control" name="preco_por_saca" type="number" min="0" step="0.01" inputmode="decimal" value="{{CONTRACT_PRECO_POR_SACA}}" placeholder="60.30" required>
-              </label>
-              <label>Comprador
-                <select class="form-control" name="comprador_id" required>
-                  <option value="">Selecione</option>
-                  {{BUYER_OPTIONS}}
-                </select>
-              </label>
-              <label>Vendedor
-                <select class="form-control" name="vendedor_id" required>
-                  <option value="">Selecione</option>
-                  {{SELLER_OPTIONS}}
-                </select>
-              </label>
-              <label>Quantidade em kg
-                <input class="form-control" name="quantidade_kg" type="number" min="0" step="0.01" inputmode="decimal" value="{{CONTRACT_QUANTIDADE_KG}}" placeholder="600000" required>
-              </label>
-              <label>Data de recebimento
-                <input class="form-control" name="data_recebimento" type="date" value="{{CONTRACT_DATA_RECEBIMENTO}}">
-              </label>
-              <label>Corretor
-                <input class="form-control" name="corretor" type="text" value="{{CONTRACT_CORRETOR}}" placeholder="ResultAgro">
-              </label>
-              <label>Valor da corretagem (%)
-                <input class="form-control" name="valor_corretagem_percentual" type="number" min="0" step="0.01" inputmode="decimal" value="{{CONTRACT_VALOR_CORRETAGEM}}" placeholder="0.3">
-              </label>
-            </div>
-            <div class="contracts-check-grid">
-              <label class="contracts-checkbox"><input name="contrato_embarcado" type="checkbox"{{CONTRACT_EMBARCADO_CHECKED}}> Contrato embarcado</label>
-              <label class="contracts-checkbox"><input name="contrato_recebido" type="checkbox"{{CONTRACT_RECEBIDO_CHECKED}}> Contrato recebido</label>
-              <label class="contracts-checkbox"><input name="corretagem_paga" type="checkbox"{{CONTRACT_CORRETAGEM_PAGA_CHECKED}}> Corretagem paga</label>
-            </div>
-            <details class="contracts-advanced-fields">
-              <summary class="btn-secondary-action contracts-advanced-toggle">avançado</summary>
-              <div class="contracts-form-grid">
-                <label>Inscrição estadual do vendedor
-                  <input class="form-control" name="inscricao_estadual_vendedor" type="text" value="{{CONTRACT_INSCRICAO_ESTADUAL_VENDEDOR}}" placeholder="ISENTO ou número da IE">
-                </label>
-                <label>Natureza da Operação
-                  <input class="form-control" name="natureza_operacao" type="text" value="{{CONTRACT_NATUREZA_OPERACAO}}" placeholder="Venda de produção do estabelecimento">
-                </label>
-                <label>CFOP
-                  <input class="form-control" name="cfop" type="text" value="{{CONTRACT_CFOP}}" placeholder="5101">
-                </label>
-                <label>Razão social da transportadora
-                  <input class="form-control" name="razao_social_transportadora" type="text" value="{{CONTRACT_RAZAO_SOCIAL_TRANSPORTADORA}}" placeholder="Transportadora Exemplo LTDA">
-                </label>
-                <label>CNPJ da transportadora
-                  <input class="form-control" name="cnpj_transportadora" type="text" value="{{CONTRACT_CNPJ_TRANSPORTADORA}}" placeholder="00.000.000/0001-00">
-                </label>
-                <label>Inscrição Estadual da Transportadora
-                  <input class="form-control" name="inscricao_estadual_transportadora" type="text" value="{{CONTRACT_INSCRICAO_ESTADUAL_TRANSPORTADORA}}" placeholder="ISENTO ou número da IE">
-                </label>
-                <label>UF da transportadora
-                  <input class="form-control" name="uf_transportadora" type="text" maxlength="2" value="{{CONTRACT_UF_TRANSPORTADORA}}" placeholder="PR">
-                </label>
-                <label>E-mail
-                  <input class="form-control" name="email" type="email" value="{{CONTRACT_EMAIL}}" placeholder="email@exemplo.com">
-                </label>
-              </div>
-              <label>Informações de interesse do contribuinte
-                <textarea class="form-control" name="informacoes_interesse_contribuinte" rows="3" placeholder="Informações complementares para a NF">{{CONTRACT_INFORMACOES_INTERESSE_CONTRIBUINTE}}</textarea>
-              </label>
-              <label>Observações
-                <textarea class="form-control" name="observacoes" rows="3" placeholder="contrato negociado por Lucas">{{CONTRACT_OBSERVACOES}}</textarea>
-              </label>
-              <p class="form-helper-text">Campos avançados em branco serão salvos como nulos.</p>
-            </details>
-            <div class="contracts-form-actions">
-              <button class="btn-primary-action" type="submit">{{CONTRACT_FORM_BUTTON}}</button>
-              {{CONTRACT_CANCEL_LINK}}
-            </div>
-          </form>
+          <a class="btn-primary-action" href="/admin/contratos/contratos/novo">Novo contrato</a>
 
           <div class="admin-table-wrapper contracts-table-wrapper">
             <table class="admin-table contracts-table contracts-main-table">
               <thead>
                 <tr>
                   <th>Data</th>
-                  <th>Produto</th>
-                  <th>Preço/saca</th>
                   <th>Comprador</th>
-                  <th>Vendedor</th>
+                  <th>Produto</th>
+                  <th>Preço</th>
                   <th>Quantidade</th>
-                  <th>Embarcado</th>
-                  <th>Recebimento</th>
-                  <th>Recebido</th>
-                  <th>Corretor</th>
-                  <th>Corretagem</th>
-                  <th>Paga</th>
-                  <th>Observações</th>
                   <th>Ações</th>
                 </tr>
               </thead>

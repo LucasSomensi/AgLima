@@ -35,6 +35,9 @@ const {
   renderAdminBatchDetailPage,
   renderAdminBatchesPage,
   renderAdminContractsPage,
+  renderAdminBuyerFormPage,
+  renderAdminContractFormPage,
+  renderAdminSellerFormPage,
   renderAdminDashboardPage,
   renderAdminHomePage,
   renderAdminStoragePage,
@@ -164,22 +167,16 @@ function normalizeContractStatusFilter(value) {
 
 async function loadContractsPage(req, res, overrides = {}) {
   const contractStatusFilter = normalizeContractStatusFilter(req.query.status);
-  const [buyers, sellers, contracts, selectedBuyer, selectedSeller, selectedContract] = await Promise.all([
+  const [buyers, sellers, contracts] = await Promise.all([
     listBuyers(),
     listSellers(),
     listContracts({ status: contractStatusFilter }),
-    req.query.comprador_id ? getBuyerById(req.query.comprador_id) : null,
-    req.query.vendedor_id ? getSellerById(req.query.vendedor_id) : null,
-    req.query.contrato_id ? getContractById(req.query.contrato_id) : null,
   ]);
 
   return renderAdminContractsPage(res, {
     buyers,
     sellers,
     contracts,
-    selectedBuyer,
-    selectedSeller,
-    selectedContract,
     contractStatusFilter,
     message: overrides.message || req.query.message || '',
     error: overrides.error || req.query.error || '',
@@ -209,11 +206,68 @@ router.get('/admin/contratos', canAccessAdminPanel, async (req, res) => {
   }
 });
 
+
+router.get('/admin/contratos/compradores/novo', canAccessAdminPanel, (req, res) => {
+  return renderAdminBuyerFormPage(res, { buyer: null, error: req.query.error || '' });
+});
+
+router.get('/admin/contratos/compradores/:id/editar', canAccessAdminPanel, async (req, res) => {
+  try {
+    const buyer = await getBuyerById(req.params.id);
+    if (!buyer) return res.status(404).send('Comprador não encontrado.');
+    return renderAdminBuyerFormPage(res, { buyer, error: req.query.error || '' });
+  } catch (error) {
+    console.error('Error loading buyer form:', error.message);
+    return res.status(500).send('Não foi possível carregar o comprador agora.');
+  }
+});
+
+router.get('/admin/contratos/vendedores/novo', canAccessAdminPanel, (req, res) => {
+  return renderAdminSellerFormPage(res, { seller: null, error: req.query.error || '' });
+});
+
+router.get('/admin/contratos/vendedores/:id/editar', canAccessAdminPanel, async (req, res) => {
+  try {
+    const seller = await getSellerById(req.params.id);
+    if (!seller) return res.status(404).send('Vendedor não encontrado.');
+    return renderAdminSellerFormPage(res, { seller, error: req.query.error || '' });
+  } catch (error) {
+    console.error('Error loading seller form:', error.message);
+    return res.status(500).send('Não foi possível carregar o vendedor agora.');
+  }
+});
+
+async function loadContractForm(req, res, contract = null) {
+  const contractStatusFilter = normalizeContractStatusFilter(req.query.status);
+  const [buyers, sellers] = await Promise.all([listBuyers(), listSellers()]);
+  return renderAdminContractFormPage(res, { buyers, sellers, contract, contractStatusFilter, error: req.query.error || '' });
+}
+
+router.get('/admin/contratos/contratos/novo', canAccessAdminPanel, async (req, res) => {
+  try {
+    return await loadContractForm(req, res);
+  } catch (error) {
+    console.error('Error loading contract form:', error.message);
+    return res.status(500).send('Não foi possível carregar o formulário de contrato agora.');
+  }
+});
+
+router.get('/admin/contratos/contratos/:id/editar', canAccessAdminPanel, async (req, res) => {
+  try {
+    const contract = await getContractById(req.params.id);
+    if (!contract) return res.status(404).send('Contrato não encontrado.');
+    return await loadContractForm(req, res, contract);
+  } catch (error) {
+    console.error('Error loading contract form:', error.message);
+    return res.status(500).send('Não foi possível carregar o contrato agora.');
+  }
+});
+
 router.post('/admin/contratos/compradores', canAccessAdminPanel, async (req, res) => {
   const { payload, error } = buildBuyerPayload(req.body);
 
   if (error) {
-    return res.redirect(buildContractsRedirect({ error }));
+    return res.redirect(buildRedirect('/admin/contratos/compradores/novo', { error }));
   }
 
   try {
@@ -221,11 +275,11 @@ router.post('/admin/contratos/compradores', canAccessAdminPanel, async (req, res
     return res.redirect(buildContractsRedirect({ comprador_criado: '1' }));
   } catch (error) {
     if (error.code === '23505') {
-      return res.redirect(buildContractsRedirect({ error: 'Já existe um comprador com esse nome.' }));
+      return res.redirect(buildRedirect('/admin/contratos/compradores/novo', { error: 'Já existe um comprador com esse nome.' }));
     }
 
     console.error('Error creating buyer:', error.message);
-    return res.redirect(buildContractsRedirect({ error: 'Não foi possível adicionar o comprador agora.' }));
+    return res.redirect(buildRedirect('/admin/contratos/compradores/novo', { error: 'Não foi possível adicionar o comprador agora.' }));
   }
 });
 
@@ -233,7 +287,7 @@ router.post('/admin/contratos/compradores/:id', canAccessAdminPanel, async (req,
   const { payload, error } = buildBuyerPayload(req.body);
 
   if (error) {
-    return res.redirect(buildContractsRedirect({ comprador_id: req.params.id, error }));
+    return res.redirect(buildRedirect(`/admin/contratos/compradores/${req.params.id}/editar`, { error }));
   }
 
   try {
@@ -241,11 +295,11 @@ router.post('/admin/contratos/compradores/:id', canAccessAdminPanel, async (req,
     return res.redirect(buildContractsRedirect({ comprador_atualizado: '1' }));
   } catch (error) {
     if (error.code === '23505') {
-      return res.redirect(buildContractsRedirect({ comprador_id: req.params.id, error: 'Já existe um comprador com esse nome.' }));
+      return res.redirect(buildRedirect(`/admin/contratos/compradores/${req.params.id}/editar`, { error: 'Já existe um comprador com esse nome.' }));
     }
 
     console.error('Error updating buyer:', error.message);
-    return res.redirect(buildContractsRedirect({ comprador_id: req.params.id, error: 'Não foi possível atualizar o comprador agora.' }));
+    return res.redirect(buildRedirect(`/admin/contratos/compradores/${req.params.id}/editar`, { error: 'Não foi possível atualizar o comprador agora.' }));
   }
 });
 
@@ -253,7 +307,7 @@ router.post('/admin/contratos/vendedores', canAccessAdminPanel, async (req, res)
   const { payload, error } = buildSellerPayload(req.body);
 
   if (error) {
-    return res.redirect(buildContractsRedirect({ error }));
+    return res.redirect(buildRedirect('/admin/contratos/vendedores/novo', { error }));
   }
 
   try {
@@ -261,11 +315,11 @@ router.post('/admin/contratos/vendedores', canAccessAdminPanel, async (req, res)
     return res.redirect(buildContractsRedirect({ vendedor_criado: '1' }));
   } catch (error) {
     if (error.code === '23505') {
-      return res.redirect(buildContractsRedirect({ error: 'Já existe um vendedor com esse nome.' }));
+      return res.redirect(buildRedirect('/admin/contratos/vendedores/novo', { error: 'Já existe um vendedor com esse nome.' }));
     }
 
     console.error('Error creating seller:', error.message);
-    return res.redirect(buildContractsRedirect({ error: 'Não foi possível adicionar o vendedor agora.' }));
+    return res.redirect(buildRedirect('/admin/contratos/vendedores/novo', { error: 'Não foi possível adicionar o vendedor agora.' }));
   }
 });
 
@@ -273,7 +327,7 @@ router.post('/admin/contratos/vendedores/:id', canAccessAdminPanel, async (req, 
   const { payload, error } = buildSellerPayload(req.body);
 
   if (error) {
-    return res.redirect(buildContractsRedirect({ vendedor_id: req.params.id, error }));
+    return res.redirect(buildRedirect(`/admin/contratos/vendedores/${req.params.id}/editar`, { error }));
   }
 
   try {
@@ -281,11 +335,11 @@ router.post('/admin/contratos/vendedores/:id', canAccessAdminPanel, async (req, 
     return res.redirect(buildContractsRedirect({ vendedor_atualizado: '1' }));
   } catch (error) {
     if (error.code === '23505') {
-      return res.redirect(buildContractsRedirect({ vendedor_id: req.params.id, error: 'Já existe um vendedor com esse nome.' }));
+      return res.redirect(buildRedirect(`/admin/contratos/vendedores/${req.params.id}/editar`, { error: 'Já existe um vendedor com esse nome.' }));
     }
 
     console.error('Error updating seller:', error.message);
-    return res.redirect(buildContractsRedirect({ vendedor_id: req.params.id, error: 'Não foi possível atualizar o vendedor agora.' }));
+    return res.redirect(buildRedirect(`/admin/contratos/vendedores/${req.params.id}/editar`, { error: 'Não foi possível atualizar o vendedor agora.' }));
   }
 });
 
@@ -342,7 +396,7 @@ router.post('/admin/contratos/contratos', canAccessAdminPanel, async (req, res) 
   const { payload, error } = buildContractPayload(req.body);
 
   if (error) {
-    return res.redirect(buildContractsRedirect({ error }));
+    return res.redirect(buildRedirect('/admin/contratos/contratos/novo', { error }));
   }
 
   try {
@@ -350,7 +404,7 @@ router.post('/admin/contratos/contratos', canAccessAdminPanel, async (req, res) 
     return res.redirect(buildContractsRedirect({ contrato_criado: '1' }));
   } catch (error) {
     console.error('Error creating contract:', error.message);
-    return res.redirect(buildContractsRedirect({ error: 'Não foi possível adicionar o contrato agora. Confira comprador e vendedor.' }));
+    return res.redirect(buildRedirect('/admin/contratos/contratos/novo', { error: 'Não foi possível adicionar o contrato agora. Confira comprador e vendedor.' }));
   }
 });
 
@@ -358,7 +412,7 @@ router.post('/admin/contratos/contratos/:id', canAccessAdminPanel, async (req, r
   const { payload, error } = buildContractPayload(req.body);
 
   if (error) {
-    return res.redirect(buildContractsRedirect({ contrato_id: req.params.id, error }));
+    return res.redirect(buildRedirect(`/admin/contratos/contratos/${req.params.id}/editar`, { error }));
   }
 
   try {
@@ -366,7 +420,7 @@ router.post('/admin/contratos/contratos/:id', canAccessAdminPanel, async (req, r
     return res.redirect(buildContractsRedirect({ contrato_atualizado: '1' }));
   } catch (error) {
     console.error('Error updating contract:', error.message);
-    return res.redirect(buildContractsRedirect({ contrato_id: req.params.id, error: 'Não foi possível atualizar o contrato agora. Confira comprador e vendedor.' }));
+    return res.redirect(buildRedirect(`/admin/contratos/contratos/${req.params.id}/editar`, { error: 'Não foi possível atualizar o contrato agora. Confira comprador e vendedor.' }));
   }
 });
 
