@@ -26,3 +26,25 @@ test('admin home links full weighbridge lists directly to weighbridge routes', (
   assert.match(html, /href="\/balanca\/saidas">Ver lista completa/);
   assert.doesNotMatch(html, /\/admin\/entradas-e-saidas/);
 });
+
+
+test('admin home combines next receipt date and contract link in one metric', () => {
+  const html = renderPage(renderAdminHomePage, {
+    notifications: [],
+    contractsSummary: {
+      proximo_recebimento_data: '2026-07-15',
+      proximo_recebimento_contrato_id: 42,
+      proximo_recebimento_comprador: 'Comprador <Teste>',
+    },
+    dryerBatch: null,
+    storageSummary: [],
+    scaleInputs: [],
+    scaleOutputs: [],
+    message: '',
+    error: '',
+  });
+
+  assert.match(html, /<span>Próximo recebimento<\/span>/);
+  assert.match(html, /15\/07\/2026 · <a class="admin-table-link" href="\/balanca\/contratos\/42">Contrato #42<\/a> · Comprador &lt;Teste&gt;/);
+  assert.doesNotMatch(html, /Próximo contrato a receber/);
+});
