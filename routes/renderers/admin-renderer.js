@@ -255,14 +255,10 @@ function formatSacks(value) {
 }
 
 function renderAdminMetric(label, value) {
-  return renderAdminMetricHtml(label, escapeHtml(value));
-}
-
-function renderAdminMetricHtml(label, valueHtml) {
   return `
       <div class="admin-home-metric">
         <span>${escapeHtml(label)}</span>
-        <strong>${valueHtml}</strong>
+        <strong>${escapeHtml(value)}</strong>
       </div>
     `;
 }
@@ -270,8 +266,8 @@ function renderAdminMetricHtml(label, valueHtml) {
 function renderAdminContractsPanel(summary = {}) {
   const sojaKg = Number(summary.soja_a_embarcar_kg || 0);
   const milhoKg = Number(summary.milho_a_embarcar_kg || 0);
-  const nextReceipt = summary.proximo_recebimento_contrato_id
-    ? `${summary.proximo_recebimento_data ? escapeHtml(formatDate(summary.proximo_recebimento_data)) : '-'} · <a href="/balanca/contratos/${encodeURIComponent(summary.proximo_recebimento_contrato_id)}">contrato #${escapeHtml(summary.proximo_recebimento_contrato_id)}</a>${summary.proximo_recebimento_comprador ? ` · ${escapeHtml(summary.proximo_recebimento_comprador)}` : ''}`
+  const nextContract = summary.proximo_recebimento_contrato_id
+    ? `Contrato #${summary.proximo_recebimento_contrato_id}${summary.proximo_recebimento_comprador ? ` · ${summary.proximo_recebimento_comprador}` : ''}`
     : '-';
 
   return `
@@ -286,7 +282,8 @@ function renderAdminContractsPanel(summary = {}) {
             ${renderAdminMetric('Soja a embarcar', `${formatKg(sojaKg)} · ${formatSacks(sojaKg / 60)}`)}
             ${renderAdminMetric('Milho a embarcar', `${formatKg(milhoKg)} · ${formatSacks(milhoKg / 60)}`)}
             ${renderAdminMetric('Valor total a receber', formatMoney(summary.valor_total_a_receber || 0))}
-            ${renderAdminMetricHtml('Próximo recebimento', nextReceipt)}
+            ${renderAdminMetric('Próximo recebimento', summary.proximo_recebimento_data ? formatDate(summary.proximo_recebimento_data) : '-')}
+            ${renderAdminMetric('Próximo contrato a receber', nextContract)}
           </div>
         </section>
       `;
