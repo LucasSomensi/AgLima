@@ -465,11 +465,64 @@ function buildContractsPageHref(params = {}) {
   return queryString ? `/admin/contratos?${queryString}` : '/admin/contratos';
 }
 
+
+function renderContractFormPage(res, { pageTitle, formTitle, formDescription, error, formHtml }) {
+  const html = renderTemplate('admin-contract-form.html', {
+    PAGE_TITLE: escapeHtml(pageTitle),
+    FORM_TITLE: escapeHtml(formTitle),
+    FORM_DESCRIPTION: escapeHtml(formDescription),
+    CONTRACTS_ERROR: buildAlertHtml(error, 'error'),
+    FORM_HTML: formHtml,
+  });
+
+  res.send(html);
+}
+
+function renderAdminBuyerFormPage(res, { buyer, error }) {
+  const action = buyer ? `/admin/contratos/compradores/${escapeHtml(buyer.id)}` : '/admin/contratos/compradores';
+  return renderContractFormPage(res, {
+    pageTitle: buyer ? 'Editar comprador' : 'Novo comprador',
+    formTitle: buyer ? 'Editar comprador' : 'Novo comprador',
+    formDescription: 'Preencha os dados cadastrais do comprador.',
+    error,
+    formHtml: `<form class="contact-form contracts-form" action="${action}" method="post">
+      <div class="contracts-form-grid"><label>Nome<input class="form-control" name="nome" type="text" value="${escapeHtml(buyer?.nome || '')}" required></label><label>Nome completo<input class="form-control" name="nome_completo" type="text" value="${escapeHtml(buyer?.nome_completo || '')}" required></label><label>Endereço<input class="form-control" name="endereco" type="text" value="${escapeHtml(buyer?.endereco || '')}" required></label><label>Número<input class="form-control" name="numero" type="text" value="${escapeHtml(buyer?.numero || '')}" required></label><label>CEP<input class="form-control" name="cep" type="text" inputmode="numeric" value="${escapeHtml(buyer?.cep || '')}" required></label><label>Inscrição Estadual<input class="form-control" name="inscricao_estadual" type="text" inputmode="numeric" value="${escapeHtml(buyer?.inscricao_estadual || '')}" required></label><label>CPF ou CNPJ<input class="form-control" name="cpf_cnpj" type="text" inputmode="numeric" value="${escapeHtml(buyer?.cpf_cnpj || '')}" required></label></div>
+      <div class="contracts-form-actions"><button class="btn-primary-action" type="submit">Salvar comprador</button><a class="btn-secondary-action" href="/admin/contratos#compradores">Cancelar</a></div>
+    </form>`,
+  });
+}
+
+function renderAdminSellerFormPage(res, { seller, error }) {
+  const action = seller ? `/admin/contratos/vendedores/${escapeHtml(seller.id)}` : '/admin/contratos/vendedores';
+  return renderContractFormPage(res, {
+    pageTitle: seller ? 'Editar vendedor' : 'Novo vendedor', formTitle: seller ? 'Editar vendedor' : 'Novo vendedor', formDescription: 'Preencha os dados cadastrais do vendedor.', error,
+    formHtml: `<form class="contact-form contracts-form" action="${action}" method="post"><div class="contracts-form-grid contracts-form-grid-two"><label>Nome<input class="form-control" name="nome" type="text" value="${escapeHtml(seller?.nome || '')}" required></label><label>Nome completo<input class="form-control" name="nome_completo" type="text" value="${escapeHtml(seller?.nome_completo || '')}" required></label></div><div class="contracts-form-actions"><button class="btn-primary-action" type="submit">Salvar vendedor</button><a class="btn-secondary-action" href="/admin/contratos#vendedores">Cancelar</a></div></form>`,
+  });
+}
+
+function renderAdminContractFormPage(res, { buyers, sellers, contract, contractStatusFilter = 'abertos', error }) {
+  const action = contract ? `/admin/contratos/contratos/${escapeHtml(contract.id)}` : '/admin/contratos/contratos';
+  const buyerOptions = buyers.map((buyer) => buildOption(buyer.id, buyer.nome, contract?.comprador_id)).join('');
+  const sellerOptions = sellers.map((seller) => buildOption(seller.id, seller.nome, contract?.vendedor_id)).join('');
+  const statusInput = contractStatusFilter === 'todos' ? '<input name="status" type="hidden" value="todos">' : '';
+  return renderContractFormPage(res, { pageTitle: contract ? 'Editar contrato' : 'Novo contrato', formTitle: contract ? 'Editar contrato' : 'Novo contrato', formDescription: 'Preencha os dados comerciais, fiscais e logísticos do contrato.', error,
+    formHtml: `<form class="contact-form contracts-form" action="${action}" method="post">${statusInput}<div class="contracts-form-grid"><label>Data do contrato<input class="form-control" name="data_contrato" type="date" value="${escapeHtml(toDateOnlyInputValue(contract?.data_contrato))}" required></label><label>Produto<select class="form-control" name="produto" required><option value="">Selecione</option><option value="milho"${contract?.produto === 'milho' ? ' selected' : ''}>Milho</option><option value="soja"${contract?.produto === 'soja' ? ' selected' : ''}>Soja</option></select></label><label>Preço por saca<input class="form-control" name="preco_por_saca" type="number" min="0" step="0.01" inputmode="decimal" value="${escapeHtml(formatDecimalInput(contract?.preco_por_saca))}" required></label><label>Comprador<select class="form-control" name="comprador_id" required><option value="">Selecione</option>${buyerOptions}</select></label><label>Vendedor<select class="form-control" name="vendedor_id" required><option value="">Selecione</option>${sellerOptions}</select></label><label>Quantidade em kg<input class="form-control" name="quantidade_kg" type="number" min="0" step="0.01" inputmode="decimal" value="${escapeHtml(formatDecimalInput(contract?.quantidade_kg))}" required></label><label>Data de recebimento<input class="form-control" name="data_recebimento" type="date" value="${escapeHtml(toDateOnlyInputValue(contract?.data_recebimento))}"></label><label>Corretor<input class="form-control" name="corretor" type="text" value="${escapeHtml(contract?.corretor || '')}"></label><label>Valor da corretagem (%)<input class="form-control" name="valor_corretagem_percentual" type="number" min="0" step="0.01" inputmode="decimal" value="${escapeHtml(formatDecimalInput(contract?.valor_corretagem_percentual))}"></label></div><div class="contracts-check-grid"><label class="contracts-checkbox"><input name="contrato_embarcado" type="checkbox"${contract?.contrato_embarcado ? ' checked' : ''}> Contrato embarcado</label><label class="contracts-checkbox"><input name="contrato_recebido" type="checkbox"${contract?.contrato_recebido ? ' checked' : ''}> Contrato recebido</label><label class="contracts-checkbox"><input name="corretagem_paga" type="checkbox"${contract?.corretagem_paga ? ' checked' : ''}> Corretagem paga</label></div><details class="contracts-advanced-fields"><summary class="btn-secondary-action contracts-advanced-toggle">avançado</summary><div class="contracts-form-grid"><label>Inscrição estadual do vendedor<input class="form-control" name="inscricao_estadual_vendedor" type="text" value="${escapeHtml(contract?.inscricao_estadual_vendedor || '')}"></label><label>Natureza da Operação<input class="form-control" name="natureza_operacao" type="text" value="${escapeHtml(contract?.natureza_operacao || '')}"></label><label>CFOP<input class="form-control" name="cfop" type="text" value="${escapeHtml(contract?.cfop || '')}"></label><label>Razão social da transportadora<input class="form-control" name="razao_social_transportadora" type="text" value="${escapeHtml(contract?.razao_social_transportadora || '')}"></label><label>CNPJ da transportadora<input class="form-control" name="cnpj_transportadora" type="text" value="${escapeHtml(contract?.cnpj_transportadora || '')}"></label><label>Inscrição Estadual da Transportadora<input class="form-control" name="inscricao_estadual_transportadora" type="text" value="${escapeHtml(contract?.inscricao_estadual_transportadora || '')}"></label><label>UF da transportadora<input class="form-control" name="uf_transportadora" type="text" maxlength="2" value="${escapeHtml(contract?.uf_transportadora || '')}"></label><label>E-mail<input class="form-control" name="email" type="email" value="${escapeHtml(contract?.email || '')}"></label></div><label>Informações de interesse do contribuinte<textarea class="form-control" name="informacoes_interesse_contribuinte" rows="3">${escapeHtml(contract?.informacoes_interesse_contribuinte || '')}</textarea></label><label>Observações<textarea class="form-control" name="observacoes" rows="3">${escapeHtml(contract?.observacoes || '')}</textarea></label><p class="form-helper-text">Campos avançados em branco serão salvos como nulos.</p></details><div class="contracts-form-actions"><button class="btn-primary-action" type="submit">Salvar contrato</button><a class="btn-secondary-action" href="/admin/contratos#contratos">Cancelar</a></div></form>` });
+}
+
 function renderAdminContractsPage(res, { buyers, sellers, contracts, selectedBuyer, selectedSeller, selectedContract, contractStatusFilter = 'abertos', message, error }) {
+  if (selectedBuyer) {
+    return renderAdminBuyerFormPage(res, { buyer: selectedBuyer, error });
+  }
+
+  if (selectedSeller) {
+    return renderAdminSellerFormPage(res, { seller: selectedSeller, error });
+  }
+
+  if (selectedContract) {
+    return renderAdminContractFormPage(res, { buyers, sellers, contract: selectedContract, contractStatusFilter, error });
+  }
+
   const contractsPath = path.join(__dirname, '../../views/admin-contracts.html');
-  const buyerFormAction = selectedBuyer ? `/admin/contratos/compradores/${escapeHtml(selectedBuyer.id)}` : '/admin/contratos/compradores';
-  const sellerFormAction = selectedSeller ? `/admin/contratos/vendedores/${escapeHtml(selectedSeller.id)}` : '/admin/contratos/vendedores';
-  const contractFormAction = selectedContract ? `/admin/contratos/contratos/${escapeHtml(selectedContract.id)}` : '/admin/contratos/contratos';
   const contractEditStatusParam = contractStatusFilter === 'todos' ? { status: 'todos' } : {};
   const openContractsActiveClass = contractStatusFilter === 'abertos' ? ' is-active' : '';
   const allContractsActiveClass = contractStatusFilter === 'todos' ? ' is-active' : '';
@@ -477,99 +530,38 @@ function renderAdminContractsPage(res, { buyers, sellers, contracts, selectedBuy
     .map((buyer) => `
         <tr>
           <td>${escapeHtml(buyer.nome)}</td>
-          <td>${escapeHtml(buyer.nome_completo)}</td>
-          <td>${escapeHtml(`${buyer.endereco}, ${buyer.numero}`)}</td>
-          <td>${escapeHtml(buyer.cep)}</td>
-          <td>${escapeHtml(buyer.inscricao_estadual)}</td>
-          <td>${escapeHtml(buyer.cpf_cnpj)}</td>
-          <td><a class="admin-table-link" href="${escapeHtml(buildContractsPageHref({ comprador_id: buyer.id }))}#compradores">Editar</a></td>
+          <td><a class="admin-table-link" href="/admin/contratos/compradores/${escapeHtml(buyer.id)}/editar">Editar</a></td>
         </tr>
       `)
-    .join('') || '<tr><td colspan="7">Nenhum comprador cadastrado.</td></tr>';
+    .join('') || '<tr><td colspan="2">Nenhum comprador cadastrado.</td></tr>';
   const sellerRows = sellers
     .map((seller) => `
         <tr>
           <td>${escapeHtml(seller.nome)}</td>
-          <td>${escapeHtml(seller.nome_completo)}</td>
-          <td><a class="admin-table-link" href="${escapeHtml(buildContractsPageHref({ vendedor_id: seller.id }))}#vendedores">Editar</a></td>
+          <td><a class="admin-table-link" href="/admin/contratos/vendedores/${escapeHtml(seller.id)}/editar">Editar</a></td>
         </tr>
       `)
-    .join('') || '<tr><td colspan="3">Nenhum vendedor cadastrado.</td></tr>';
+    .join('') || '<tr><td colspan="2">Nenhum vendedor cadastrado.</td></tr>';
   const contractRows = contracts
     .map((contract) => `
         <tr>
           <td>${escapeHtml(formatDate(contract.data_contrato))}</td>
+          <td>${escapeHtml(contract.comprador_nome)}</td>
           <td>${escapeHtml(contract.produto)}</td>
           <td>${escapeHtml(formatMoney(contract.preco_por_saca))}</td>
-          <td>${escapeHtml(contract.comprador_nome)}</td>
-          <td>${escapeHtml(contract.vendedor_nome)}</td>
           <td>${escapeHtml(Number(contract.quantidade_kg).toLocaleString('pt-BR'))} kg</td>
-          <td>${escapeHtml(formatBooleanLabel(contract.contrato_embarcado))}</td>
-          <td>${escapeHtml(formatDate(contract.data_recebimento))}</td>
-          <td>${escapeHtml(formatBooleanLabel(contract.contrato_recebido))}</td>
-          <td>${escapeHtml(contract.corretor || '-')}</td>
-          <td>${contract.valor_corretagem_percentual === null || contract.valor_corretagem_percentual === undefined ? '-' : `${escapeHtml(Number(contract.valor_corretagem_percentual).toLocaleString('pt-BR'))}%`}</td>
-          <td>${escapeHtml(formatBooleanLabel(contract.corretagem_paga))}</td>
-          <td>${escapeHtml(contract.observacoes || '-')}</td>
-          <td><a class="admin-table-link" href="${escapeHtml(buildContractsPageHref({ ...contractEditStatusParam, contrato_id: contract.id }))}#contratos">Editar</a></td>
+          <td><a class="admin-table-link" href="${escapeHtml(buildContractsPageHref({ ...contractEditStatusParam })).replace('/admin/contratos', `/admin/contratos/contratos/${escapeHtml(contract.id)}/editar`)}">Editar</a></td>
         </tr>
       `)
-    .join('') || '<tr><td colspan="14">Nenhum contrato cadastrado.</td></tr>';
-  const buyerOptions = buyers.map((buyer) => buildOption(buyer.id, buyer.nome, selectedContract?.comprador_id)).join('');
-  const sellerOptions = sellers.map((seller) => buildOption(seller.id, seller.nome, selectedContract?.vendedor_id)).join('');
-
+    .join('') || '<tr><td colspan="6">Nenhum contrato cadastrado.</td></tr>';
   const contractsHtml = fs
     .readFileSync(contractsPath, 'utf8')
     .replace('{{CONTRACTS_MESSAGE}}', buildAlertHtml(message))
     .replace('{{CONTRACTS_ERROR}}', buildAlertHtml(error, 'error'))
     .replace('{{OPEN_CONTRACTS_ACTIVE_CLASS}}', openContractsActiveClass)
     .replace('{{ALL_CONTRACTS_ACTIVE_CLASS}}', allContractsActiveClass)
-    .replace(/{{BUYER_FORM_ACTION}}/g, buyerFormAction)
-    .replace('{{BUYER_FORM_TITLE}}', selectedBuyer ? 'Editar comprador' : 'Adicionar comprador')
-    .replace('{{BUYER_FORM_BUTTON}}', selectedBuyer ? 'Salvar comprador' : 'Adicionar comprador')
-    .replace('{{BUYER_CANCEL_LINK}}', selectedBuyer ? '<a class="btn-secondary-action" href="/admin/contratos#compradores">Cancelar edição</a>' : '')
-    .replace(/{{BUYER_NOME}}/g, escapeHtml(selectedBuyer?.nome || ''))
-    .replace(/{{BUYER_NOME_COMPLETO}}/g, escapeHtml(selectedBuyer?.nome_completo || ''))
-    .replace(/{{BUYER_ENDERECO}}/g, escapeHtml(selectedBuyer?.endereco || ''))
-    .replace(/{{BUYER_NUMERO}}/g, escapeHtml(selectedBuyer?.numero || ''))
-    .replace(/{{BUYER_CEP}}/g, escapeHtml(selectedBuyer?.cep || ''))
-    .replace(/{{BUYER_INSCRICAO_ESTADUAL}}/g, escapeHtml(selectedBuyer?.inscricao_estadual || ''))
-    .replace(/{{BUYER_CPF_CNPJ}}/g, escapeHtml(selectedBuyer?.cpf_cnpj || ''))
     .replace('{{BUYERS_ROWS}}', buyerRows)
-    .replace(/{{SELLER_FORM_ACTION}}/g, sellerFormAction)
-    .replace('{{SELLER_FORM_TITLE}}', selectedSeller ? 'Editar vendedor' : 'Adicionar vendedor')
-    .replace('{{SELLER_FORM_BUTTON}}', selectedSeller ? 'Salvar vendedor' : 'Adicionar vendedor')
-    .replace('{{SELLER_CANCEL_LINK}}', selectedSeller ? '<a class="btn-secondary-action" href="/admin/contratos#vendedores">Cancelar edição</a>' : '')
-    .replace(/{{SELLER_NOME}}/g, escapeHtml(selectedSeller?.nome || ''))
-    .replace(/{{SELLER_NOME_COMPLETO}}/g, escapeHtml(selectedSeller?.nome_completo || ''))
     .replace('{{SELLERS_ROWS}}', sellerRows)
-    .replace(/{{CONTRACT_FORM_ACTION}}/g, contractFormAction)
-    .replace('{{CONTRACT_FORM_TITLE}}', selectedContract ? 'Editar contrato' : 'Adicionar contrato')
-    .replace('{{CONTRACT_FORM_BUTTON}}', selectedContract ? 'Salvar contrato' : 'Adicionar contrato')
-    .replace('{{CONTRACT_CANCEL_LINK}}', selectedContract ? '<a class="btn-secondary-action" href="/admin/contratos#contratos">Cancelar edição</a>' : '')
-    .replace(/{{CONTRACT_DATA_CONTRATO}}/g, escapeHtml(toDateOnlyInputValue(selectedContract?.data_contrato)))
-    .replace('{{PRODUCT_MILHO_SELECTED}}', selectedContract?.produto === 'milho' ? ' selected' : '')
-    .replace('{{PRODUCT_SOJA_SELECTED}}', selectedContract?.produto === 'soja' ? ' selected' : '')
-    .replace(/{{CONTRACT_PRECO_POR_SACA}}/g, escapeHtml(formatDecimalInput(selectedContract?.preco_por_saca)))
-    .replace('{{BUYER_OPTIONS}}', buyerOptions)
-    .replace('{{SELLER_OPTIONS}}', sellerOptions)
-    .replace(/{{CONTRACT_QUANTIDADE_KG}}/g, escapeHtml(formatDecimalInput(selectedContract?.quantidade_kg)))
-    .replace('{{CONTRACT_EMBARCADO_CHECKED}}', selectedContract?.contrato_embarcado ? ' checked' : '')
-    .replace(/{{CONTRACT_DATA_RECEBIMENTO}}/g, escapeHtml(toDateOnlyInputValue(selectedContract?.data_recebimento)))
-    .replace('{{CONTRACT_RECEBIDO_CHECKED}}', selectedContract?.contrato_recebido ? ' checked' : '')
-    .replace(/{{CONTRACT_CORRETOR}}/g, escapeHtml(selectedContract?.corretor || ''))
-    .replace(/{{CONTRACT_VALOR_CORRETAGEM}}/g, escapeHtml(formatDecimalInput(selectedContract?.valor_corretagem_percentual)))
-    .replace('{{CONTRACT_CORRETAGEM_PAGA_CHECKED}}', selectedContract?.corretagem_paga ? ' checked' : '')
-    .replace(/{{CONTRACT_OBSERVACOES}}/g, escapeHtml(selectedContract?.observacoes || ''))
-    .replace(/{{CONTRACT_INSCRICAO_ESTADUAL_VENDEDOR}}/g, escapeHtml(selectedContract?.inscricao_estadual_vendedor || ''))
-    .replace(/{{CONTRACT_NATUREZA_OPERACAO}}/g, escapeHtml(selectedContract?.natureza_operacao || ''))
-    .replace(/{{CONTRACT_CFOP}}/g, escapeHtml(selectedContract?.cfop || ''))
-    .replace(/{{CONTRACT_INFORMACOES_INTERESSE_CONTRIBUINTE}}/g, escapeHtml(selectedContract?.informacoes_interesse_contribuinte || ''))
-    .replace(/{{CONTRACT_RAZAO_SOCIAL_TRANSPORTADORA}}/g, escapeHtml(selectedContract?.razao_social_transportadora || ''))
-    .replace(/{{CONTRACT_CNPJ_TRANSPORTADORA}}/g, escapeHtml(selectedContract?.cnpj_transportadora || ''))
-    .replace(/{{CONTRACT_INSCRICAO_ESTADUAL_TRANSPORTADORA}}/g, escapeHtml(selectedContract?.inscricao_estadual_transportadora || ''))
-    .replace(/{{CONTRACT_UF_TRANSPORTADORA}}/g, escapeHtml(selectedContract?.uf_transportadora || ''))
-    .replace(/{{CONTRACT_EMAIL}}/g, escapeHtml(selectedContract?.email || ''))
     .replace('{{CONTRACTS_ROWS}}', contractRows);
 
   res.send(contractsHtml);
@@ -607,6 +599,9 @@ module.exports = {
   renderAdminBatchDetailPage,
   renderAdminBatchesPage,
   renderAdminContractsPage,
+  renderAdminBuyerFormPage,
+  renderAdminSellerFormPage,
+  renderAdminContractFormPage,
   renderAdminDashboardPage,
   renderAdminHomePage,
   renderAdminStoragePage,
