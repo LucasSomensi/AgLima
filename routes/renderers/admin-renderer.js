@@ -545,6 +545,7 @@ function renderAdminContractsPage(res, { buyers, sellers, contracts, selectedBuy
   const contractRows = contracts
     .map((contract) => `
         <tr>
+          <td>${escapeHtml(contract.id)}</td>
           <td>${escapeHtml(formatDate(contract.data_contrato))}</td>
           <td>${escapeHtml(contract.comprador_nome)}</td>
           <td>${escapeHtml(contract.produto)}</td>
@@ -553,7 +554,7 @@ function renderAdminContractsPage(res, { buyers, sellers, contracts, selectedBuy
           <td><a class="admin-table-link" href="${escapeHtml(buildContractsPageHref({ ...contractEditStatusParam })).replace('/admin/contratos', `/admin/contratos/contratos/${escapeHtml(contract.id)}/editar`)}">Editar</a></td>
         </tr>
       `)
-    .join('') || '<tr><td colspan="6">Nenhum contrato cadastrado.</td></tr>';
+    .join('') || '<tr><td colspan="7">Nenhum contrato cadastrado.</td></tr>';
   const contractsHtml = fs
     .readFileSync(contractsPath, 'utf8')
     .replace('{{CONTRACTS_MESSAGE}}', buildAlertHtml(message))

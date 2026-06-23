@@ -1171,15 +1171,15 @@ button:disabled,
 }
 
 .contracts-table {
-  min-width: 1080px;
+  min-width: 0;
 }
 
 .contracts-table-compact {
-  min-width: 600px;
+  min-width: 0;
 }
 
 .contracts-main-table {
-  min-width: 1720px;
+  min-width: 820px;
 }
 
 @media (max-width: 980px) {
