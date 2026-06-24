@@ -115,6 +115,7 @@
  public       | saidas_balanca              |               11 | associado_em                       | timestamp with time zone    | YES         | 
  public       | saidas_balanca              |               12 | criado_em                          | timestamp with time zone    | NO          | now()
  public       | saidas_balanca              |               13 | atualizado_em                      | timestamp with time zone    | NO          | now()
+ public       | saidas_balanca              |               14 | peso_bruto_adicionado_em           | timestamp with time zone    | YES         | 
  public       | users                       |                1 | id                                 | uuid                        | NO          | gen_random_uuid()
  public       | users                       |                2 | login                              | character varying           | NO          | 
  public       | users                       |                3 | password_hash                      | text                        | NO          | 
