@@ -290,7 +290,8 @@ function renderScaleOutputGrossFormPage(res, { output, formValues = {}, error, n
     .replace('{{SCALE_OUTPUT_ERROR}}', buildAlertHtml(error, 'error'))
     .replace(/{{SAIDA_ID}}/g, escapeHtml(output.id))
     .replace('{{OUTPUT_SUMMARY}}', escapeHtml(`${formatDateTime(output.data_saida)} · ${output.placa_caminhao} · ${formatProductLabel(output.produto)} · tara ${formatKg(output.peso_tara_kg)}`))
-    .replace(/{{PESO_BRUTO_KG}}/g, escapeHtml(formatDecimalInput(formValues.peso_bruto_kg))), navigation);
+    .replace(/{{PESO_BRUTO_KG}}/g, escapeHtml(formatDecimalInput(formValues.peso_bruto_kg)))
+    .replace(/{{PESO_BRUTO_ADICIONADO_EM}}/g, escapeHtml(formValues.peso_bruto_adicionado_em || toDateTimeLocalValue())), navigation);
 
   res.send(html);
 }

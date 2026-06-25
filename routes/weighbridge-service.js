@@ -148,12 +148,17 @@ function buildScaleOutputPayload(body) {
 
 function buildScaleOutputGrossPayload(body) {
   const pesoBrutoKg = normalizeDecimal(body.peso_bruto_kg);
+  const pesoBrutoAdicionadoEm = parseOptionalDateTime(body.peso_bruto_adicionado_em);
 
   if (!pesoBrutoKg) {
     return { error: 'Informe um peso bruto válido.' };
   }
 
-  return { payload: { pesoBrutoKg } };
+  if (!pesoBrutoAdicionadoEm) {
+    return { error: 'Informe uma data e hora válidas para o peso bruto.' };
+  }
+
+  return { payload: { pesoBrutoKg, pesoBrutoAdicionadoEm } };
 }
 
 async function createScaleOutput(payload, userId) {
@@ -685,7 +690,7 @@ async function addScaleInputTare(inputId, pesoTaraKg, userId) {
   return result.rows[0] || null;
 }
 
-async function addScaleOutputGross(outputId, pesoBrutoKg, user) {
+async function addScaleOutputGross(outputId, payload, user) {
   ensureDatabaseConfigured();
 
   const client = await pool.connect();
@@ -705,13 +710,14 @@ async function addScaleOutputGross(outputId, pesoBrutoKg, user) {
       `
         UPDATE saidas_balanca
         SET peso_bruto_kg = $2,
+            peso_bruto_adicionado_em = $3,
             atualizado_em = now()
         WHERE id = $1
           AND peso_bruto_kg IS NULL
           AND $2 > peso_tara_kg
         RETURNING *
       `,
-      [outputId, pesoBrutoKg]
+      [outputId, payload.pesoBrutoKg, payload.pesoBrutoAdicionadoEm]
     );
     const updatedOutput = result.rows[0] || null;
 

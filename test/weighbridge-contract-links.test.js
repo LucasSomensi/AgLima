@@ -3,6 +3,7 @@ const test = require('node:test');
 const {
   renderScaleOutputDetailPage,
   renderScaleOutputFormPage,
+  renderScaleOutputGrossFormPage,
   renderScaleOutputsListPage,
   renderWeighbridgeHomePage,
 } = require('../routes/renderers');
@@ -107,6 +108,18 @@ test('output form collects tare before gross weight', () => {
   assert.doesNotMatch(html, /name="peso_bruto_kg"/);
 });
 
+
+test('output gross form collects gross timestamp and weight', () => {
+  const html = renderPage(renderScaleOutputGrossFormPage, {
+    output: { ...outputWithContract, peso_bruto_kg: null, peso_liquido_kg: null, peso_tara_kg: '12000' },
+    formValues: { peso_bruto_adicionado_em: '2026-06-12T11:45', peso_bruto_kg: '30000' },
+    error: '',
+  });
+
+  assert.match(html, /name="peso_bruto_adicionado_em"[^>]+type="datetime-local"[^>]+value="2026-06-12T11:45"/);
+  assert.match(html, /name="peso_bruto_kg"[^>]+value="30000"/);
+});
+
 test('output payload creates output with tare and validates gross separately', () => {
   const outputPayload = buildScaleOutputPayload({
     data_saida: '2026-06-12T09:30',
@@ -114,13 +127,17 @@ test('output payload creates output with tare and validates gross separately', (
     produto: 'milho',
     peso_tara_kg: '12000',
   });
-  const grossPayload = buildScaleOutputGrossPayload({ peso_bruto_kg: '30000' });
+  const grossPayload = buildScaleOutputGrossPayload({
+    peso_bruto_kg: '30000',
+    peso_bruto_adicionado_em: '2026-06-12T11:45',
+  });
 
   assert.equal(outputPayload.error, undefined);
   assert.equal(outputPayload.payload.placaCaminhao, 'ABC1D23');
   assert.equal(outputPayload.payload.pesoTaraKg, '12000');
   assert.equal(outputPayload.payload.pesoBrutoKg, undefined);
-  assert.deepEqual(grossPayload.payload, { pesoBrutoKg: '30000' });
+  assert.equal(grossPayload.payload.pesoBrutoKg, '30000');
+  assert.ok(grossPayload.payload.pesoBrutoAdicionadoEm instanceof Date);
 });
 
 const { buildScaleInputsCsv, buildScaleOutputsCsv } = require('../routes/weighbridge-csv');
