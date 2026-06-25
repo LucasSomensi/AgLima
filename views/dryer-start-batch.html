@@ -28,6 +28,7 @@
         {{DRYER_ERROR}}
 
         <form class="dryer-start-batch-form" action="/secador/bateladas" method="post" data-confirm-message="Confirmar início da nova batelada com a umidade inicial informada?" data-loading-message="Iniciando batelada...">
+            <input type="hidden" name="_csrf" value="{{CSRF_TOKEN}}">
           <label class="dryer-field-label" for="initial_moisture">Umidade inicial (%)</label>
           <input class="form-control" id="initial_moisture" name="initial_moisture" type="number" min="5" max="50" step="0.01" value="{{DEFAULT_INITIAL_MOISTURE}}" aria-label="Umidade inicial em porcentagem" inputmode="decimal" required>
           <p class="dryer-action-helper">O valor padrão usa a média das 5 últimas entradas da balança com umidade disponível. Se não houver 5 entradas, o padrão é 28%.</p>

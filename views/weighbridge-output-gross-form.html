@@ -27,6 +27,7 @@
         <p class="admin-muted">{{OUTPUT_SUMMARY}}</p>
 
         <form class="contact-form contracts-form" action="/balanca/saidas/{{SAIDA_ID}}/bruto" method="post">
+            <input type="hidden" name="_csrf" value="{{CSRF_TOKEN}}">
           <div class="contracts-form-grid contracts-form-grid-two">
             <label>Data e hora do peso bruto
               <input class="form-control" name="peso_bruto_adicionado_em" type="datetime-local" value="{{PESO_BRUTO_ADICIONADO_EM}}" required>

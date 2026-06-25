@@ -25,6 +25,7 @@
         {{SCALE_OUTPUT_ERROR}}
 
         <form class="contact-form contracts-form" action="/balanca/saidas" method="post">
+            <input type="hidden" name="_csrf" value="{{CSRF_TOKEN}}">
           <div class="contracts-form-grid contracts-form-grid-two">
             <label>Data e hora da saída
               <input class="form-control" name="data_saida" type="datetime-local" value="{{DATA_SAIDA}}" required>

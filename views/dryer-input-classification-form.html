@@ -29,6 +29,7 @@
         <p class="page-description">{{INPUT_SUMMARY}}</p>
 
         <form class="contact-form contracts-form dryer-mobile-classification-form" action="/secador/entradas/{{ENTRADA_ID}}/classificacao" method="post" data-loading-message="Salvando classificação...">
+            <input type="hidden" name="_csrf" value="{{CSRF_TOKEN}}">
           <label>Umidade (%)
             <input class="form-control" name="umidade_percent" type="number" min="0" max="100" step="0.001" value="{{UMIDADE_PERCENT}}" inputmode="decimal" required autofocus>
           </label>

@@ -26,6 +26,7 @@
         <p class="page-description">{{INPUT_SUMMARY}}</p>
 
         <form class="contact-form contracts-form" action="/balanca/entradas/{{ENTRADA_ID}}/origem" method="post">
+            <input type="hidden" name="_csrf" value="{{CSRF_TOKEN}}">
           <div class="contracts-form-grid contracts-form-grid-two">
             <label>Origem
               <input class="form-control" name="origem" type="text" maxlength="200" value="{{ORIGEM}}" placeholder="Fazenda São José" required>

@@ -26,6 +26,7 @@
         <p class="page-description">{{INPUT_SUMMARY}}</p>
 
         <form class="contact-form contracts-form" action="/balanca/entradas/{{ENTRADA_ID}}/tara" method="post">
+            <input type="hidden" name="_csrf" value="{{CSRF_TOKEN}}">
           <div class="contracts-form-grid contracts-form-grid-two">
             <label>Peso tara (kg)
               <input class="form-control" name="peso_tara_kg" type="number" min="0.001" step="0.001" value="{{PESO_TARA_KG}}" inputmode="decimal" required>

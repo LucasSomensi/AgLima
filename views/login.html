@@ -22,6 +22,7 @@
         {{LOGIN_ERROR}}
 
         <form class="contact-form login-form" action="/login" method="post">
+            <input type="hidden" name="_csrf" value="{{CSRF_TOKEN}}">
           <div class="form-group">
             <label for="login">Login</label>
             <input class="form-control" id="login" name="login" type="text" placeholder="Digite seu login" autocomplete="username" required autofocus>

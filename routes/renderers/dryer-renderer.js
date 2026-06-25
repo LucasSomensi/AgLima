@@ -130,6 +130,7 @@ function renderDryerPanelPage(res, { batch, readings, settings, message, error, 
   const stopDryerAction = batch
     ? `
           <form class="dryer-stop-action" action="/secador/bateladas/parar" method="post" data-confirm-message="Parar o secador e concluir a batelada atual?" data-loading-message="Parando batelada...">
+                <input type="hidden" name="_csrf" value="{{CSRF_TOKEN}}">
             <button class="btn-danger-action" type="submit">Parar secador</button>
           </form>`
     : '';
@@ -144,6 +145,7 @@ function renderDryerPanelPage(res, { batch, readings, settings, message, error, 
     INITIAL_MOISTURE: escapeHtml(initialMoisture),
     BATCH_ACTION_URL: escapeHtml(batchAction.action),
     BATCH_ACTION_METHOD: escapeHtml(batchAction.method || 'post'),
+    BATCH_ACTION_CSRF_INPUT: (batchAction.method || 'post') === 'post' ? '<input type="hidden" name="_csrf" value="{{CSRF_TOKEN}}">' : '',
     BATCH_ACTION_CONFIRM: escapeHtml(batchAction.confirm),
     BATCH_ACTION_CLASS: escapeHtml(batchAction.cssClass),
     BATCH_ACTION_LABEL: escapeHtml(batchAction.label),

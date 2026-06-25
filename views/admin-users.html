@@ -21,6 +21,7 @@
             <p class="page-description">Crie logins para administradores, clientes e operadores, ou remova usuários que não devem mais acessar o sistema.</p>
           </div>
           <form action="/logout" method="post">
+            <input type="hidden" name="_csrf" value="{{CSRF_TOKEN}}">
             <button class="btn-secondary-action" type="submit">Sair</button>
           </form>
         </div>
@@ -31,6 +32,7 @@
         <section class="admin-section" aria-labelledby="new-user-title">
           <h2 id="new-user-title">Adicionar usuário</h2>
           <form class="contact-form admin-user-form" action="/admin/usuarios" method="post">
+            <input type="hidden" name="_csrf" value="{{CSRF_TOKEN}}">
             <div class="form-row">
               <div class="form-group col-md-4">
                 <label for="login">Login</label>
