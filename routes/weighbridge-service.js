@@ -1314,7 +1314,9 @@ async function getScaleOutputDetailInfo(outputId) {
              s.produto,
              s.peso_tara_kg,
              s.peso_bruto_kg,
+             s.peso_bruto_adicionado_em,
              s.peso_liquido_kg,
+             u.login AS operador_login,
              c.id AS contrato_id,
              c.data_contrato,
              c.preco_por_saca,
@@ -1340,6 +1342,7 @@ async function getScaleOutputDetailInfo(outputId) {
              comp.numero AS comprador_numero,
              comp.cep AS comprador_cep
       FROM saidas_balanca s
+      LEFT JOIN users u ON u.id = s.criado_por_user_id
       LEFT JOIN contratos c ON c.id = s.contrato_id
       LEFT JOIN vendedores vend ON vend.id = c.vendedor_id
       LEFT JOIN compradores comp ON comp.id = c.comprador_id
@@ -1351,7 +1354,9 @@ async function getScaleOutputDetailInfo(outputId) {
                s.produto,
                s.peso_tara_kg,
                s.peso_bruto_kg,
+               s.peso_bruto_adicionado_em,
                s.peso_liquido_kg,
+               u.login,
                c.id,
                vend.nome_completo,
                comp.nome_completo,

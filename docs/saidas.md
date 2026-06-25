@@ -136,6 +136,7 @@ Cada campo exibido possui botão “Copiar”, útil para conferência ou transc
 
 - “Associar contrato”, se a saída ainda não possui contrato, mesmo antes do peso bruto.
 - “Ver informações NF”, se a saída já possui contrato.
+- “Imprimir ticket”, exibido ao lado da ação fiscal. O botão fica indisponível enquanto faltar peso bruto ou associação com contrato; depois que a saída tiver `peso_bruto_kg`, `peso_liquido_kg` e `contrato_id`, o botão abre `/balanca/saidas/:id/ticket.pdf` em uma nova aba.
 
 Na mesma tela ficam as ações de divisão e deleção quando já há peso líquido. Enquanto o peso bruto está pendente, a tela mostra a ação de adicionar bruto e mantém a deleção disponível; a associação ao contrato continua disponível pelo link contextual.
 
@@ -187,7 +188,33 @@ Se houver contrato, a tela exibe:
 
 Todos os campos relevantes possuem botão “Copiar”. O preço por kg é calculado na query com `round(preco_por_saca / 60, 10)` e o preço por ton com `round(preco_por_saca / 60 * 1000, 10)`, limitando ambos a no máximo 10 casas decimais.
 
-### 7. Dividir uma saída
+### 7. Emitir ticket de pesagem da saída
+
+O ticket de pesagem da saída é gerado em PDF por `GET /balanca/saidas/:id/ticket.pdf`. A rota usa os mesmos controles de acesso da balança e consulta `getScaleOutputDetailInfo`, porque o ticket combina dados operacionais da saída com dados do contrato, vendedor, comprador e usuário operador.
+
+A geração só é permitida quando:
+
+- a saída existe;
+- o peso bruto já foi adicionado (`peso_bruto_kg` preenchido);
+- o peso líquido já foi calculado (`peso_liquido_kg` preenchido);
+- a saída já foi associada a um contrato (`contrato_id` preenchido).
+
+Quando alguma dessas condições não é atendida, a rota retorna para `/balanca/saidas/:id` com erro e a interface mantém o botão “Imprimir ticket” com aparência indisponível. Na tela de detalhes, o botão indisponível usa o mesmo padrão visual de botões desabilitados, como o botão de deleção antes do preenchimento do motivo.
+
+O PDF é montado com a biblioteca `pdfkit` em uma página estreita, adequada para impressoras térmicas de bobina de 80 mm, como a Epson T20X. O arquivo é servido inline com nome `ticket-saida-:id.pdf`.
+
+O layout contém:
+
+- cabeçalho `Fazenda São José`;
+- número do ticket, usando `saidas_balanca.id`;
+- operador, usando `users.login` do usuário que criou a saída;
+- placa, produto, vendedor e comprador;
+- tara com `peso_tara_kg` e data/hora de `data_saida`;
+- bruto com `peso_bruto_kg` e data/hora de `peso_bruto_adicionado_em`;
+- peso líquido com `peso_liquido_kg`;
+- linhas para assinatura do vendedor e do comprador.
+
+### 8. Dividir uma saída
 
 A divisão é feita na tela de detalhes, em `/balanca/saidas/:id`, pelo formulário “Dividir saída”. O operador informa o peso líquido desejado para a primeira saída.
 
@@ -211,7 +238,7 @@ Efeito importante: se a saída original já estava associada a um contrato, a as
 
 Após sucesso, o operador volta para `/balanca` com “Saída dividida com sucesso.”
 
-### 8. Deletar uma saída
+### 9. Deletar uma saída
 
 A tela de detalhes possui o campo “Motivo da deleção” antes do botão “Deletar saída”, com confirmação no navegador. O botão fica desabilitado até o motivo ter pelo menos 20 caracteres. O `POST /balanca/saidas/:id/deletar` valida o motivo e executa `deleteScaleOutput` em transação:
 
@@ -222,7 +249,7 @@ A tela de detalhes possui o campo “Motivo da deleção” antes do botão “D
 
 Após sucesso, o operador volta para `/balanca` com “Saída deletada com sucesso.”
 
-### 9. Desvincular uma saída de contrato
+### 10. Desvincular uma saída de contrato
 
 A ação de desvincular aparece na tela de informações NF quando a saída está associada. O formulário chama `POST /balanca/saidas/:id/desvincular-contrato`.
 
@@ -237,7 +264,7 @@ A ação de desvincular aparece na tela de informações NF quando a saída est�
 
 Após sucesso, o operador volta para `/balanca/saidas/:id/nf` com a mensagem “Contrato desvinculado da saída com sucesso.” Como a saída fica sem contrato, a tela passa a oferecer associação novamente.
 
-### 10. Consultar contratos pendentes pela balança
+### 11. Consultar contratos pendentes pela balança
 
 O operador também pode acessar `/balanca/contratos`, que lista contratos com embarque pendente. A lista considera contratos cujo `contrato_embarcado IS NOT TRUE` e cujo saldo calculado é positivo.
 
@@ -306,4 +333,4 @@ As mensagens de criação, deleção, divisão e associação retornam para `/ba
 - `refreshContractShippedStatus` não altera `contrato_embarcado`; a função permanece inofensiva para chamadas existentes e documenta que a finalização do contrato é manual.
 - A lista de saídas e as listas de contratos calculam saldos por agregação de `saidas_balanca.peso_liquido_kg`; qualquer mudança no cálculo de peso líquido ou na associação impacta esses saldos.
 - A página de NF depende de joins com `contratos`, `compradores` e `vendedores`; campos cadastrais faltantes nesses cadastros afetam a conferência da nota.
-- A rota genérica `GET /balanca/saidas/:id` fica depois das rotas específicas `/associar` e `/nf`, evitando conflito de roteamento.
+- A rota genérica `GET /balanca/saidas/:id` fica depois das rotas específicas `/associar`, `/nf` e `/ticket.pdf`, evitando conflito de roteamento.

@@ -425,10 +425,28 @@ function renderScaleOutputAssociationPage(res, { output, buyers, contracts, sele
 
 function buildScaleOutputInvoiceLinkHtml(outputInfo) {
   if (outputInfo.contrato_id) {
-    return `<p><a class="btn-secondary-action" href="/balanca/saidas/${escapeHtml(outputInfo.saida_id)}/nf">Ver informações NF</a></p>`;
+    const canPrintTicket = outputInfo.peso_bruto_kg !== null
+      && outputInfo.peso_bruto_kg !== undefined
+      && outputInfo.peso_liquido_kg !== null
+      && outputInfo.peso_liquido_kg !== undefined;
+    const ticketButton = canPrintTicket
+      ? `<a class="btn-secondary-action" href="/balanca/saidas/${escapeHtml(outputInfo.saida_id)}/ticket.pdf" target="_blank" rel="noopener">Imprimir ticket</a>`
+      : '<button class="btn-secondary-action" type="button" disabled>Imprimir ticket</button>';
+
+    return `
+          <div class="weighbridge-output-actions">
+            <a class="btn-secondary-action" href="/balanca/saidas/${escapeHtml(outputInfo.saida_id)}/nf">Ver informações NF</a>
+            ${ticketButton}
+          </div>
+    `;
   }
 
-  return `<p><a class="btn-secondary-action" href="/balanca/saidas/${escapeHtml(outputInfo.saida_id)}/associar">Associar contrato</a></p>`;
+  return `
+          <div class="weighbridge-output-actions">
+            <a class="btn-secondary-action" href="/balanca/saidas/${escapeHtml(outputInfo.saida_id)}/associar">Associar contrato</a>
+            <button class="btn-secondary-action" type="button" disabled>Imprimir ticket</button>
+          </div>
+  `;
 }
 
 function buildCopyFieldHtml(label, value, options = {}) {

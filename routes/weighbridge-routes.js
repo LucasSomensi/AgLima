@@ -53,6 +53,7 @@ const {
 } = require('./renderers/weighbridge-renderer');
 const { buildRedirect } = require('./utils');
 const { buildScaleInputsCsv, buildScaleOutputsCsv } = require('./weighbridge-csv');
+const { buildScaleOutputTicketPdf } = require('./weighbridge-ticket-pdf');
 
 const router = express.Router();
 const canAccessWeighbridge = requireRole(ROLES.WEIGHBRIDGE_OPERATOR, ROLES.ADMIN);
@@ -723,6 +724,39 @@ router.get('/balanca/saidas/:id/nf', canAccessWeighbridge, async (req, res) => {
   } catch (error) {
     console.error('Error loading scale output invoice info:', error.message);
     return res.redirect(buildWeighbridgeRedirect({ error: 'Não foi possível carregar as informações da NF agora.' }));
+  }
+});
+
+router.get('/balanca/saidas/:id/ticket.pdf', canAccessWeighbridge, async (req, res) => {
+  try {
+    const outputInfo = await getScaleOutputDetailInfo(req.params.id);
+
+    if (!outputInfo) {
+      return res.redirect(buildWeighbridgeRedirect({ error: 'Saída não encontrada.' }));
+    }
+
+    const ticketUnavailable = !outputInfo.contrato_id
+      || outputInfo.peso_bruto_kg === null
+      || outputInfo.peso_bruto_kg === undefined
+      || outputInfo.peso_liquido_kg === null
+      || outputInfo.peso_liquido_kg === undefined;
+
+    if (ticketUnavailable) {
+      return res.redirect(buildRedirect(`/balanca/saidas/${req.params.id}`, {
+        error: 'O ticket só fica disponível após adicionar o peso bruto e associar contrato.',
+      }));
+    }
+
+    const pdfBuffer = await buildScaleOutputTicketPdf(outputInfo);
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="ticket-saida-${outputInfo.saida_id}.pdf"`);
+    return res.send(pdfBuffer);
+  } catch (error) {
+    console.error('Error generating scale output ticket PDF:', error.message);
+    return res.redirect(buildRedirect(`/balanca/saidas/${req.params.id}`, {
+      error: 'Não foi possível gerar o ticket de pesagem agora.',
+    }));
   }
 });
 

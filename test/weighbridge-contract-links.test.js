@@ -12,6 +12,7 @@ const {
   buildScaleOutputPayload,
   buildScaleOutputGrossPayload,
 } = require('../routes/weighbridge-service');
+const { buildTicketLines } = require('../routes/weighbridge-ticket-pdf');
 
 const outputWithContract = {
   id: 7,
@@ -284,6 +285,88 @@ test('output detail requires a deletion reason before enabling delete', () => {
   assert.match(html, /src="\/js\/deletion-reason.js"/);
 });
 
+test('output detail enables ticket printing only after gross weight and contract association', () => {
+  const completeHtml = renderPage(renderScaleOutputDetailPage, {
+    outputInfo: {
+      saida_id: 7,
+      data_saida: '2026-06-11T12:30:00.000Z',
+      placa_caminhao: 'ABC1D23',
+      produto: 'milho',
+      peso_tara_kg: '10000',
+      peso_bruto_kg: '42000',
+      peso_liquido_kg: '32000',
+      contrato_id: 42,
+      contrato_saldo_kg: '5000',
+    },
+    error: '',
+  });
+  const pendingGrossHtml = renderPage(renderScaleOutputDetailPage, {
+    outputInfo: {
+      saida_id: 7,
+      data_saida: '2026-06-11T12:30:00.000Z',
+      placa_caminhao: 'ABC1D23',
+      produto: 'milho',
+      peso_tara_kg: '10000',
+      peso_bruto_kg: null,
+      peso_liquido_kg: null,
+      contrato_id: 42,
+    },
+    error: '',
+  });
+  const pendingContractHtml = renderPage(renderScaleOutputDetailPage, {
+    outputInfo: {
+      saida_id: 7,
+      data_saida: '2026-06-11T12:30:00.000Z',
+      placa_caminhao: 'ABC1D23',
+      produto: 'milho',
+      peso_tara_kg: '10000',
+      peso_bruto_kg: '42000',
+      peso_liquido_kg: '32000',
+      contrato_id: null,
+    },
+    error: '',
+  });
+
+  assert.match(completeHtml, /href="\/balanca\/saidas\/7\/ticket\.pdf"[^>]*>Imprimir ticket/);
+  assert.doesNotMatch(completeHtml, /type="button" disabled>Imprimir ticket/);
+  assert.match(pendingGrossHtml, /<button class="btn-secondary-action" type="button" disabled>Imprimir ticket<\/button>/);
+  assert.doesNotMatch(pendingGrossHtml, /href="\/balanca\/saidas\/7\/ticket\.pdf"/);
+  assert.match(pendingContractHtml, /<button class="btn-secondary-action" type="button" disabled>Imprimir ticket<\/button>/);
+  assert.doesNotMatch(pendingContractHtml, /href="\/balanca\/saidas\/7\/ticket\.pdf"/);
+});
+
+test('ticket lines render requested output weighing fields', () => {
+  const lines = buildTicketLines({
+    saida_id: 7,
+    operador_login: 'operador-balanca',
+    placa_caminhao: 'ABC1D23',
+    produto: 'milho',
+    vendedor_nome_completo: 'Vendedor Completo',
+    comprador_nome_completo: 'Comprador Completo LTDA',
+    data_saida: '2026-06-11T12:30:00.000Z',
+    peso_bruto_adicionado_em: '2026-06-11T17:45:00.000Z',
+    peso_tara_kg: '10000',
+    peso_bruto_kg: '42000',
+    peso_liquido_kg: '32000',
+  });
+
+  assert.deepEqual(lines.slice(0, 8), [
+    '------------------------------',
+    'Fazenda São José',
+    '',
+    'Ticket: 7',
+    'Operador: operador-balanca',
+    'Placa: ABC1D23',
+    'Produto: Milho',
+    'Vendedor: Vendedor Completo',
+  ]);
+  assert.equal(lines[8], 'Comprador: Comprador Completo LTDA');
+  assert.match(lines[10], /^Tara: 10000 kg /);
+  assert.match(lines[11], /^Bruto: 42000 kg /);
+  assert.equal(lines[12], 'PLiq: 32000 kg');
+  assert.equal(lines.at(-2), 'Ass Comprador: _________________');
+});
+
 test('deletion reason payload normalizes and validates minimum length', () => {
   const invalidPayload = buildDeletionReasonPayload({ motivo_delecao: 'curto' });
   const validPayload = buildDeletionReasonPayload({ motivo_delecao: '  Correção   operacional necessária  ' });
@@ -424,4 +507,3 @@ test('output invoice uses default NF values when optional contract fields are nu
   assert.match(html, /<dt>Natureza da operação<\/dt><dd><span class="copy-field-value">Venda<\/span>/);
   assert.match(html, /<dt>CFOP<\/dt><dd><span class="copy-field-value">5101<\/span>/);
 });
-
