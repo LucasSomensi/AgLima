@@ -20,6 +20,7 @@
             <h1 id="weighbridge-title" class="page-title">Balança</h1>
           </div>
           <form action="/logout" method="post">
+            <input type="hidden" name="_csrf" value="{{CSRF_TOKEN}}">
             <button class="btn-secondary-action" type="submit">Sair</button>
           </form>
         </div>

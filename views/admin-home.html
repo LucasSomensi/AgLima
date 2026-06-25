@@ -21,6 +21,7 @@
             <p class="page-description">Escolha qual módulo deseja acessar.</p>
           </div>
           <form action="/logout" method="post">
+            <input type="hidden" name="_csrf" value="{{CSRF_TOKEN}}">
             <button class="btn-secondary-action" type="submit">Sair</button>
           </form>
         </div>

@@ -36,6 +36,7 @@
         </form>
 
         <form class="contact-form contracts-form" action="/balanca/saidas/{{OUTPUT_ID}}/associar" method="post">
+            <input type="hidden" name="_csrf" value="{{CSRF_TOKEN}}">
           <input type="hidden" name="comprador_id" value="{{SELECTED_BUYER_ID}}">
           <label>Contrato disponível
             <select class="form-control" name="contrato_id" required {{ASSOCIATE_DISABLED}}>

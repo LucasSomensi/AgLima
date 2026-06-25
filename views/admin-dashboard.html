@@ -22,6 +22,7 @@
             <a class="back-link admin-back-link" href="/admin">← Voltar à administração</a>
           </div>
           <form action="/logout" method="post">
+            <input type="hidden" name="_csrf" value="{{CSRF_TOKEN}}">
             <button class="btn-secondary-action" type="submit">Sair</button>
           </form>
         </div>
@@ -59,6 +60,7 @@
         <section class="admin-section" aria-labelledby="target-moisture-title">
           <h2 id="target-moisture-title">Alterar umidade alvo</h2>
           <form class="dryer-moisture-form admin-target-form" action="/admin/umidade-alvo" method="post">
+            <input type="hidden" name="_csrf" value="{{CSRF_TOKEN}}">
             <label class="sr-only" for="target_moisture">Nova umidade alvo em porcentagem</label>
             <input class="form-control" id="target_moisture" name="target_moisture" type="number" min="7" max="40" step="0.1" value="{{TARGET_MOISTURE_VALUE}}" inputmode="decimal" required>
             <button class="btn-primary-action" type="submit">Salvar umidade alvo</button>

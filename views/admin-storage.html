@@ -22,6 +22,7 @@
             <a class="back-link admin-back-link" href="/admin">← Voltar à administração</a>
           </div>
           <form action="/logout" method="post">
+            <input type="hidden" name="_csrf" value="{{CSRF_TOKEN}}">
             <button class="btn-secondary-action" type="submit">Sair</button>
           </form>
         </div>
@@ -39,6 +40,7 @@
           </div>
           <p class="page-description storage-section-description">Informe a quantidade conferida fisicamente em uma data e hora. O saldo passará a usar essa quantidade como base e somará apenas entradas e saídas posteriores.</p>
           <form class="contact-form contracts-form storage-recalibration-form" action="/admin/armazenamento/recalibracoes" method="post">
+            <input type="hidden" name="_csrf" value="{{CSRF_TOKEN}}">
             <div class="contracts-form-grid">
               <label>Produto
                 <select class="form-control" name="produto" required>

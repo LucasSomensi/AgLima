@@ -19,6 +19,7 @@
         <p class="page-description">{{CONSTRUCTION_DESCRIPTION}}</p>
         {{CONSTRUCTION_BACK_LINK}}
         <form action="/logout" method="post">
+            <input type="hidden" name="_csrf" value="{{CSRF_TOKEN}}">
           <button class="btn-primary-action" type="submit">Sair</button>
         </form>
       </section>

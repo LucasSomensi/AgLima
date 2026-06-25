@@ -25,6 +25,7 @@
         {{SCALE_INPUT_ERROR}}
 
         <form class="contact-form contracts-form" action="/balanca/entradas" method="post">
+            <input type="hidden" name="_csrf" value="{{CSRF_TOKEN}}">
           <div class="contracts-form-grid contracts-form-grid-two">
             <label>Data e hora da entrada
               <input class="form-control" id="data_entrada" name="data_entrada" type="datetime-local" value="{{DATA_ENTRADA}}" required>

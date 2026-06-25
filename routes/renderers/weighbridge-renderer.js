@@ -511,6 +511,7 @@ function buildScaleOutputInvoiceDetailHtml(outputInfo) {
           </dl>
           <div class="weighbridge-output-actions">
             <form action="/balanca/saidas/${escapeHtml(outputInfo.saida_id)}/desvincular-contrato" method="post" onsubmit="return confirm('Desvincular esta saída do contrato?');">
+                <input type="hidden" name="_csrf" value="{{CSRF_TOKEN}}">
               <button class="btn-danger-action" type="submit">Desvincular contrato</button>
             </form>
           </div>
@@ -544,6 +545,7 @@ function getSplitFirstNetWeightSuggestion(outputInfo) {
 function buildDeletionReasonFormHtml({ action, buttonLabel, textareaId }) {
   return `
             <form class="deletion-reason-form" action="${escapeHtml(action)}" method="post" onsubmit="return confirm('Tem certeza que quer deletar esse registro? Essa operação não pode ser desfeita.');">
+                <input type="hidden" name="_csrf" value="{{CSRF_TOKEN}}">
               <label for="${escapeHtml(textareaId)}">Motivo da deleção
                 <textarea class="form-control deletion-reason-input" id="${escapeHtml(textareaId)}" name="motivo_delecao" rows="3" minlength="20" maxlength="500" placeholder="Descreva o motivo da deleção (mínimo de 20 caracteres)." required></textarea>
               </label>
@@ -578,6 +580,7 @@ ${buildDeletionReasonFormHtml({
         <section class="admin-section">
           <h2>Ações da saída</h2>
           <form class="weighbridge-split-form" action="/balanca/saidas/${escapeHtml(outputInfo.saida_id)}/dividir" method="post">
+                <input type="hidden" name="_csrf" value="{{CSRF_TOKEN}}">
             <h3>Dividir saída</h3>
             <div class="form-row">
               <div class="form-group col-md-6">

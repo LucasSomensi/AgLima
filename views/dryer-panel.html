@@ -53,6 +53,7 @@
 
         <section class="admin-section dryer-actions-stack" aria-label="Ações do secador">
           <form class="dryer-moisture-form" action="/secador/umidades" method="post" data-loading-message="Registrando umidade...">
+            <input type="hidden" name="_csrf" value="{{CSRF_TOKEN}}">
             <label class="dryer-field-label" for="moisture_percent">Umidade medida (%)</label>
             <input class="form-control" id="moisture_percent" name="moisture_percent" type="number" min="7" max="40" step="0.1" placeholder="Ex.: 13,5" aria-label="Umidade em porcentagem" inputmode="decimal" required {{MOISTURE_FORM_DISABLED}}>
             <button class="btn-primary-action" type="submit" {{MOISTURE_FORM_DISABLED}}>Registrar umidade</button>
@@ -60,6 +61,7 @@
           </form>
 
           <form class="dryer-quick-action" action="{{BATCH_ACTION_URL}}" method="{{BATCH_ACTION_METHOD}}" data-confirm-message="{{BATCH_ACTION_CONFIRM}}" data-loading-message="{{BATCH_ACTION_LOADING}}">
+            {{BATCH_ACTION_CSRF_INPUT}}
             <button class="{{BATCH_ACTION_CLASS}}" type="submit">{{BATCH_ACTION_LABEL}}</button>
           </form>
         </section>
@@ -84,6 +86,7 @@
 
         <section class="admin-section dryer-logout-section" aria-label="Sair do painel do secador">
           <form class="dryer-logout-action" action="/logout" method="post" data-double-click-logout>
+            <input type="hidden" name="_csrf" value="{{CSRF_TOKEN}}">
             <button class="btn-secondary-action" type="button" data-logout-button>Sair</button>
           </form>
         </section>

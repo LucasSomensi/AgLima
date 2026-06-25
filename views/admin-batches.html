@@ -21,6 +21,7 @@
             <p class="page-description">Lista em ordem cronológica reversa, da batelada mais recente para a mais antiga.</p>
           </div>
           <form action="/logout" method="post">
+            <input type="hidden" name="_csrf" value="{{CSRF_TOKEN}}">
             <button class="btn-secondary-action" type="submit">Sair</button>
           </form>
         </div>

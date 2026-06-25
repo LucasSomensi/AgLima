@@ -26,6 +26,7 @@
         <p class="page-description">{{INPUT_SUMMARY}}</p>
 
         <form class="contact-form contracts-form" action="/balanca/entradas/{{ENTRADA_ID}}/classificacao" method="post">
+            <input type="hidden" name="_csrf" value="{{CSRF_TOKEN}}">
           <div class="contracts-form-grid">
             <label>Umidade (%)
               <input class="form-control" name="umidade_percent" type="number" min="0" max="100" step="0.001" value="{{UMIDADE_PERCENT}}" inputmode="decimal" required>

@@ -183,6 +183,7 @@ function requireRole(...roles) {
 module.exports = {
   attachSession,
   clearSessionCookie,
+  parseCookies,
   requireAuth,
   requireRole,
   requireRoot,
