@@ -350,9 +350,10 @@ test('ticket lines render requested output weighing fields', () => {
     peso_liquido_kg: '32000',
   });
 
-  assert.deepEqual(lines.slice(0, 8), [
+  assert.deepEqual(lines.slice(0, 9), [
     '------------------------------',
     'Fazenda São José',
+    '',
     '',
     'Ticket: 7',
     'Operador: operador-balanca',
@@ -360,11 +361,15 @@ test('ticket lines render requested output weighing fields', () => {
     'Produto: Milho',
     'Vendedor: Vendedor Completo',
   ]);
-  assert.equal(lines[8], 'Comprador: Comprador Completo LTDA');
-  assert.match(lines[10], /^Tara: 10000 kg /);
-  assert.match(lines[11], /^Bruto: 42000 kg /);
-  assert.equal(lines[12], 'PLiq: 32000 kg');
-  assert.equal(lines.at(-2), 'Ass Comprador: _________________');
+  assert.equal(lines[9], 'Comprador: Comprador Completo LTDA');
+  assert.deepEqual(lines.slice(10, 12), ['', '']);
+  assert.match(lines[12], /^Tara: 10000 kg /);
+  assert.match(lines[13], /^Bruto: 42000 kg /);
+  assert.equal(lines[14], 'PLiq: 32000 kg');
+  assert.deepEqual(lines.slice(15, 17), ['', '']);
+  assert.equal(lines[17], 'Ass Vendedor: ____________________');
+  assert.equal(lines[18], '');
+  assert.equal(lines[19], 'Ass Comprador: _________________');
 });
 
 test('deletion reason payload normalizes and validates minimum length', () => {
