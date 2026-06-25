@@ -28,6 +28,9 @@
 
         <form class="contact-form contracts-form" action="/balanca/saidas/{{SAIDA_ID}}/bruto" method="post">
           <div class="contracts-form-grid contracts-form-grid-two">
+            <label>Data e hora do peso bruto
+              <input class="form-control" name="peso_bruto_adicionado_em" type="datetime-local" value="{{PESO_BRUTO_ADICIONADO_EM}}" required>
+            </label>
             <label>Peso bruto (kg)
               <input class="form-control" name="peso_bruto_kg" type="number" min="0.001" step="0.001" value="{{PESO_BRUTO_KG}}" inputmode="decimal" required>
             </label>

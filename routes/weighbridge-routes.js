@@ -591,7 +591,7 @@ router.post('/balanca/saidas/:id/bruto', canAccessWeighbridge, async (req, res) 
       });
     }
 
-    const updatedOutput = await addScaleOutputGross(req.params.id, payload.pesoBrutoKg, req.sessionUser);
+    const updatedOutput = await addScaleOutputGross(req.params.id, payload, req.sessionUser);
 
     if (!updatedOutput) {
       return renderScaleOutputGrossFormPage(res, {

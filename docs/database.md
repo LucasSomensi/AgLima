@@ -268,6 +268,7 @@ Armazena as saídas registradas pelo operador de balança. Cada saída nasce sem
 | `produto` | `USER-DEFINED` | Não | — | Tipo de produto da saída. Deve ser compatível com o tipo usado por `contratos.produto`; pela aplicação, valores aceitos: `milho` e `soja`. |
 | `peso_tara_kg` | `numeric` | Não | — | Peso tara em quilogramas lançado na criação da saída. |
 | `peso_bruto_kg` | `numeric` | Sim | — | Peso bruto em quilogramas. Fica nulo até o operador adicionar bruto pela lista de saídas e deve ser maior que a tara quando preenchido. |
+| `peso_bruto_adicionado_em` | `timestamp with time zone` | Sim | — | Data/hora em que o peso bruto foi adicionado. O formulário de adição de bruto permite informar manualmente esse horário e preenche com a data/hora atual por padrão. |
 | `peso_liquido_kg` | `numeric` | Sim | — | Peso líquido em quilogramas, calculado no banco a partir de `peso_bruto_kg - peso_tara_kg`. Aparece como nullable no `information_schema` por ser coluna gerada. |
 | `criado_por_user_id` | `uuid` | Não | — | Usuário operador que criou a saída. FK para `users.id`. |
 | `contrato_id` | `bigint` | Sim | — | Contrato associado à saída. Enquanto nulo, a saída fica pendente de associação. FK para `contratos.id`. |

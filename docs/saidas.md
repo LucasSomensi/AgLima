@@ -141,7 +141,7 @@ Na mesma tela ficam as ações de divisão e deleção quando já há peso líqu
 
 ### 5. Associar saída a contrato
 
-Uma saída recém-criada fica pendente de peso bruto e de contrato. O operador pode iniciar a associação pela lista ou pelo detalhe da saída, em `/balanca/saidas/:id/associar`, mesmo antes de adicionar o bruto. O peso bruto pode ser adicionado pela lista ou pelo detalhe da saída quando o caminhão retornar à balança.
+Uma saída recém-criada fica pendente de peso bruto e de contrato. O operador pode iniciar a associação pela lista ou pelo detalhe da saída, em `/balanca/saidas/:id/associar`, mesmo antes de adicionar o bruto. O peso bruto pode ser adicionado pela lista ou pelo detalhe da saída quando o caminhão retornar à balança. A tela `/balanca/saidas/:id/bruto` também possui o campo `Data e hora do peso bruto`, com o mesmo padrão de `datetime-local` usado na criação da saída: o valor inicial é a data/hora atual e o operador pode ajustar antes de salvar. Ao confirmar, o backend grava `peso_bruto_kg`, `peso_bruto_adicionado_em` e `atualizado_em`.
 
 A tela de associação funciona em duas etapas:
 
@@ -203,8 +203,9 @@ A transação aplica a divisão assim:
 2. Atualiza o peso bruto da saída original para `peso_tara_original + peso_liquido_primeira`.
 3. Cria uma nova saída com os mesmos `data_saida`, `placa_caminhao` e `produto`.
 4. Na nova saída, usa como tara o novo bruto da primeira saída e como bruto o bruto original.
-5. A nova saída nasce sem contrato associado.
-6. Não altera o status `contrato_embarcado` do contrato originalmente associado; os saldos continuam sendo calculados pelas consultas.
+5. A nova saída preserva `peso_bruto_adicionado_em` da saída original.
+6. A nova saída nasce sem contrato associado.
+7. Não altera o status `contrato_embarcado` do contrato originalmente associado; os saldos continuam sendo calculados pelas consultas.
 
 Efeito importante: se a saída original já estava associada a um contrato, a associação fica na primeira saída após a divisão. A segunda saída gerada fica pendente de associação e deve ser associada manualmente, se aplicável.
 
