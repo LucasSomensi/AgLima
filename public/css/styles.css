@@ -319,6 +319,10 @@ body {
   width: 100%;
 }
 
+.admin-home-card {
+  max-width: 1380px;
+}
+
 .admin-header {
   display: flex;
   align-items: flex-start;
