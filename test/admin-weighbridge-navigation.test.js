@@ -48,3 +48,4 @@ test('admin home combines next receipt date and contract link in one metric', ()
   assert.match(html, /15\/07\/2026 · <a class="admin-table-link" href="\/balanca\/contratos\/42">Contrato #42<\/a> · Comprador &lt;Teste&gt;/);
   assert.doesNotMatch(html, /Próximo contrato a receber/);
 });
+
