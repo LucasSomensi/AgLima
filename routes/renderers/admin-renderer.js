@@ -173,23 +173,39 @@ function formatDaysOverdueLabel(daysOverdue) {
   return daysOverdue === 1 ? 'venceu há 1 dia' : `venceu há ${daysOverdue} dias`;
 }
 
-function buildAdminNotificationMessage(notification) {
-  const contractLabel = `Contrato número ${notification.contractId} do comprador ${notification.buyerName}`;
+function buildAdminNotificationTitle(notification) {
+  const contractLabel = `Contrato #${notification.contractId}`;
 
   if (notification.type === 'shipment_due') {
-    return `${contractLabel} tem saldo ${formatKg(notification.balanceKg)}, clique abaixo para marcá-lo como embarcado.`;
+    return `${contractLabel} pronto para embarque`;
   }
 
   if (notification.type === 'receipt_due') {
-    return `${contractLabel} ${formatDaysOverdueLabel(notification.daysOverdue)} no valor de ${formatMoney(notification.contractValue)}, clique abaixo para marcá-lo como recebido.`;
+    return `${contractLabel} ${formatDaysOverdueLabel(notification.daysOverdue)}`;
   }
 
   if (notification.type === 'brokerage_due') {
     const daysLabel = notification.daysOverdue === 1 ? 'venceu há 1 dia' : `venceu há ${notification.daysOverdue} dias`;
-    return `${contractLabel} ${daysLabel} e tem corretagem no valor de ${formatMoney(notification.brokerageValue)}, clique abaixo para marcar sua corretagem como paga.`;
+    return `${contractLabel} com corretagem pendente` + (notification.receiptDate ? ` · ${daysLabel}` : '');
   }
 
-  return `${contractLabel} precisa de atenção.`;
+  return `${contractLabel} precisa de atenção`;
+}
+
+function buildAdminNotificationDetails(notification) {
+  if (notification.type === 'shipment_due') {
+    return `${notification.buyerName} · Saldo: ${formatKg(notification.balanceKg)}`;
+  }
+
+  if (notification.type === 'receipt_due') {
+    return `${notification.buyerName} · ${formatMoney(notification.contractValue)}`;
+  }
+
+  if (notification.type === 'brokerage_due') {
+    return `${notification.buyerName} · Corretagem: ${formatMoney(notification.brokerageValue)}`;
+  }
+
+  return notification.buyerName;
 }
 
 function getAdminNotificationActionLabel(type) {
@@ -222,8 +238,9 @@ function renderAdminNotificationsPanel(notifications) {
     .map((notification) => `
           <li class="admin-notification-item admin-notification-${escapeHtml(notification.type)}">
             <div class="admin-notification-copy">
-              <strong>${escapeHtml(buildAdminNotificationMessage(notification))}</strong>
-              ${notification.receiptDate ? `<span>Data de vencimento: ${escapeHtml(formatDate(notification.receiptDate))}</span>` : ''}
+              <strong>${escapeHtml(buildAdminNotificationTitle(notification))}</strong>
+              <span>${escapeHtml(buildAdminNotificationDetails(notification))}</span>
+              ${notification.receiptDate ? `<span>Vencimento em ${escapeHtml(formatDate(notification.receiptDate))}</span>` : ''}
             </div>
             <form class="admin-notification-action" action="${escapeHtml(notification.actionPath)}" method="post">
                 <input type="hidden" name="_csrf" value="{{CSRF_TOKEN}}">
