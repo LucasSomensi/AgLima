@@ -1,5 +1,6 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
+const { buildBuyerPayload } = require('../routes/contract-service');
 const { renderAdminBuyerFormPage, renderAdminContractFormPage, renderAdminSellerFormPage } = require('../routes/renderers/admin-renderer');
 
 function renderWith(renderer, args) {
@@ -31,6 +32,46 @@ test('buyer form keeps submitted values when rendering validation errors', () =>
   assert.match(html, /value="12345"/);
   assert.match(html, /value="12\.345\.678\/0001-90"/);
   assert.match(html, /Informe uma inscrição estadual com 10 dígitos ou mais\./);
+});
+
+
+test('buyer form only marks name as required', () => {
+  const html = renderWith(renderAdminBuyerFormPage, {
+    buyer: null,
+    error: '',
+  });
+
+  assert.match(html, /Preencha o nome do comprador\. Os demais dados cadastrais são opcionais\./);
+  assert.match(html, /name="nome" type="text" value="" required/);
+  assert.doesNotMatch(html, /name="nome_completo"[^>]* required/);
+  assert.doesNotMatch(html, /name="endereco"[^>]* required/);
+  assert.doesNotMatch(html, /name="numero"[^>]* required/);
+  assert.doesNotMatch(html, /name="cep"[^>]* required/);
+  assert.doesNotMatch(html, /name="inscricao_estadual"[^>]* required/);
+  assert.doesNotMatch(html, /name="cpf_cnpj"[^>]* required/);
+});
+
+test('buyer payload accepts only name and stores blank optional fields as null', () => {
+  const { payload, error } = buildBuyerPayload({
+    nome: ' Comprador Teste ',
+    nome_completo: ' ',
+    endereco: '',
+    numero: '',
+    cep: '',
+    inscricao_estadual: '',
+    cpf_cnpj: '',
+  });
+
+  assert.equal(error, undefined);
+  assert.deepEqual(payload, {
+    nome: 'Comprador Teste',
+    nomeCompleto: null,
+    endereco: null,
+    numero: null,
+    cep: null,
+    inscricaoEstadual: null,
+    cpfCnpj: null,
+  });
 });
 
 test('seller form keeps submitted values when rendering validation errors', () => {
