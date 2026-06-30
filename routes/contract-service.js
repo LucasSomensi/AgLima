@@ -45,29 +45,32 @@ function normalizeDate(value) {
 }
 
 function buildBuyerPayload(body) {
+  const cep = normalizeDigits(body.cep);
+  const inscricaoEstadual = normalizeDigits(body.inscricao_estadual);
+  const cpfCnpj = normalizeDigits(body.cpf_cnpj);
   const payload = {
     nome: normalizeText(body.nome),
-    nomeCompleto: normalizeText(body.nome_completo),
-    endereco: normalizeText(body.endereco),
-    numero: normalizeText(body.numero),
-    cep: normalizeDigits(body.cep),
-    inscricaoEstadual: normalizeDigits(body.inscricao_estadual),
-    cpfCnpj: normalizeDigits(body.cpf_cnpj),
+    nomeCompleto: normalizeText(body.nome_completo) || null,
+    endereco: normalizeText(body.endereco) || null,
+    numero: normalizeText(body.numero) || null,
+    cep: cep || null,
+    inscricaoEstadual: inscricaoEstadual || null,
+    cpfCnpj: cpfCnpj || null,
   };
 
-  if (!payload.nome || !payload.nomeCompleto || !payload.endereco || !payload.numero) {
-    return { error: 'Preencha nome, nome completo, endereço e número do comprador.' };
+  if (!payload.nome) {
+    return { error: 'Preencha o nome do comprador.' };
   }
 
-  if (!/^\d{8}$/.test(payload.cep)) {
+  if (payload.cep && !/^\d{8}$/.test(payload.cep)) {
     return { error: 'Informe um CEP do comprador com 8 dígitos.' };
   }
 
-  if (!/^\d{10,}$/.test(payload.inscricaoEstadual)) {
+  if (payload.inscricaoEstadual && !/^\d{10,}$/.test(payload.inscricaoEstadual)) {
     return { error: 'Informe uma inscrição estadual com 10 dígitos ou mais.' };
   }
 
-  if (!/^(\d{11}|\d{14})$/.test(payload.cpfCnpj)) {
+  if (payload.cpfCnpj && !/^(\d{11}|\d{14})$/.test(payload.cpfCnpj)) {
     return { error: 'Informe CPF com 11 dígitos ou CNPJ com 14 dígitos.' };
   }
 
