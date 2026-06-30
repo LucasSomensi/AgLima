@@ -29,17 +29,11 @@
  auditoria_acoes             | auditoria_acoes_pkey                                           | PRIMARY KEY     | id                            | auditoria_acoes             | id
  compradores                 | compradores_atualizado_em_not_null                             | CHECK           |                               | compradores                 | atualizado_em
  compradores                 | compradores_cep_formato_check                                  | CHECK           |                               | compradores                 | cep
- compradores                 | compradores_cep_not_null                                       | CHECK           |                               | compradores                 | cep
  compradores                 | compradores_cpf_cnpj_check                                     | CHECK           |                               | compradores                 | cpf_cnpj
- compradores                 | compradores_cpf_cnpj_not_null                                  | CHECK           |                               | compradores                 | cpf_cnpj
  compradores                 | compradores_criado_em_not_null                                 | CHECK           |                               | compradores                 | criado_em
- compradores                 | compradores_endereco_not_null                                  | CHECK           |                               | compradores                 | endereco
  compradores                 | compradores_id_not_null                                        | CHECK           |                               | compradores                 | id
  compradores                 | compradores_inscricao_estadual_check                           | CHECK           |                               | compradores                 | inscricao_estadual
- compradores                 | compradores_inscricao_estadual_not_null                        | CHECK           |                               | compradores                 | inscricao_estadual
- compradores                 | compradores_nome_completo_not_null                             | CHECK           |                               | compradores                 | nome_completo
  compradores                 | compradores_nome_not_null                                      | CHECK           |                               | compradores                 | nome
- compradores                 | compradores_numero_not_null                                    | CHECK           |                               | compradores                 | numero
  compradores                 | compradores_pkey                                               | PRIMARY KEY     | id                            | compradores                 | id
  compradores                 | compradores_nome_unique                                        | UNIQUE          | nome                          | compradores                 | nome
  contratos                   | contratos_atualizado_em_not_null                               | CHECK           |                               | contratos                   | atualizado_em
@@ -57,8 +51,8 @@
  contratos                   | contratos_comprador_id_fk                                      | FOREIGN KEY     | comprador_id                  | compradores                 | id
  contratos                   | contratos_vendedor_id_fk                                       | FOREIGN KEY     | vendedor_id                   | vendedores                  | id
  contratos                   | contratos_pkey                                                 | PRIMARY KEY     | id                            | contratos                   | id
- dryer_batches               | dryer_batches_completed_at_check                               | CHECK           |                               | dryer_batches               | status
  dryer_batches               | dryer_batches_completed_at_check                               | CHECK           |                               | dryer_batches               | completed_at
+ dryer_batches               | dryer_batches_completed_at_check                               | CHECK           |                               | dryer_batches               | status
  dryer_batches               | dryer_batches_created_at_not_null                              | CHECK           |                               | dryer_batches               | created_at
  dryer_batches               | dryer_batches_grain_type_check                                 | CHECK           |                               | dryer_batches               | grain_type
  dryer_batches               | dryer_batches_grain_type_not_null                              | CHECK           |                               | dryer_batches               | grain_type
@@ -94,9 +88,9 @@
  entradas_balanca            | entradas_balanca_atualizado_em_not_null                        | CHECK           |                               | entradas_balanca            | atualizado_em
  entradas_balanca            | entradas_balanca_classificacao_completa_check                  | CHECK           |                               | entradas_balanca            | classificado_em
  entradas_balanca            | entradas_balanca_classificacao_completa_check                  | CHECK           |                               | entradas_balanca            | umidade_percent
+ entradas_balanca            | entradas_balanca_classificacao_completa_check                  | CHECK           |                               | entradas_balanca            | impureza_percent
  entradas_balanca            | entradas_balanca_classificacao_completa_check                  | CHECK           |                               | entradas_balanca            | graos_avariados_percent
  entradas_balanca            | entradas_balanca_classificacao_completa_check                  | CHECK           |                               | entradas_balanca            | classificado_por_user_id
- entradas_balanca            | entradas_balanca_classificacao_completa_check                  | CHECK           |                               | entradas_balanca            | impureza_percent
  entradas_balanca            | entradas_balanca_cliente_completo_check                        | CHECK           |                               | entradas_balanca            | cliente_associado_por_user_id
  entradas_balanca            | entradas_balanca_cliente_completo_check                        | CHECK           |                               | entradas_balanca            | cliente_associado_em
  entradas_balanca            | entradas_balanca_cliente_completo_check                        | CHECK           |                               | entradas_balanca            | cliente_user_id
@@ -107,8 +101,8 @@
  entradas_balanca            | entradas_balanca_id_not_null                                   | CHECK           |                               | entradas_balanca            | id
  entradas_balanca            | entradas_balanca_impureza_intervalo_check                      | CHECK           |                               | entradas_balanca            | impureza_percent
  entradas_balanca            | entradas_balanca_origem_completa_check                         | CHECK           |                               | entradas_balanca            | origem_definida_em
- entradas_balanca            | entradas_balanca_origem_completa_check                         | CHECK           |                               | entradas_balanca            | origem
  entradas_balanca            | entradas_balanca_origem_completa_check                         | CHECK           |                               | entradas_balanca            | origem_definida_por_user_id
+ entradas_balanca            | entradas_balanca_origem_completa_check                         | CHECK           |                               | entradas_balanca            | origem
  entradas_balanca            | entradas_balanca_origem_texto_check                            | CHECK           |                               | entradas_balanca            | origem
  entradas_balanca            | entradas_balanca_peso_bruto_kg_not_null                        | CHECK           |                               | entradas_balanca            | peso_bruto_kg
  entradas_balanca            | entradas_balanca_peso_bruto_maior_tara_check                   | CHECK           |                               | entradas_balanca            | peso_tara_kg
@@ -119,10 +113,10 @@
  entradas_balanca            | entradas_balanca_placa_caminhao_not_null                       | CHECK           |                               | entradas_balanca            | placa_caminhao
  entradas_balanca            | entradas_balanca_produto_not_null                              | CHECK           |                               | entradas_balanca            | produto
  entradas_balanca            | entradas_balanca_tara_manual_auditoria_check                   | CHECK           |                               | entradas_balanca            | tara_adicionada_por_user_id
- entradas_balanca            | entradas_balanca_tara_manual_auditoria_check                   | CHECK           |                               | entradas_balanca            | tara_adicionada_em
  entradas_balanca            | entradas_balanca_tara_manual_auditoria_check                   | CHECK           |                               | entradas_balanca            | peso_tara_kg
- entradas_balanca            | entradas_balanca_tara_origem_valida_check                      | CHECK           |                               | entradas_balanca            | tara_usada_de_entrada_id
+ entradas_balanca            | entradas_balanca_tara_manual_auditoria_check                   | CHECK           |                               | entradas_balanca            | tara_adicionada_em
  entradas_balanca            | entradas_balanca_tara_origem_valida_check                      | CHECK           |                               | entradas_balanca            | peso_tara_kg
+ entradas_balanca            | entradas_balanca_tara_origem_valida_check                      | CHECK           |                               | entradas_balanca            | tara_usada_de_entrada_id
  entradas_balanca            | entradas_balanca_umidade_intervalo_check                       | CHECK           |                               | entradas_balanca            | umidade_percent
  entradas_balanca            | entradas_balanca_classificado_por_user_id_fkey                 | FOREIGN KEY     | classificado_por_user_id      | users                       | id
  entradas_balanca            | entradas_balanca_cliente_associado_por_user_id_fkey            | FOREIGN KEY     | cliente_associado_por_user_id | users                       | id
