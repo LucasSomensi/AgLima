@@ -27,6 +27,8 @@ const {
   listEligibleBuyersForOutput,
   listEligibleContractsForOutput,
   listOpenContractsForWeighbridge,
+  normalizeWeighbridgeContractFilter,
+  WEIGHBRIDGE_CONTRACT_FILTERS,
   listRecentInputPlates,
   listScaleInputs,
   listScaleOutputs,
@@ -472,8 +474,17 @@ router.post('/balanca/entradas/:id/origem', canAccessWeighbridge, async (req, re
 
 router.get('/balanca/contratos', canAccessWeighbridge, async (req, res) => {
   try {
-    const contracts = await listOpenContractsForWeighbridge();
-    return renderScaleContractsListPage(res, { contracts, navigation: getWeighbridgeNavigation(req) });
+    const isAdmin = req.sessionUser?.role === ROLES.ADMIN;
+    const filter = isAdmin
+      ? normalizeWeighbridgeContractFilter(req.query.filtro)
+      : WEIGHBRIDGE_CONTRACT_FILTERS.UNSHIPPED;
+    const contracts = await listOpenContractsForWeighbridge(filter);
+    return renderScaleContractsListPage(res, {
+      contracts,
+      navigation: getWeighbridgeNavigation(req),
+      filter,
+      canFilterContracts: isAdmin,
+    });
   } catch (error) {
     console.error('Error listing weighbridge contracts:', error.message);
     return res.status(500).send('Não foi possível listar os contratos agora.');

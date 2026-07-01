@@ -235,6 +235,32 @@ test('weighbridge contracts list defaults weights to kg and includes sacks toggl
   assert.match(html, /weightKg \/ 60/);
 });
 
+test('weighbridge contracts list shows admin-only contract filter toggle', () => {
+  const html = renderPage(require('../routes/renderers').renderScaleContractsListPage, {
+    contracts: [],
+    filter: 'abertos',
+    canFilterContracts: true,
+  });
+
+  assert.match(html, /<h1 id="contracts-title" class="page-title">Contratos<\/h1>/);
+  assert.match(html, /aria-label="Filtro de contratos"/);
+  assert.match(html, /href="\/balanca\/contratos"[^>]*>Não embarcados<\/a>/);
+  assert.match(html, /href="\/balanca\/contratos\?filtro=abertos" aria-current="page">Em aberto<\/a>/);
+  assert.match(html, /href="\/balanca\/contratos\?filtro=ultimos-6-meses"[^>]*>Últimos 6 meses<\/a>/);
+  assert.match(html, /href="\/balanca\/contratos\?filtro=todos"[^>]*>Todos<\/a>/);
+});
+
+test('weighbridge contracts list hides contract filter toggle for non-admin users', () => {
+  const html = renderPage(require('../routes/renderers').renderScaleContractsListPage, {
+    contracts: [],
+    filter: 'todos',
+    canFilterContracts: false,
+  });
+
+  assert.doesNotMatch(html, /aria-label="Filtro de contratos"/);
+  assert.doesNotMatch(html, /filtro=todos/);
+});
+
 test('weighbridge contracts sacks toggle formats weights with at most one decimal place', () => {
   const html = renderPage(require('../routes/renderers').renderScaleContractsListPage, {
     contracts: [],

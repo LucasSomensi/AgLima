@@ -202,6 +202,28 @@ function renderScaleOutputsListPage(res, { outputs, navigation }) {
 }
 
 
+
+const WEIGHBRIDGE_CONTRACT_FILTER_OPTIONS = [
+  { value: 'nao-embarcados', label: 'Não embarcados', href: '/balanca/contratos' },
+  { value: 'abertos', label: 'Em aberto', href: '/balanca/contratos?filtro=abertos' },
+  { value: 'ultimos-6-meses', label: 'Últimos 6 meses', href: '/balanca/contratos?filtro=ultimos-6-meses' },
+  { value: 'todos', label: 'Todos', href: '/balanca/contratos?filtro=todos' },
+];
+
+function buildScaleContractsFilterToggle({ filter, canFilterContracts }) {
+  if (!canFilterContracts) {
+    return '';
+  }
+
+  return `
+        <nav class="contracts-filter-nav weighbridge-contracts-filter" aria-label="Filtro de contratos">
+          ${WEIGHBRIDGE_CONTRACT_FILTER_OPTIONS.map((option) => {
+            const isActive = option.value === filter;
+            return `<a class="btn-secondary-action contracts-filter-link${isActive ? ' is-active' : ''}" href="${escapeHtml(option.href)}" aria-current="${isActive ? 'page' : 'false'}">${escapeHtml(option.label)}</a>`;
+          }).join('')}
+        </nav>`;
+}
+
 function buildScaleContractsRows(contracts) {
   return contracts
     .map((contract) => `
@@ -218,10 +240,11 @@ function buildScaleContractsRows(contracts) {
     .join('') || '<tr><td colspan="7">Nenhum contrato com embarque pendente.</td></tr>';
 }
 
-function renderScaleContractsListPage(res, { contracts, navigation }) {
+function renderScaleContractsListPage(res, { contracts, navigation, filter = 'nao-embarcados', canFilterContracts = false }) {
   const pagePath = path.join(__dirname, '../../views/weighbridge-contracts.html');
   const html = applyWeighbridgeNavigation(fs
     .readFileSync(pagePath, 'utf8')
+    .replace('{{CONTRACT_FILTER_TOGGLE}}', buildScaleContractsFilterToggle({ filter, canFilterContracts }))
     .replace('{{CONTRACT_ROWS}}', buildScaleContractsRows(contracts)), navigation);
 
   res.send(html);
