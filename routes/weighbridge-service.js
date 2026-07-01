@@ -1213,8 +1213,32 @@ async function splitScaleOutput(outputId, firstNetWeightKg, user) {
   }
 }
 
-async function listOpenContractsForWeighbridge() {
+const WEIGHBRIDGE_CONTRACT_FILTERS = {
+  UNSHIPPED: 'nao-embarcados',
+  OPEN: 'abertos',
+  RECENT: 'ultimos-6-meses',
+  ALL: 'todos',
+};
+
+function normalizeWeighbridgeContractFilter(filter) {
+  return Object.values(WEIGHBRIDGE_CONTRACT_FILTERS).includes(filter)
+    ? filter
+    : WEIGHBRIDGE_CONTRACT_FILTERS.UNSHIPPED;
+}
+
+async function listOpenContractsForWeighbridge(filter = WEIGHBRIDGE_CONTRACT_FILTERS.UNSHIPPED) {
   ensureDatabaseConfigured();
+
+  const normalizedFilter = normalizeWeighbridgeContractFilter(filter);
+  const filterClauses = {
+    [WEIGHBRIDGE_CONTRACT_FILTERS.UNSHIPPED]: `WHERE c.contrato_embarcado IS NOT TRUE`,
+    [WEIGHBRIDGE_CONTRACT_FILTERS.OPEN]: `WHERE (c.contrato_embarcado IS NOT TRUE OR c.contrato_recebido IS NOT TRUE OR c.corretagem_paga IS NOT TRUE)`,
+    [WEIGHBRIDGE_CONTRACT_FILTERS.RECENT]: `WHERE c.data_contrato >= CURRENT_DATE - INTERVAL '6 months'`,
+    [WEIGHBRIDGE_CONTRACT_FILTERS.ALL]: '',
+  };
+  const unshippedHavingClause = normalizedFilter === WEIGHBRIDGE_CONTRACT_FILTERS.UNSHIPPED
+    ? 'HAVING c.quantidade_kg - COALESCE(SUM(s.peso_liquido_kg), 0) > 0'
+    : '';
 
   const result = await pool.query(
     `
@@ -1228,9 +1252,9 @@ async function listOpenContractsForWeighbridge() {
       FROM contratos c
       JOIN compradores comp ON comp.id = c.comprador_id
       LEFT JOIN saidas_balanca s ON s.contrato_id = c.id
-      WHERE c.contrato_embarcado IS NOT TRUE
+      ${filterClauses[normalizedFilter]}
       GROUP BY c.id, c.data_contrato, c.produto, c.quantidade_kg, comp.nome
-      HAVING c.quantidade_kg - COALESCE(SUM(s.peso_liquido_kg), 0) > 0
+      ${unshippedHavingClause}
       ORDER BY c.data_contrato ASC, c.id ASC
     `
   );
@@ -1399,6 +1423,8 @@ module.exports = {
   listEligibleBuyersForOutput,
   listEligibleContractsForOutput,
   listOpenContractsForWeighbridge,
+  normalizeWeighbridgeContractFilter,
+  WEIGHBRIDGE_CONTRACT_FILTERS,
   listRecentInputPlates,
   listUnclassifiedScaleInputs,
   listScaleInputs,
