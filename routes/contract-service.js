@@ -320,7 +320,7 @@ async function listContracts(options = {}) {
       JOIN compradores comp ON comp.id = c.comprador_id
       JOIN vendedores vend ON vend.id = c.vendedor_id
       ${openContractsWhereClause}
-      ORDER BY c.data_contrato DESC, c.id DESC
+      ORDER BY c.data_contrato ASC, c.id ASC
     `
   );
 
