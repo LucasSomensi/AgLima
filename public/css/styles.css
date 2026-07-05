@@ -834,10 +834,6 @@ button:disabled,
   }
 }
 
-.admin-home-card {
-  max-width: 980px;
-}
-
 .admin-module-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
