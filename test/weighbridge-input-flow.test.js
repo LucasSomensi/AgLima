@@ -55,6 +55,40 @@ test('weighbridge home renders pending input actions', () => {
 });
 
 
+
+test('weighbridge input plate copies entry report to clipboard only when complete', () => {
+  const html = renderPage(renderScaleInputsListPage, {
+    inputs: [{
+      ...baseInput,
+      peso_tara_kg: '12000',
+      peso_liquido_kg: '18000',
+      origem: 'Fazenda São José',
+      umidade_percent: '14',
+      impureza_percent: '1',
+      graos_avariados_percent: '0',
+    }],
+  });
+
+  assert.match(html, /<button class="admin-table-link weighbridge-copy-report-button"/);
+  assert.match(html, /data-clipboard-report="12\/06\/2026 09:30&#10;ABC1D23&#10;Fazenda São José&#10;18000kg&#10;Umidade: 14,0%"/);
+  assert.match(html, /<script src="\/js\/weighbridge-input-copy\.js"><\/script>/);
+});
+
+test('weighbridge input plate is plain text until origin tare and classification are complete', () => {
+  const html = renderPage(renderScaleInputsListPage, {
+    inputs: [{
+      ...baseInput,
+      peso_tara_kg: '12000',
+      peso_liquido_kg: '18000',
+      origem: 'Fazenda São José',
+      umidade_percent: '14',
+    }],
+  });
+
+  assert.match(html, /<td>ABC1D23<\/td>/);
+  assert.doesNotMatch(html, /data-clipboard-report=/);
+});
+
 test('weighbridge inputs list uses classification as the final input column', () => {
   const html = renderPage(renderScaleInputsListPage, {
     inputs: [baseInput],

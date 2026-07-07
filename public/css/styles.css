@@ -1598,3 +1598,11 @@ button:disabled,
     text-align: center;
   }
 }
+
+.weighbridge-copy-report-button {
+  appearance: none;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  padding: 0;
+}
