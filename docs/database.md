@@ -248,7 +248,8 @@ Armazena as entradas registradas pelo operador de balança. Cada entrada nasce c
 - `/balanca/entradas/nova` permite lançar entrada com data/hora manual ou padrão atual, placa, produto e peso bruto.
 - A tela de nova entrada consulta até 5 placas recentes em `entradas_balanca`, filtra conforme digitação e habilita “Usar tara anterior” quando a placa já tem entrada com tara.
 - Ao usar tara anterior, a aplicação copia `peso_tara_kg` da entrada anterior mais recente da mesma placa e grava `tara_usada_de_entrada_id`.
-- A página inicial `/balanca` lista as 10 entradas mais recentes usando `ORDER BY data_entrada DESC, id DESC`.
+- A página inicial `/balanca` lista as 10 entradas mais recentes usando `ORDER BY data_entrada DESC, id DESC`; `/balanca/entradas` mostra a lista completa.
+- Nas tabelas de entradas de `/balanca` e `/balanca/entradas`, clicar na placa do caminhão copia para a área de transferência um relatório em cinco linhas com data/hora, placa, origem, peso líquido em kg e umidade em percentual; essa ação só fica disponível depois que a entrada possui origem, tara e classificação completas, e a umidade é copiada sempre com uma casa decimal.
 - As ações atuais da lista são adicionar tara, adicionar classificação e definir origem. A ação de cliente está preparada no banco, mas ainda não foi implementada na interface.
 - O campo `liquido_real_kg` é usado pelo módulo `/admin/armazenamento` para somar entradas no estoque. A fórmula aplicada considera os percentuais como valores de 0 a 100: para umidade até 14%, `(peso_liquido_kg * (1 - impureza_percent / 100))`; para umidade acima de 14%, `(peso_liquido_kg * (1 - impureza_percent / 100) * (1 - umidade_percent / 100) / 0.86)`.
 

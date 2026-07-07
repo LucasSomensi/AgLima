@@ -14,6 +14,11 @@ const { buildAlertHtml } = require('./template-utils');
 const DEFAULT_INVOICE_OPERATION_NATURE = 'Venda';
 const DEFAULT_INVOICE_CFOP = '5101';
 
+
+function escapeHtmlAttribute(value) {
+  return escapeHtml(value).replace(/\r?\n/g, '&#10;');
+}
+
 function formatMoney(value) {
   if (value === null || value === undefined || value === '') {
     return '-';
@@ -84,6 +89,47 @@ function isInputClassified(input) {
     && input.graos_avariados_percent !== undefined;
 }
 
+function formatInputReportDateTime(value) {
+  const localValue = toDateTimeLocalValue(value);
+
+  if (!localValue) {
+    return '-';
+  }
+
+  const [datePart, timePart] = localValue.split('T');
+  const [year, month, day] = datePart.split('-');
+
+  return `${day}/${month}/${year} ${timePart}`;
+}
+
+function formatReportMoisture(value) {
+  if (value === null || value === undefined || value === '') {
+    return '-';
+  }
+
+  return Number(value).toLocaleString('pt-BR', {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  });
+}
+
+function canCopyInputReport(input) {
+  return Boolean(input.origem)
+    && input.peso_tara_kg !== null
+    && input.peso_tara_kg !== undefined
+    && isInputClassified(input);
+}
+
+function buildInputClipboardReport(input) {
+  return [
+    formatInputReportDateTime(input.data_entrada),
+    input.placa_caminhao || '-',
+    input.origem || '-',
+    `${formatPlainDecimal(input.peso_liquido_kg)}kg`,
+    `Umidade: ${formatReportMoisture(input.umidade_percent)}%`,
+  ].join('\n');
+}
+
 function getDefaultScaleInputProduct(dataEntradaValue) {
   const monthMatch = String(dataEntradaValue || '').match(/^\d{4}-(\d{2})/);
 
@@ -119,10 +165,17 @@ function buildScaleInputRows(inputs, { showAllLink = false } = {}) {
         ? escapeHtml(input.origem)
         : `<a class="admin-table-link" href="/balanca/entradas/${escapeHtml(input.id)}/origem">Definir origem</a>`;
 
+      const plateContent = canCopyInputReport(input)
+        ? (() => {
+          const clipboardReport = buildInputClipboardReport(input);
+          return `<button class="admin-table-link weighbridge-copy-report-button" type="button" data-clipboard-report="${escapeHtmlAttribute(clipboardReport)}" aria-label="Copiar relatório da entrada ${escapeHtml(input.placa_caminhao)}">${escapeHtml(input.placa_caminhao)}</button>`;
+        })()
+        : escapeHtml(input.placa_caminhao);
+
       return `
         <tr>
           <td><a class="admin-table-link" href="/balanca/entradas/${escapeHtml(input.id)}">${escapeHtml(formatDateTime(input.data_entrada))}</a></td>
-          <td>${escapeHtml(input.placa_caminhao)}</td>
+          <td>${plateContent}</td>
           <td>${escapeHtml(formatProductLabel(input.produto))}</td>
           <td>${escapeHtml(formatKg(input.peso_bruto_kg))}</td>
           <td>${tareContent}</td>
