@@ -72,6 +72,14 @@ function formatKg(value) {
   return formatWeight(value, 'kg');
 }
 
+function formatRoundedKg(value) {
+  if (value === null || value === undefined || value === '') {
+    return '-';
+  }
+
+  return String(Math.round(Number(value)));
+}
+
 function formatPercent(value) {
   if (value === null || value === undefined || value === '') {
     return '-';
@@ -461,7 +469,7 @@ function renderScaleInputDetailPage(res, { input, formValues = {}, message, erro
     .replace(/{{GRAOS_AVARIADOS_PERCENT}}/g, escapeHtml(formatDecimalInput(formValues.graos_avariados_percent ?? input.graos_avariados_percent ?? '')))
     .replace('{{PESO_TARA_KG}}', escapeHtml(input.peso_tara_kg === null || input.peso_tara_kg === undefined ? 'Pendente' : formatPlainDecimal(input.peso_tara_kg)))
     .replace('{{PESO_LIQUIDO_KG}}', escapeHtml(input.peso_liquido_kg === null || input.peso_liquido_kg === undefined ? '-' : formatPlainDecimal(input.peso_liquido_kg)))
-    .replace('{{LIQUIDO_REAL_KG}}', escapeHtml(input.liquido_real_kg === null || input.liquido_real_kg === undefined ? '-' : formatPlainDecimal(input.liquido_real_kg)))
+    .replace('{{LIQUIDO_REAL_KG}}', escapeHtml(formatRoundedKg(input.liquido_real_kg)))
     .replace('{{ORIGEM}}', input.origem ? escapeHtml(input.origem) : 'Pendente')
     .replace('{{CLASSIFICACAO}}', isInputClassified(input)
       ? escapeHtml(`${formatPercent(input.umidade_percent)} umidade · ${formatPercent(input.impureza_percent)} impureza · ${formatPercent(input.graos_avariados_percent)} avariados`)

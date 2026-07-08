@@ -233,7 +233,7 @@ test('input detail edit form exposes tare, origin, and classification fields', (
       ...baseInput,
       peso_tara_kg: '12000',
       peso_liquido_kg: '18000',
-      liquido_real_kg: '17820',
+      liquido_real_kg: '17820.6',
       origem: 'Fazenda São José',
       umidade_percent: '14',
       impureza_percent: '1',
@@ -245,7 +245,7 @@ test('input detail edit form exposes tare, origin, and classification fields', (
   });
 
   assert.match(html, /<dt>Placa<\/dt><dd>ABC1D23<\/dd>/);
-  assert.match(html, /<dt>Líquido real<\/dt><dd>17820<\/dd>/);
+  assert.match(html, /<dt>Líquido real<\/dt><dd>17821<\/dd>/);
   assert.match(html, /name="peso_tara_kg"[^>]+value="12000"/);
   assert.match(html, /name="origem"[^>]+value="Fazenda São José"/);
   assert.match(html, /name="umidade_percent"[^>]+value="14"/);
