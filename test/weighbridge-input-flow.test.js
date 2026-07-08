@@ -29,6 +29,7 @@ const baseInput = {
   peso_bruto_kg: '30000',
   peso_tara_kg: null,
   peso_liquido_kg: null,
+  liquido_real_kg: null,
   tara_usada_de_entrada_id: null,
   origem: null,
   umidade_percent: null,
@@ -62,6 +63,7 @@ test('weighbridge input plate copies entry report to clipboard only when complet
       ...baseInput,
       peso_tara_kg: '12000',
       peso_liquido_kg: '18000',
+      liquido_real_kg: '17820',
       origem: 'Fazenda São José',
       umidade_percent: '14',
       impureza_percent: '1',
@@ -231,6 +233,7 @@ test('input detail edit form exposes tare, origin, and classification fields', (
       ...baseInput,
       peso_tara_kg: '12000',
       peso_liquido_kg: '18000',
+      liquido_real_kg: '17820',
       origem: 'Fazenda São José',
       umidade_percent: '14',
       impureza_percent: '1',
@@ -242,6 +245,7 @@ test('input detail edit form exposes tare, origin, and classification fields', (
   });
 
   assert.match(html, /<dt>Placa<\/dt><dd>ABC1D23<\/dd>/);
+  assert.match(html, /<dt>Líquido real<\/dt><dd>17820<\/dd>/);
   assert.match(html, /name="peso_tara_kg"[^>]+value="12000"/);
   assert.match(html, /name="origem"[^>]+value="Fazenda São José"/);
   assert.match(html, /name="umidade_percent"[^>]+value="14"/);
