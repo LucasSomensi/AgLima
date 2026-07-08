@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { GRAIN_LABELS, ROOT_LOGIN, ROLES } = require('../constants');
+const { calculateDischargeForecast } = require('../dryer-forecast');
 const {
   escapeHtml,
   formatDate,
@@ -136,6 +137,23 @@ function renderAdminStoragePage(res, { summary, recalibrations, ignoredInputs, m
 
 function getGrainLabel(grainType) {
   return GRAIN_LABELS[grainType] || grainType || '-';
+}
+
+
+function formatDischargeForecast(dischargeForecast) {
+  if (!dischargeForecast || dischargeForecast.status === 'unavailable') {
+    return '-';
+  }
+
+  if (dischargeForecast.status === 'started') {
+    return `Iniciada em ${formatDateTime(dischargeForecast.dischargeStartedAt)}`;
+  }
+
+  if (dischargeForecast.status === 'immediate') {
+    return 'Descarga imediata';
+  }
+
+  return formatDateTime(dischargeForecast.forecastAt);
 }
 
 function formatBatchStatusLabel(batch) {
@@ -312,7 +330,10 @@ function renderAdminContractsPanel(summary = {}) {
       `;
 }
 
-function renderAdminDryerPanel(batch) {
+function renderAdminDryerPanel(batch, readings = []) {
+  const dischargeForecast = calculateDischargeForecast({ batch, readings });
+  const dischargeLabel = batch?.discharge_started_at ? 'Início da descarga' : 'Previsão da próxima descarga';
+
   return `
         <section class="admin-section admin-notifications-panel admin-home-panel" aria-labelledby="admin-dryer-title">
           <div class="admin-section-header admin-notifications-header">
@@ -322,7 +343,7 @@ function renderAdminDryerPanel(batch) {
           <div class="admin-home-metrics-grid">
             ${renderAdminMetric('Status do secador', formatBatchStatusLabel(batch))}
             ${renderAdminMetric('Início da batelada', batch ? formatDateTime(batch.started_at) : '-')}
-            ${renderAdminMetric(batch?.discharge_started_at ? 'Início da descarga' : 'Previsão da próxima descarga', batch?.discharge_started_at ? formatDateTime(batch.discharge_started_at) : '-')}
+            ${renderAdminMetric(dischargeLabel, formatDischargeForecast(dischargeForecast))}
           </div>
         </section>
       `;
@@ -375,13 +396,13 @@ function renderAdminWeighbridgePanel({ inputs = [], outputs = [] } = {}) {
       `;
 }
 
-function renderAdminHomePage(res, { notifications = [], contractsSummary = {}, dryerBatch = null, storageSummary = [], scaleInputs = [], scaleOutputs = [], message, error } = {}) {
+function renderAdminHomePage(res, { notifications = [], contractsSummary = {}, dryerBatch = null, dryerReadings = [], storageSummary = [], scaleInputs = [], scaleOutputs = [], message, error } = {}) {
   const adminHomeHtml = renderTemplate('admin-home.html', {
     ADMIN_HOME_MESSAGE: buildAlertHtml(message),
     ADMIN_HOME_ERROR: buildAlertHtml(error, 'error'),
     ADMIN_NOTIFICATIONS_PANEL: renderAdminNotificationsPanel(notifications),
     ADMIN_CONTRACTS_PANEL: renderAdminContractsPanel(contractsSummary),
-    ADMIN_DRYER_PANEL: renderAdminDryerPanel(dryerBatch),
+    ADMIN_DRYER_PANEL: renderAdminDryerPanel(dryerBatch, dryerReadings),
     ADMIN_STORAGE_PANEL: renderAdminStoragePanel(storageSummary),
     ADMIN_WEIGHBRIDGE_PANEL: renderAdminWeighbridgePanel({ inputs: scaleInputs, outputs: scaleOutputs }),
   });
@@ -395,6 +416,7 @@ function renderAdminDashboardPage(res, { batch, readings, settings, message, err
   const currentTargetMoisture = formatMoisture(settings?.target_moisture);
   const batchTargetMoisture = batch ? formatMoisture(batch.target_moisture) : currentTargetMoisture;
   const readingsRows = renderReadingsRows(readings);
+  const dischargeForecast = calculateDischargeForecast({ batch, readings });
   const dashboardHtml = fs
     .readFileSync(dashboardPath, 'utf8')
     .replace('{{ADMIN_PANEL_MESSAGE}}', buildAlertHtml(message))
@@ -403,7 +425,7 @@ function renderAdminDashboardPage(res, { batch, readings, settings, message, err
     .replace('{{TARGET_MOISTURE_VALUE}}', escapeHtml(formatMoisture(settings?.target_moisture).replace(',', '.')))
     .replace('{{BATCH_STATUS}}', escapeHtml(statusLabel))
     .replace('{{BATCH_STARTED_AT}}', escapeHtml(batch ? formatDateTime(batch.started_at) : 'Nenhuma batelada ativa'))
-    .replace('{{BATCH_DISCHARGE_STARTED_AT}}', escapeHtml(batch?.discharge_started_at ? formatDateTime(batch.discharge_started_at) : '-'))
+    .replace('{{BATCH_DISCHARGE_STARTED_AT}}', escapeHtml(formatDischargeForecast(dischargeForecast)))
     .replace('{{BATCH_TARGET_MOISTURE}}', escapeHtml(batchTargetMoisture))
     .replace('{{BATCH_PRODUCT}}', escapeHtml(batch ? getGrainLabel(batch.grain_type) : '-'))
     .replace('{{READINGS_ROWS}}', readingsRows);

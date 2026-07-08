@@ -85,11 +85,13 @@ router.get('/admin', canAccessAdminPanel, async (req, res) => {
       listScaleInputs({ limit: 10 }),
       listScaleOutputs({ limit: 10 }),
     ]);
+    const dryerReadings = await listDryerMoistureReadings(dryerBatch?.id);
 
     return renderAdminHomePage(res, {
       notifications,
       contractsSummary,
       dryerBatch,
+      dryerReadings,
       storageSummary,
       scaleInputs,
       scaleOutputs,
