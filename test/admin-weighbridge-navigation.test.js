@@ -49,3 +49,24 @@ test('admin home combines next receipt date and contract link in one metric', ()
   assert.doesNotMatch(html, /Próximo contrato a receber/);
 });
 
+
+test('admin home shows discharge forecast before first moisture reading', () => {
+  const html = renderPage(renderAdminHomePage, {
+    notifications: [],
+    contractsSummary: {},
+    dryerBatch: {
+      started_at: new Date('2026-06-21T13:00:00.000Z'),
+      target_moisture: 14.5,
+      umidade_inicial: 28,
+    },
+    dryerReadings: [],
+    storageSummary: [],
+    scaleInputs: [],
+    scaleOutputs: [],
+    message: '',
+    error: '',
+  });
+
+  assert.match(html, /<span>Previsão da próxima descarga<\/span>/);
+  assert.doesNotMatch(html, /<span>Previsão da próxima descarga<\/span>\s*<strong>-<\/strong>/);
+});
