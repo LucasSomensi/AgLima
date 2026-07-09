@@ -5,6 +5,7 @@ const {
   addDryerMoistureReading,
   getActiveDryerBatch,
   getDryerSettings,
+  getLastCompletedDryerBatchSummary,
   getDefaultInitialMoisture,
   listDryerMoistureReadings,
   startDryerBatch,
@@ -29,10 +30,11 @@ function buildDryerRedirect(params) {
 
 router.get('/secador', canAccessDryer, async (req, res) => {
   try {
-    const [settings, batch, unclassifiedInputs] = await Promise.all([
+    const [settings, batch, unclassifiedInputs, lastCompletedBatch] = await Promise.all([
       getDryerSettings(),
       getActiveDryerBatch(),
       listUnclassifiedScaleInputs(),
+      getLastCompletedDryerBatchSummary(),
     ]);
     const readings = await listDryerMoistureReadings(batch?.id);
 
@@ -41,6 +43,7 @@ router.get('/secador', canAccessDryer, async (req, res) => {
       readings,
       settings,
       unclassifiedInputs,
+      lastCompletedBatch,
       message: req.query.entrada_classificada
         ? 'Classificação adicionada à entrada com sucesso.'
         : req.query.started

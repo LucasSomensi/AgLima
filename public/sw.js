@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'agrolima-secador-v5';
+const CACHE_VERSION = 'agrolima-secador-v6';
 const STATIC_ASSETS = [
   '/css/styles.css',
   '/favicon.ico',
