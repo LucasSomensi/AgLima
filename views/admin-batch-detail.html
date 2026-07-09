@@ -52,12 +52,6 @@
           </article>
         </section>
 
-        <section class="admin-section" aria-labelledby="batch-evolution-title">
-          <h2 id="batch-evolution-title">Evolução da secagem</h2>
-          <p class="admin-muted">Acompanhe como a umidade média usada no cálculo e a previsão de descarga mudaram a cada medição registrada.</p>
-          {{BATCH_EVOLUTION_CHART}}
-        </section>
-
         <section class="admin-section" aria-labelledby="saved-readings-title">
           <h2 id="saved-readings-title">Medições de umidade salvas</h2>
           <div class="admin-table-wrapper">
@@ -65,7 +59,10 @@
               <thead>
                 <tr>
                   <th>Data e hora</th>
-                  <th>Umidade</th>
+                  <th>Umidade medida</th>
+                  <th>Umidade média</th>
+                  <th>Previsão de descarga</th>
+                  <th>Umidade alvo</th>
                   <th>Operador</th>
                 </tr>
               </thead>

@@ -7,6 +7,7 @@ const {
   formatDate,
   formatDateTime,
   formatMoisture,
+  formatTime,
   getRoleLabel,
   toDateOnlyInputValue,
   toDateTimeLocalValue,
@@ -168,21 +169,73 @@ function formatBatchStatusLabel(batch) {
   return batch.discharge_started_at ? 'Descarregando' : 'Secando';
 }
 
-function renderReadingsRows(readings, { includeOperator = true } = {}) {
-  const colSpan = includeOperator ? 3 : 2;
-  const emptyReadings = `<tr><td colspan="${colSpan}">Nenhuma medição lançada.</td></tr>`;
+function buildReadingEvolutionRows(batch, readings = [], { includeOperator = true, compactTime = false, expandableOperator = false } = {}) {
+  const columns = includeOperator ? 6 : 5;
+
+  if (!readings.length) {
+    return `<tr><td colspan="${columns}">Nenhuma medição lançada.</td></tr>`;
+  }
+
+  const batchForForecast = batch ? { ...batch, discharge_started_at: null } : null;
+  const validReadings = readings
+    .filter((reading) => toChartTimestamp(reading.measured_at) !== null)
+    .sort((left, right) => toChartTimestamp(left.measured_at) - toChartTimestamp(right.measured_at));
+  const rowsById = new Map();
+
+  validReadings.forEach((reading, index) => {
+    const measuredAt = new Date(reading.measured_at);
+    const readingsUntilPoint = validReadings.slice(0, index + 1);
+    const forecast = calculateDischargeForecast({
+      batch: batchForForecast,
+      readings: readingsUntilPoint,
+      now: measuredAt,
+    });
+
+    rowsById.set(String(reading.id), {
+      averageMoisture: forecast.averageMoisture,
+      forecastLabel: formatDischargeForecast(forecast),
+    });
+  });
 
   return readings
-    .map((reading) => `
-        <tr>
-          <td>${escapeHtml(formatDateTime(reading.measured_at))}</td>
+    .map((reading) => {
+      const evolution = rowsById.get(String(reading.id)) || {};
+      const measuredAt = compactTime ? formatTime(reading.measured_at) : formatDateTime(reading.measured_at);
+      const averageMoisture = evolution.averageMoisture === null || evolution.averageMoisture === undefined
+        ? '-'
+        : `${formatMoisture(evolution.averageMoisture)}%`;
+      const targetMoisture = batch?.target_moisture === null || batch?.target_moisture === undefined
+        ? '-'
+        : `${formatMoisture(batch.target_moisture)}%`;
+      const dischargeActual = batch?.discharge_started_at ? formatDateTime(batch.discharge_started_at) : '-';
+      const cells = `
+          <td>${escapeHtml(measuredAt)}</td>
           <td>${escapeHtml(formatMoisture(reading.moisture_percent))}%</td>
-          ${includeOperator ? `<td>${escapeHtml(reading.measured_by_login)}</td>` : ''}
+          <td>${escapeHtml(averageMoisture)}</td>
+          <td>${escapeHtml(evolution.forecastLabel || '-')}</td>
+          <td>${escapeHtml(targetMoisture)}</td>
+          ${includeOperator ? `<td>${escapeHtml(reading.measured_by_login)}</td>` : ''}`;
+
+      if (!expandableOperator) {
+        return `<tr>${cells}</tr>`;
+      }
+
+      const detailId = `reading-detail-${reading.id}`;
+      return `
+        <tr class="dryer-reading-row" tabindex="0" role="button" aria-expanded="false" data-detail-target="${escapeHtml(detailId)}">
+          ${cells}
         </tr>
-      `)
-    .join('') || emptyReadings;
+        <tr class="dryer-reading-detail" id="${escapeHtml(detailId)}" hidden>
+          <td colspan="${columns}">Operador: ${escapeHtml(reading.measured_by_login)} · Descarga real: ${escapeHtml(dischargeActual)}</td>
+        </tr>
+      `;
+    })
+    .join('');
 }
 
+function renderReadingsRows(readings, options = {}) {
+  return buildReadingEvolutionRows(options.batch, readings, options);
+}
 
 function toChartTimestamp(value) {
   const date = value instanceof Date ? value : new Date(value);
@@ -558,7 +611,7 @@ function renderAdminDashboardPage(res, { batch, readings, settings, message, err
   const statusLabel = formatBatchStatusLabel(batch);
   const currentTargetMoisture = formatMoisture(settings?.target_moisture);
   const batchTargetMoisture = batch ? formatMoisture(batch.target_moisture) : currentTargetMoisture;
-  const readingsRows = renderReadingsRows(readings);
+  const readingsRows = renderReadingsRows(readings, { batch });
   const dischargeForecast = calculateDischargeForecast({ batch, readings });
   const dashboardHtml = fs
     .readFileSync(dashboardPath, 'utf8')
@@ -607,8 +660,7 @@ function renderAdminBatchDetailPage(res, { batch, readings }) {
     .replace('{{BATCH_COMPLETED_AT}}', escapeHtml(batch.completed_at ? formatDateTime(batch.completed_at) : '-'))
     .replace('{{BATCH_TARGET_MOISTURE}}', escapeHtml(formatMoisture(batch.target_moisture)))
     .replace('{{BATCH_PRODUCT}}', escapeHtml(getGrainLabel(batch.grain_type)))
-    .replace('{{BATCH_EVOLUTION_CHART}}', renderBatchEvolutionChart(batch, readings))
-    .replace('{{READINGS_ROWS}}', renderReadingsRows(readings));
+    .replace('{{READINGS_ROWS}}', renderReadingsRows(readings, { batch }));
 
   res.send(detailHtml);
 }
