@@ -3,19 +3,7 @@ const test = require('node:test');
 
 const { calculateAverageMoisture, calculateDischargeForecast } = require('../routes/dryer-forecast');
 
-const DRYER_DECAY_A = 0.79542;
-const DRYER_DECAY_B = 1.88673;
-
-function calculateExpectedForecastAt(baseDate, averageMoisture, targetMoisture = 14.5) {
-  const xInf = DRYER_DECAY_B / (1 - DRYER_DECAY_A);
-  const alpha = DRYER_DECAY_A ** (1 / 6);
-  const beta = (targetMoisture - xInf) / (averageMoisture - xInf);
-  const minutesRemaining = (15 * Math.log(beta)) / Math.log(alpha) - 90;
-
-  return new Date(baseDate.getTime() + minutesRemaining * 60 * 1000);
-}
-
-test('calcula previsão antes da primeira medição usando a umidade inicial da batelada', () => {
+test('não calcula previsão linear antes de haver pontos suficientes de tendência', () => {
   const batchStartedAt = new Date('2026-06-21T13:00:00.000Z');
   const forecast = calculateDischargeForecast({
     batch: {
@@ -27,15 +15,11 @@ test('calcula previsão antes da primeira medição usando a umidade inicial da 
     now: new Date('2026-06-21T13:01:00.000Z'),
   });
 
-  const expectedForecastAt = calculateExpectedForecastAt(batchStartedAt, 28);
-
-  assert.equal(forecast.status, 'forecast');
+  assert.equal(forecast.status, 'unavailable');
   assert.equal(forecast.averageMoisture, 28);
-  assert.equal(forecast.lastMeasuredAt.toISOString(), batchStartedAt.toISOString());
-  assert.equal(forecast.forecastAt.toISOString(), expectedForecastAt.toISOString());
 });
 
-test('preenche o período anterior ao início da batelada com a umidade inicial na média de 1h45min', () => {
+test('mantém a umidade inicial antes da primeira medição ao calcular a média real', () => {
   const batchStartedAt = new Date('2026-06-21T13:00:00.000Z');
   const lastMeasuredAt = new Date('2026-06-21T13:15:00.000Z');
   const forecast = calculateDischargeForecast({
@@ -54,12 +38,45 @@ test('preenche o período anterior ao início da batelada com a umidade inicial 
   });
 
   const expectedAverage = ((90 * 28) + (15 * ((28 + 20) / 2))) / 105;
-  const expectedForecastAt = calculateExpectedForecastAt(lastMeasuredAt, expectedAverage);
+
+  assert.equal(forecast.status, 'unavailable');
+  assert.ok(Math.abs(forecast.averageMoisture - expectedAverage) < 0.0000001);
+});
+
+test('calcula previsão linear local com média real e 100 minutos de antecedência', () => {
+  const readings = [
+    ['2026-07-09T02:23:00.000Z', 27.0],
+    ['2026-07-09T02:51:00.000Z', 25.8],
+    ['2026-07-09T03:27:00.000Z', 24.5],
+    ['2026-07-09T04:05:00.000Z', 23.0],
+    ['2026-07-09T04:30:00.000Z', 22.0],
+    ['2026-07-09T05:11:00.000Z', 22.3],
+    ['2026-07-09T05:35:00.000Z', 23.1],
+    ['2026-07-09T06:01:00.000Z', 19.8],
+    ['2026-07-09T06:31:00.000Z', 19.7],
+    ['2026-07-09T06:55:00.000Z', 19.7],
+    ['2026-07-09T08:24:00.000Z', 16.8],
+    ['2026-07-09T09:20:00.000Z', 17.6],
+    ['2026-07-09T09:50:00.000Z', 16.0],
+    ['2026-07-09T10:16:00.000Z', 14.0],
+    ['2026-07-09T10:16:00.000Z', 14.0],
+    ['2026-07-09T10:20:00.000Z', 14.0],
+  ].map(([measured_at, moisture_percent]) => ({ measured_at, moisture_percent }));
+
+  const forecast = calculateDischargeForecast({
+    batch: {
+      started_at: '2026-07-09T02:23:00.000Z',
+      target_moisture: 14.5,
+      umidade_inicial: 27,
+    },
+    readings,
+    now: '2026-07-09T10:20:00.000Z',
+  });
 
   assert.equal(forecast.status, 'forecast');
-  assert.ok(Math.abs(forecast.averageMoisture - expectedAverage) < 0.0000001);
-  assert.equal(forecast.lastMeasuredAt.toISOString(), lastMeasuredAt.toISOString());
-  assert.equal(forecast.forecastAt.toISOString(), expectedForecastAt.toISOString());
+  assert.ok(Math.abs(forecast.averageMoisture - 16.452721088435375) < 0.0000001);
+  assert.equal(forecast.lastMeasuredAt.toISOString(), '2026-07-09T10:20:00.000Z');
+  assert.equal(forecast.forecastAt.toISOString(), '2026-07-09T10:37:15.453Z');
 });
 
 test('calcula média pela interpolação das leituras reais da janela sem reinjetar umidade inicial no lookback', () => {
