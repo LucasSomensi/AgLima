@@ -120,10 +120,6 @@ function calculateDischargeForecast({ batch, readings, now = new Date() }) {
   const periodStart = lookbackStart;
   const readingsWithInitialMoisture = [
     {
-      measured_at: new Date(lookbackStart),
-      moisture_percent: initialMoisture,
-    },
-    {
       measured_at: new Date(batchStartedAt),
       moisture_percent: initialMoisture,
     },
