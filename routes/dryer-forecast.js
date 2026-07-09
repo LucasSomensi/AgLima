@@ -1,6 +1,12 @@
 const DISCHARGE_FORECAST_LOOKBACK_MINUTES = 105;
-const DISCHARGE_FORECAST_OFFSET_MINUTES = 100;
-const DISCHARGE_FORECAST_MOISTURE_DROP_PERCENT_PER_MINUTE = 1 / 60;
+const DISCHARGE_FORECAST_TABLE = [
+  { moisture: 29.5, minutesRemaining: 520 },
+  { moisture: 25, minutesRemaining: 415 },
+  { moisture: 22, minutesRemaining: 300 },
+  { moisture: 18.5, minutesRemaining: 150 },
+  { moisture: 16.5, minutesRemaining: 45 },
+  { moisture: 15.2, minutesRemaining: 0 },
+];
 const MILLISECONDS_PER_MINUTE = 60 * 1000;
 
 function toValidTimestamp(value) {
@@ -85,6 +91,41 @@ function calculateAverageMoisture({ readings, periodStart, periodEnd }) {
   return area / (periodEnd - periodStart);
 }
 
+
+function calculateMinutesRemainingFromAverageMoisture(averageMoisture) {
+  const moisture = toFiniteNumber(averageMoisture);
+
+  if (moisture === null) {
+    return null;
+  }
+
+  const descendingTable = DISCHARGE_FORECAST_TABLE;
+  const highestMoisturePoint = descendingTable[0];
+  const lowestMoisturePoint = descendingTable[descendingTable.length - 1];
+
+  if (moisture >= highestMoisturePoint.moisture) {
+    return highestMoisturePoint.minutesRemaining;
+  }
+
+  if (moisture < lowestMoisturePoint.moisture) {
+    return 0;
+  }
+
+  for (let index = 1; index < descendingTable.length; index += 1) {
+    const higherPoint = descendingTable[index - 1];
+    const lowerPoint = descendingTable[index];
+
+    if (moisture >= lowerPoint.moisture) {
+      const ratio = (moisture - lowerPoint.moisture) / (higherPoint.moisture - lowerPoint.moisture);
+
+      return lowerPoint.minutesRemaining
+        + (higherPoint.minutesRemaining - lowerPoint.minutesRemaining) * ratio;
+    }
+  }
+
+  return null;
+}
+
 function deduplicateReadingsByTimestamp(readings) {
   const readingsByTimestamp = new Map();
 
@@ -143,24 +184,11 @@ function calculateDischargeForecast({ batch, readings, now = new Date() }) {
     return { status: 'unavailable' };
   }
 
-  const targetMoisture = toFiniteNumber(batch.target_moisture) || 14.5;
-
   if (!lastReading) {
     return { status: 'unavailable', averageMoisture };
   }
 
-  if (averageMoisture <= targetMoisture) {
-    return {
-      status: 'immediate',
-      averageMoisture,
-      forecastAt: new Date(periodEnd),
-      lastMeasuredAt: new Date(periodEnd),
-    };
-  }
-
-  const minutesUntilTarget = (averageMoisture - targetMoisture)
-    / DISCHARGE_FORECAST_MOISTURE_DROP_PERCENT_PER_MINUTE;
-  const minutesRemaining = minutesUntilTarget - DISCHARGE_FORECAST_OFFSET_MINUTES;
+  const minutesRemaining = calculateMinutesRemainingFromAverageMoisture(averageMoisture);
 
   if (!Number.isFinite(minutesRemaining)) {
     return { status: 'unavailable', averageMoisture };
@@ -189,4 +217,5 @@ function calculateDischargeForecast({ batch, readings, now = new Date() }) {
 module.exports = {
   calculateAverageMoisture,
   calculateDischargeForecast,
+  calculateMinutesRemainingFromAverageMoisture,
 };

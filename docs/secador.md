@@ -153,21 +153,18 @@ A lista exibida no painel mostra apenas as medições da batelada ativa, ordenad
 
 ### 5. Acompanhar a previsão de descarga
 
-Enquanto a descarga ainda não foi iniciada, o painel calcula uma previsão linear para auxiliar o operador a decidir quando começar a descarga. A previsão não é exibida antes da primeira medição de umidade da batelada, mas a umidade média atual já é calculada para uso interno e para as telas administrativas.
+Enquanto a descarga ainda não foi iniciada, o painel calcula uma previsão por interpolação em uma tabela calibrada com dados reais do secador para auxiliar o operador a decidir quando começar a descarga. A previsão não é exibida antes da primeira medição de umidade da batelada, mas a umidade média atual já é calculada para uso interno e para as telas administrativas.
 
 A base da previsão continua sendo a umidade média real da batelada em janelas móveis de 1h45min. No horário da última medição, o sistema olha 105 minutos para trás, integra a curva de umidade nesse intervalo e divide a área pelo tempo da janela. A curva é formada pela umidade inicial da batelada e pelas medições registradas, com interpolação linear entre pontos. Se a janela começa antes do início da batelada ou antes da primeira medição real, a umidade inicial é mantida para preencher esse trecho. O cálculo usa data e hora completas, então funciona corretamente quando a batelada atravessa a meia-noite.
 
-A inclinação da reta não é recalculada a partir dos pontos recentes da batelada. Ela é uma característica fixa do secador, definida no código como queda de `1` ponto percentual de umidade por hora. Assim, oscilações pontuais nas leituras alteram a umidade média atual, mas não mudam a velocidade assumida da secagem de uma medição para outra.
-
-Quando a umidade média atual já é menor ou igual à umidade alvo da batelada, o painel mostra “Descarga imediata”. Caso contrário, o sistema calcula quanto tempo falta para a média alcançar a umidade alvo usando a inclinação fixa do secador e aplica uma antecedência operacional fixa de 100 minutos:
+Depois de calcular a umidade média, o sistema consulta a tabela fixa de calibração em `routes/dryer-forecast.js`. Quando a umidade média fica entre dois pontos da tabela, os minutos restantes são interpolados linearmente entre esses dois pontos. Quando a umidade média fica acima de `29,5%`, a previsão é limitada ao valor máximo calibrado, retornando sempre `520` minutos restantes. Quando a umidade média fica abaixo de `15,2%`, o sistema considera `0` minuto restante, o que leva o painel a indicar descarga imediata se o horário previsto já tiver passado.
 
 ```text
-minutos_ate_alvo = (umidade_media_atual - umidade_alvo) / queda_fixa_por_minuto
-minutos_restantes = minutos_ate_alvo - 100
+minutos_restantes = interpolar_tabela_calibrada(umidade_media_atual)
 hora_prevista_para_inicio_da_descarga = horario_da_ultima_medicao + minutos_restantes
 ```
 
-A umidade alvo padrão é `14,5%`, mas administradores podem alterá-la. Cada batelada usa a umidade alvo copiada no momento em que foi iniciada. Os parâmetros atuais do cálculo linear são fixos no código: janela de média de `105` minutos, queda fixa de `1` ponto percentual de umidade por hora e antecedência de descarga de `100` minutos.
+A tabela atual ignora temporariamente a umidade alvo da batelada ao calcular os minutos restantes. A umidade alvo padrão continua sendo `14,5%` e administradores ainda podem alterá-la para registro operacional, mas a previsão por interpolação usa somente a umidade média calculada e os pontos calibrados no código. O parâmetro atual da média móvel é fixo no código: janela de `105` minutos.
 
 Se o horário atual do servidor já for maior que o horário previsto, o painel mostra “Descarga imediata”. Depois que o operador clica em “Iniciar descarga”, toda essa lógica deixa de ser recalculada para a batelada e o painel passa a mostrar o horário em que a descarga realmente começou.
 
