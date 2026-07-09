@@ -41,6 +41,10 @@ function renderLastCompletedBatchSummary(lastCompletedBatch) {
     return '';
   }
 
+  const initialMoisture = lastCompletedBatch.umidade_inicial !== null
+    && lastCompletedBatch.umidade_inicial !== undefined
+    ? `${formatMoisture(lastCompletedBatch.umidade_inicial)}%`
+    : '-';
   const dischargeMoisture = lastCompletedBatch.discharge_average_moisture !== null
     && lastCompletedBatch.discharge_average_moisture !== undefined
     ? `${formatMoisture(lastCompletedBatch.discharge_average_moisture)}%`
@@ -50,6 +54,10 @@ function renderLastCompletedBatchSummary(lastCompletedBatch) {
           <article class="dryer-status-card dryer-summary-card">
             <span class="dryer-card-label">Última batelada</span>
             <dl class="dryer-summary-list">
+              <div>
+                <dt>Umidade inicial</dt>
+                <dd>${escapeHtml(initialMoisture)}</dd>
+              </div>
               <div>
                 <dt>Início</dt>
                 <dd>${escapeHtml(formatDateTime(lastCompletedBatch.started_at))}</dd>
@@ -61,6 +69,10 @@ function renderLastCompletedBatchSummary(lastCompletedBatch) {
               <div>
                 <dt>Fim descarga</dt>
                 <dd>${escapeHtml(formatDateTime(lastCompletedBatch.completed_at))}</dd>
+              </div>
+              <div>
+                <dt>Duração</dt>
+                <dd>${escapeHtml(formatDurationBetween(lastCompletedBatch.started_at, lastCompletedBatch.completed_at))}</dd>
               </div>
               <div>
                 <dt>Tempo descarga</dt>
