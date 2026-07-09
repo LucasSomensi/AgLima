@@ -63,11 +63,11 @@ function renderLastCompletedBatchSummary(lastCompletedBatch) {
                 <dd>${escapeHtml(formatDateTime(lastCompletedBatch.completed_at))}</dd>
               </div>
               <div>
-                <dt>Duração</dt>
+                <dt>Tempo descarga</dt>
                 <dd>${escapeHtml(formatDurationBetween(lastCompletedBatch.discharge_started_at, lastCompletedBatch.completed_at))}</dd>
               </div>
               <div>
-                <dt>Umidade</dt>
+                <dt>Umidade final</dt>
                 <dd>${escapeHtml(dischargeMoisture)}</dd>
               </div>
             </dl>

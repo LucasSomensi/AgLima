@@ -31,8 +31,8 @@ test('dryer panel renders the last completed batch summary in the status grid', 
   assert.match(html, /Início<\/dt>\s*<dd>12\/06\/2026, 07:00<\/dd>/);
   assert.match(html, /Início descarga<\/dt>\s*<dd>12\/06\/2026, 10:30<\/dd>/);
   assert.match(html, /Fim descarga<\/dt>\s*<dd>12\/06\/2026, 12:05<\/dd>/);
-  assert.match(html, /Duração<\/dt>\s*<dd>1h 35min<\/dd>/);
-  assert.match(html, /Umidade<\/dt>\s*<dd>13,5%<\/dd>/);
+  assert.match(html, /Tempo descarga<\/dt>\s*<dd>1h 35min<\/dd>/);
+  assert.match(html, /Umidade final<\/dt>\s*<dd>13,5%<\/dd>/);
 });
 
 test('dryer panel omits the last batch summary when there is no completed batch', () => {
