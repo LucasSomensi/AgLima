@@ -8,6 +8,72 @@ const {
 } = require('../utils');
 const { buildAlertHtml, renderTemplate } = require('./template-utils');
 
+function formatDurationBetween(start, end) {
+  if (!start || !end) {
+    return '-';
+  }
+
+  const startDate = new Date(start);
+  const endDate = new Date(end);
+  const durationMs = endDate.getTime() - startDate.getTime();
+
+  if (!Number.isFinite(durationMs) || durationMs < 0) {
+    return '-';
+  }
+
+  const totalMinutes = Math.round(durationMs / 60000);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+
+  if (hours && minutes) {
+    return `${hours}h ${minutes}min`;
+  }
+
+  if (hours) {
+    return `${hours}h`;
+  }
+
+  return `${minutes}min`;
+}
+
+function renderLastCompletedBatchSummary(lastCompletedBatch) {
+  if (!lastCompletedBatch) {
+    return '';
+  }
+
+  const dischargeMoisture = lastCompletedBatch.discharge_average_moisture !== null
+    && lastCompletedBatch.discharge_average_moisture !== undefined
+    ? `${formatMoisture(lastCompletedBatch.discharge_average_moisture)}%`
+    : '-';
+
+  return `
+          <article class="dryer-status-card dryer-summary-card">
+            <span class="dryer-card-label">Última batelada</span>
+            <dl class="dryer-summary-list">
+              <div>
+                <dt>Início</dt>
+                <dd>${escapeHtml(formatDateTime(lastCompletedBatch.started_at))}</dd>
+              </div>
+              <div>
+                <dt>Início descarga</dt>
+                <dd>${escapeHtml(formatDateTime(lastCompletedBatch.discharge_started_at))}</dd>
+              </div>
+              <div>
+                <dt>Fim descarga</dt>
+                <dd>${escapeHtml(formatDateTime(lastCompletedBatch.completed_at))}</dd>
+              </div>
+              <div>
+                <dt>Duração</dt>
+                <dd>${escapeHtml(formatDurationBetween(lastCompletedBatch.discharge_started_at, lastCompletedBatch.completed_at))}</dd>
+              </div>
+              <div>
+                <dt>Umidade</dt>
+                <dd>${escapeHtml(dischargeMoisture)}</dd>
+              </div>
+            </dl>
+          </article>`;
+}
+
 function formatProductLabel(value) {
   const labels = { milho: 'Milho', soja: 'Soja' };
   return labels[value] || value || '-';
@@ -90,7 +156,7 @@ function renderDryerStartBatchPage(res, { defaultInitialMoisture, error }) {
   res.send(dryerHtml);
 }
 
-function renderDryerPanelPage(res, { batch, readings, settings, message, error, unclassifiedInputs = [] }) {
+function renderDryerPanelPage(res, { batch, readings, settings, message, error, unclassifiedInputs = [], lastCompletedBatch = null }) {
   const dischargeForecast = calculateDischargeForecast({ batch, readings });
   const startedAt = batch ? formatDateTime(batch.started_at) : 'Nenhuma batelada ativa';
   const dischargeStartedAt = formatDischargeForecast(dischargeForecast);
@@ -143,6 +209,7 @@ function renderDryerPanelPage(res, { batch, readings, settings, message, error, 
     BATCH_STARTED_AT: escapeHtml(startedAt),
     DISCHARGE_STARTED_AT: escapeHtml(dischargeStartedAt),
     INITIAL_MOISTURE: escapeHtml(initialMoisture),
+    LAST_COMPLETED_BATCH_SUMMARY: renderLastCompletedBatchSummary(lastCompletedBatch),
     BATCH_ACTION_URL: escapeHtml(batchAction.action),
     BATCH_ACTION_METHOD: escapeHtml(batchAction.method || 'post'),
     BATCH_ACTION_CSRF_INPUT: (batchAction.method || 'post') === 'post' ? '<input type="hidden" name="_csrf" value="{{CSRF_TOKEN}}">' : '',

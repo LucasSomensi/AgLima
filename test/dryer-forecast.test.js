@@ -1,7 +1,7 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
 
-const { calculateDischargeForecast } = require('../routes/dryer-forecast');
+const { calculateAverageMoisture, calculateDischargeForecast } = require('../routes/dryer-forecast');
 
 const DRYER_DECAY_A = 0.79542;
 const DRYER_DECAY_B = 1.88673;
@@ -60,4 +60,29 @@ test('preenche o período anterior ao início da batelada com a umidade inicial 
   assert.ok(Math.abs(forecast.averageMoisture - expectedAverage) < 0.0000001);
   assert.equal(forecast.lastMeasuredAt.toISOString(), lastMeasuredAt.toISOString());
   assert.equal(forecast.forecastAt.toISOString(), expectedForecastAt.toISOString());
+});
+
+test('calcula umidade média por integral com interpolação no período informado', () => {
+  const periodStart = new Date('2026-06-21T14:00:00.000Z').getTime();
+  const periodEnd = new Date('2026-06-21T15:00:00.000Z').getTime();
+  const averageMoisture = calculateAverageMoisture({
+    readings: [
+      {
+        measured_at: '2026-06-21T13:30:00.000Z',
+        moisture_percent: 20,
+      },
+      {
+        measured_at: '2026-06-21T14:30:00.000Z',
+        moisture_percent: 16,
+      },
+      {
+        measured_at: '2026-06-21T15:30:00.000Z',
+        moisture_percent: 14,
+      },
+    ],
+    periodStart,
+    periodEnd,
+  });
+
+  assert.ok(Math.abs(averageMoisture - 16.25) < 0.0000001);
 });

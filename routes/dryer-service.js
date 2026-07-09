@@ -1,3 +1,4 @@
+const { calculateAverageMoisture } = require('./dryer-forecast');
 const { ensureDatabaseConfigured, pool } = require('./database');
 
 async function getDryerSettings() {
@@ -79,6 +80,47 @@ async function listCompletedDryerBatches() {
   );
 
   return result.rows;
+}
+
+async function getLastCompletedDryerBatchSummary() {
+  ensureDatabaseConfigured();
+
+  const batchResult = await pool.query(
+    `
+      SELECT id, started_at, discharge_started_at, completed_at, umidade_inicial, created_at
+      FROM dryer_batches
+      WHERE status <> 'active'
+      ORDER BY started_at DESC, created_at DESC
+      LIMIT 1
+    `
+  );
+  const batch = batchResult.rows[0];
+
+  if (!batch) {
+    return null;
+  }
+
+  const readings = await listDryerMoistureReadings(batch.id);
+  const dischargeStartedAt = new Date(batch.discharge_started_at).getTime();
+  const completedAt = new Date(batch.completed_at).getTime();
+  const dischargeAverageMoisture = Number.isFinite(dischargeStartedAt) && Number.isFinite(completedAt)
+    ? calculateAverageMoisture({
+        readings: [
+          {
+            measured_at: batch.started_at,
+            moisture_percent: batch.umidade_inicial,
+          },
+          ...readings,
+        ],
+        periodStart: dischargeStartedAt,
+        periodEnd: completedAt,
+      })
+    : null;
+
+  return {
+    ...batch,
+    discharge_average_moisture: dischargeAverageMoisture,
+  };
 }
 
 async function listDryerMoistureReadings(batchId) {
@@ -323,6 +365,7 @@ module.exports = {
   getDryerBatchById,
   getDefaultInitialMoisture,
   getDryerSettings,
+  getLastCompletedDryerBatchSummary,
   listCompletedDryerBatches,
   listDryerMoistureReadings,
   startDryerBatch,
