@@ -183,6 +183,149 @@ function renderReadingsRows(readings, { includeOperator = true } = {}) {
     .join('') || emptyReadings;
 }
 
+
+function toChartTimestamp(value) {
+  const date = value instanceof Date ? value : new Date(value);
+  const timestamp = date.getTime();
+
+  return Number.isFinite(timestamp) ? timestamp : null;
+}
+
+function toChartNumber(value) {
+  const number = Number(value);
+
+  return Number.isFinite(number) ? number : null;
+}
+
+function formatChartTime(value) {
+  return formatDateTime(value).replace(' ', '\n');
+}
+
+function buildBatchEvolutionPoints(batch, readings) {
+  const batchForForecast = { ...batch, discharge_started_at: null };
+  const points = [];
+  const startedAt = toChartTimestamp(batch.started_at);
+  const initialMoisture = toChartNumber(batch.umidade_inicial);
+
+  if (startedAt !== null && initialMoisture !== null) {
+    const initialForecast = calculateDischargeForecast({
+      batch: batchForForecast,
+      readings: [],
+      now: new Date(startedAt),
+    });
+
+    points.push({
+      label: 'Início',
+      measuredAt: new Date(startedAt),
+      averageMoisture: initialForecast.averageMoisture ?? initialMoisture,
+      forecastAt: initialForecast.forecastAt || null,
+    });
+  }
+
+  const validReadings = readings
+    .filter((reading) => toChartTimestamp(reading.measured_at) !== null)
+    .sort((left, right) => toChartTimestamp(left.measured_at) - toChartTimestamp(right.measured_at));
+
+  validReadings.forEach((reading, index) => {
+    const measuredAt = new Date(reading.measured_at);
+    const readingsUntilPoint = validReadings.slice(0, index + 1);
+    const forecast = calculateDischargeForecast({
+      batch: batchForForecast,
+      readings: readingsUntilPoint,
+      now: measuredAt,
+    });
+
+    points.push({
+      label: formatDateTime(measuredAt),
+      measuredAt,
+      averageMoisture: forecast.averageMoisture ?? toChartNumber(reading.moisture_percent),
+      forecastAt: forecast.forecastAt || null,
+    });
+  });
+
+  return points.filter((point) => point.averageMoisture !== null || point.forecastAt);
+}
+
+function normalizeChartValue(value, min, max, top, height) {
+  if (max === min) {
+    return top + height / 2;
+  }
+
+  return top + height - ((value - min) / (max - min)) * height;
+}
+
+function renderPolyline(points, valueKey, min, max, chart) {
+  const validPoints = points.filter((point) => point[valueKey] !== null && point[valueKey] !== undefined);
+
+  if (validPoints.length === 0) {
+    return '';
+  }
+
+  const coordinates = validPoints
+    .map((point) => `${point.x},${normalizeChartValue(point[valueKey], min, max, chart.top, chart.height)}`)
+    .join(' ');
+  const pointClass = valueKey === 'averageMoisture' ? 'batch-chart-point-moisture' : 'batch-chart-point-forecast';
+
+  return `
+    <polyline class="${pointClass}" points="${coordinates}" />
+    ${validPoints.map((point) => `<circle class="${pointClass}" cx="${point.x}" cy="${normalizeChartValue(point[valueKey], min, max, chart.top, chart.height)}" r="4"><title>${escapeHtml(point.title)}</title></circle>`).join('')}
+  `;
+}
+
+function renderBatchEvolutionChart(batch, readings) {
+  const points = buildBatchEvolutionPoints(batch, readings);
+
+  if (points.length < 2) {
+    return '<p class="admin-muted">Registre pelo menos uma medição para visualizar a evolução da umidade média e da previsão de descarga.</p>';
+  }
+
+  const chart = { left: 68, right: 92, top: 28, height: 220, width: 780 };
+  const usableWidth = chart.width - chart.left - chart.right;
+  const forecastTimestamps = points.map((point) => point.forecastAt ? point.forecastAt.getTime() : null).filter((value) => value !== null);
+  const moistureValues = points.map((point) => point.averageMoisture).filter((value) => value !== null && value !== undefined);
+  const moistureMin = Math.floor(Math.min(...moistureValues, Number(batch.target_moisture || 14.5)) - 0.5);
+  const moistureMax = Math.ceil(Math.max(...moistureValues, Number(batch.umidade_inicial || 0)) + 0.5);
+  const forecastMin = Math.min(...forecastTimestamps);
+  const forecastMax = Math.max(...forecastTimestamps);
+  const denominator = Math.max(points.length - 1, 1);
+  const chartPoints = points.map((point, index) => ({
+    ...point,
+    x: chart.left + (usableWidth * index) / denominator,
+    forecastTimestamp: point.forecastAt ? point.forecastAt.getTime() : null,
+    title: `${point.label} · média ${formatMoisture(point.averageMoisture)}% · previsão ${point.forecastAt ? formatDateTime(point.forecastAt) : '-'}`,
+  }));
+  const targetY = normalizeChartValue(Number(batch.target_moisture || 14.5), moistureMin, moistureMax, chart.top, chart.height);
+  const actualDischargeTimestamp = toChartTimestamp(batch.discharge_started_at);
+  const actualY = actualDischargeTimestamp && forecastTimestamps.length
+    ? normalizeChartValue(actualDischargeTimestamp, forecastMin, forecastMax, chart.top, chart.height)
+    : null;
+
+  return `
+    <div class="batch-chart-scroll" role="img" aria-label="Gráfico da evolução da umidade média e do horário previsto para descarga">
+      <svg class="batch-evolution-chart" viewBox="0 0 ${chart.width} 310" focusable="false" aria-hidden="true">
+        <line class="batch-chart-axis" x1="${chart.left}" y1="${chart.top}" x2="${chart.left}" y2="${chart.top + chart.height}" />
+        <line class="batch-chart-axis" x1="${chart.width - chart.right}" y1="${chart.top}" x2="${chart.width - chart.right}" y2="${chart.top + chart.height}" />
+        <line class="batch-chart-axis" x1="${chart.left}" y1="${chart.top + chart.height}" x2="${chart.width - chart.right}" y2="${chart.top + chart.height}" />
+        <line class="batch-chart-target" x1="${chart.left}" y1="${targetY}" x2="${chart.width - chart.right}" y2="${targetY}" />
+        ${actualY === null ? '' : `<line class="batch-chart-actual" x1="${chart.left}" y1="${actualY}" x2="${chart.width - chart.right}" y2="${actualY}" />`}
+        ${renderPolyline(chartPoints, 'averageMoisture', moistureMin, moistureMax, chart)}
+        ${forecastTimestamps.length ? renderPolyline(chartPoints, 'forecastTimestamp', forecastMin, forecastMax, chart) : ''}
+        <text class="batch-chart-label" x="12" y="${chart.top + 6}">${escapeHtml(formatMoisture(moistureMax))}%</text>
+        <text class="batch-chart-label" x="12" y="${chart.top + chart.height}">${escapeHtml(formatMoisture(moistureMin))}%</text>
+        <text class="batch-chart-label batch-chart-label-right" x="${chart.width - 12}" y="${chart.top + 6}">${escapeHtml(forecastTimestamps.length ? formatChartTime(new Date(forecastMax)) : '-')}</text>
+        <text class="batch-chart-label batch-chart-label-right" x="${chart.width - 12}" y="${chart.top + chart.height}">${escapeHtml(forecastTimestamps.length ? formatChartTime(new Date(forecastMin)) : '-')}</text>
+        ${chartPoints.map((point) => `<text class="batch-chart-x-label" x="${point.x}" y="286">${escapeHtml(point.label === 'Início' ? 'Início' : formatDateTime(point.measuredAt).slice(0, 5))}</text>`).join('')}
+      </svg>
+    </div>
+    <div class="batch-chart-legend">
+      <span><i class="batch-legend-moisture"></i> Umidade média</span>
+      <span><i class="batch-legend-forecast"></i> Horário previsto para descarga</span>
+      <span><i class="batch-legend-target"></i> Umidade alvo (${escapeHtml(formatMoisture(batch.target_moisture))}%)</span>
+      ${batch.discharge_started_at ? `<span><i class="batch-legend-actual"></i> Descarga real (${escapeHtml(formatDateTime(batch.discharge_started_at))})</span>` : ''}
+    </div>
+  `;
+}
+
 function formatDaysOverdueLabel(daysOverdue) {
   if (daysOverdue <= 0) {
     return 'vence hoje';
@@ -464,6 +607,7 @@ function renderAdminBatchDetailPage(res, { batch, readings }) {
     .replace('{{BATCH_COMPLETED_AT}}', escapeHtml(batch.completed_at ? formatDateTime(batch.completed_at) : '-'))
     .replace('{{BATCH_TARGET_MOISTURE}}', escapeHtml(formatMoisture(batch.target_moisture)))
     .replace('{{BATCH_PRODUCT}}', escapeHtml(getGrainLabel(batch.grain_type)))
+    .replace('{{BATCH_EVOLUTION_CHART}}', renderBatchEvolutionChart(batch, readings))
     .replace('{{READINGS_ROWS}}', renderReadingsRows(readings));
 
   res.send(detailHtml);
