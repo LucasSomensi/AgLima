@@ -50,7 +50,7 @@ test('admin home combines next receipt date and contract link in one metric', ()
 });
 
 
-test('admin home waits for trend points before showing discharge forecast', () => {
+test('admin home waits for a moisture reading before showing discharge forecast', () => {
   const html = renderPage(renderAdminHomePage, {
     notifications: [],
     contractsSummary: {},
