@@ -153,28 +153,28 @@ A lista exibida no painel mostra apenas as medições da batelada ativa, ordenad
 
 ### 5. Acompanhar a previsão de descarga
 
-Enquanto a descarga ainda não foi iniciada, o painel calcula uma previsão para auxiliar o operador a decidir quando começar a descarga. A previsão já pode ser calculada desde o início da batelada, antes da primeira medição, usando `m` igual à umidade inicial e tratando o horário da última medição como o horário de início da batelada.
+Enquanto a descarga ainda não foi iniciada, o painel calcula uma previsão linear para auxiliar o operador a decidir quando começar a descarga. A previsão não é exibida logo no começo da batelada: o sistema precisa de pelo menos 3 pontos de tendência válidos nas últimas 2 horas para estimar uma reta confiável. Antes disso, o painel mantém a previsão indisponível, mas já calcula a umidade média atual para uso interno e para as telas administrativas.
 
-O cálculo parte da média de umidades `m` no período entre a última medição e 1h45min antes dela. Exemplo: se a última medição foi às 13:00, a janela vai de 11:15 até 13:00. Se parte dessa janela for anterior ao início da batelada, o sistema supõe que todo esse período anterior teve umidade igual à umidade inicial da batelada. Por exemplo, se a batelada começou às 13:00 com umidade inicial de 28% e a primeira medição foi feita às 13:15, a média considera 28% de 11:30 até 13:00. Essa regra também vale quando a batelada atravessa a meia-noite, pois o cálculo usa data e hora completas, não apenas o horário do dia.
+A base da previsão continua sendo a umidade média real da batelada em janelas móveis de 1h45min. Para cada ponto de tendência, o sistema considera a medição daquele horário, olha 105 minutos para trás, integra a curva de umidade nesse intervalo e divide a área pelo tempo da janela. A curva é formada pela umidade inicial da batelada e pelas medições registradas, com interpolação linear entre pontos. Se a janela começa antes do início da batelada ou antes da primeira medição real, a umidade inicial é mantida para preencher esse trecho. O cálculo usa data e hora completas, então funciona corretamente quando a batelada atravessa a meia-noite.
 
-Para calcular `m`, a umidade inicial e as medições são tratadas como pontos de uma função de umidade ao longo do tempo. O sistema integra numericamente essa função na janela de interesse, usando interpolação linear entre pontos, e divide a área pelo tempo da janela.
-
-Com a média `m`, a umidade alvo da batelada (`alvo`) e os parâmetros atuais `a = 0,79542` e `b = 1,88673`, a previsão usa as fórmulas abaixo:
+Com os pontos de umidade média calculados dentro da janela de tendência de 2 horas, o sistema ajusta uma regressão linear local:
 
 ```text
-x_inf = b / (1 - a)
-alpha = a ** (1 / 6)
-beta = (alvo - x_inf) / (m - x_inf)
-minutos restantes = 15 * ln(beta) / ln(alpha) - 90
+umidade_media = intercepto + inclinacao * minutos_desde_o_primeiro_ponto_da_tendencia
 ```
 
-A umidade alvo padrão é `14,5%`, mas administradores podem alterá-la. Cada batelada usa a umidade alvo copiada no momento em que foi iniciada. Os parâmetros `a` e `b` ainda são fixos no código, mas foram pensados para poderem ser configurados por administradores futuramente.
+A previsão só é gerada se a inclinação for negativa, indicando queda de umidade. Se a reta for plana, crescente ou impossível de ajustar, o painel mantém a previsão indisponível. Quando a umidade média atual já é menor ou igual à umidade alvo da batelada, o painel mostra “Descarga imediata”.
 
-A regra normal soma os `minutos restantes` ao horário da última medição:
+Quando há uma tendência linear válida, o sistema calcula em que minuto a reta alcança a umidade alvo da batelada e aplica uma antecedência operacional fixa de 100 minutos:
 
 ```text
-hora prevista para início da descarga = hora da última medição + minutos restantes
+minuto_alvo = (umidade_alvo - intercepto) / inclinacao
+minutos_atuais = (horario_da_ultima_medicao - primeiro_ponto_da_tendencia) em minutos
+minutos_restantes = minuto_alvo - minutos_atuais - 100
+hora_prevista_para_inicio_da_descarga = horario_da_ultima_medicao + minutos_restantes
 ```
+
+A umidade alvo padrão é `14,5%`, mas administradores podem alterá-la. Cada batelada usa a umidade alvo copiada no momento em que foi iniciada. Os parâmetros atuais do cálculo linear são fixos no código: janela de média de `105` minutos, janela de tendência de `120` minutos, mínimo de `3` pontos de tendência e antecedência de descarga de `100` minutos.
 
 Se o horário atual do servidor já for maior que o horário previsto, o painel mostra “Descarga imediata”. Depois que o operador clica em “Iniciar descarga”, toda essa lógica deixa de ser recalculada para a batelada e o painel passa a mostrar o horário em que a descarga realmente começou.
 
