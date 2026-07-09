@@ -3,7 +3,7 @@ const test = require('node:test');
 
 const { calculateAverageMoisture, calculateDischargeForecast } = require('../routes/dryer-forecast');
 
-test('não calcula previsão linear antes de haver pontos suficientes de tendência', () => {
+test('não calcula previsão antes da primeira medição de umidade', () => {
   const batchStartedAt = new Date('2026-06-21T13:00:00.000Z');
   const forecast = calculateDischargeForecast({
     batch: {
@@ -39,11 +39,12 @@ test('mantém a umidade inicial antes da primeira medição ao calcular a média
 
   const expectedAverage = ((90 * 28) + (15 * ((28 + 20) / 2))) / 105;
 
-  assert.equal(forecast.status, 'unavailable');
+  assert.equal(forecast.status, 'forecast');
   assert.ok(Math.abs(forecast.averageMoisture - expectedAverage) < 0.0000001);
+  assert.equal(forecast.forecastAt.toISOString(), '2026-06-22T00:30:42.857Z');
 });
 
-test('calcula previsão linear local com média real e 100 minutos de antecedência', () => {
+test('calcula previsão com inclinação fixa do secador, média real e 100 minutos de antecedência', () => {
   const readings = [
     ['2026-07-09T02:23:00.000Z', 27.0],
     ['2026-07-09T02:51:00.000Z', 25.8],
@@ -76,7 +77,43 @@ test('calcula previsão linear local com média real e 100 minutos de antecedên
   assert.equal(forecast.status, 'forecast');
   assert.ok(Math.abs(forecast.averageMoisture - 16.452721088435375) < 0.0000001);
   assert.equal(forecast.lastMeasuredAt.toISOString(), '2026-07-09T10:20:00.000Z');
-  assert.equal(forecast.forecastAt.toISOString(), '2026-07-09T10:37:15.453Z');
+  assert.equal(forecast.forecastAt.toISOString(), '2026-07-09T10:37:09.795Z');
+});
+
+
+test('mantém a mesma inclinação fixa mesmo quando leituras recentes oscilam', () => {
+  const commonBatch = {
+    started_at: '2026-07-09T00:00:00.000Z',
+    target_moisture: 12.5,
+    umidade_inicial: 20,
+  };
+  const stableReadings = [
+    ['2026-07-09T01:00:00.000Z', 18],
+    ['2026-07-09T02:00:00.000Z', 17],
+  ].map(([measured_at, moisture_percent]) => ({ measured_at, moisture_percent }));
+  const noisyReadings = [
+    ['2026-07-09T01:00:00.000Z', 14],
+    ['2026-07-09T02:00:00.000Z', 17],
+  ].map(([measured_at, moisture_percent]) => ({ measured_at, moisture_percent }));
+
+  const stableForecast = calculateDischargeForecast({
+    batch: commonBatch,
+    readings: stableReadings,
+    now: '2026-07-09T02:00:00.000Z',
+  });
+  const noisyForecast = calculateDischargeForecast({
+    batch: commonBatch,
+    readings: noisyReadings,
+    now: '2026-07-09T02:00:00.000Z',
+  });
+
+  const stableMinutesRemaining = (stableForecast.forecastAt - stableForecast.lastMeasuredAt) / 60000;
+  const noisyMinutesRemaining = (noisyForecast.forecastAt - noisyForecast.lastMeasuredAt) / 60000;
+  const averageMoistureDelta = stableForecast.averageMoisture - noisyForecast.averageMoisture;
+
+  assert.equal(stableForecast.status, 'forecast');
+  assert.equal(noisyForecast.status, 'forecast');
+  assert.ok(Math.abs((stableMinutesRemaining - noisyMinutesRemaining) - (averageMoistureDelta * 60)) < 0.001);
 });
 
 test('calcula umidade média por integral com interpolação no período informado', () => {
