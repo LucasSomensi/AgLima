@@ -114,6 +114,66 @@ function formatDryerStatus(batch) {
   return `<span class="status-pill status-active">Secando</span>`;
 }
 
+function toReadingTimestamp(value) {
+  const date = value instanceof Date ? value : new Date(value);
+  const timestamp = date.getTime();
+  return Number.isFinite(timestamp) ? timestamp : null;
+}
+
+function renderDryerReadingRows(batch, readings = []) {
+  const columns = 5;
+
+  if (!readings.length) {
+    return `<tr><td colspan="${columns}">Nenhuma medição lançada.</td></tr>`;
+  }
+
+  const batchForForecast = batch ? { ...batch, discharge_started_at: null } : null;
+  const validReadings = readings
+    .filter((reading) => toReadingTimestamp(reading.measured_at) !== null)
+    .sort((left, right) => toReadingTimestamp(left.measured_at) - toReadingTimestamp(right.measured_at));
+  const evolutionById = new Map();
+
+  validReadings.forEach((reading, index) => {
+    const forecast = calculateDischargeForecast({
+      batch: batchForForecast,
+      readings: validReadings.slice(0, index + 1),
+      now: new Date(reading.measured_at),
+    });
+
+    evolutionById.set(String(reading.id), {
+      averageMoisture: forecast.averageMoisture,
+      forecastLabel: formatDischargeForecast(forecast),
+    });
+  });
+
+  return readings
+    .map((reading) => {
+      const detailId = `reading-detail-${reading.id}`;
+      const evolution = evolutionById.get(String(reading.id)) || {};
+      const averageMoisture = evolution.averageMoisture === null || evolution.averageMoisture === undefined
+        ? '-'
+        : `${formatMoisture(evolution.averageMoisture)}%`;
+      const targetMoisture = batch?.target_moisture === null || batch?.target_moisture === undefined
+        ? '-'
+        : `${formatMoisture(batch.target_moisture)}%`;
+      const actualDischarge = batch?.discharge_started_at ? formatDateTime(batch.discharge_started_at) : '-';
+
+      return `
+        <tr class="dryer-reading-row" tabindex="0" role="button" aria-expanded="false" data-detail-target="${escapeHtml(detailId)}">
+          <td>${escapeHtml(formatTime(reading.measured_at))}</td>
+          <td>${escapeHtml(formatMoisture(reading.moisture_percent))}%</td>
+          <td>${escapeHtml(averageMoisture)}</td>
+          <td>${escapeHtml(evolution.forecastLabel || '-')}</td>
+          <td>${escapeHtml(targetMoisture)}</td>
+        </tr>
+        <tr class="dryer-reading-detail" id="${escapeHtml(detailId)}" hidden>
+          <td colspan="${columns}">Operador: ${escapeHtml(reading.measured_by_login)} · Descarga real: ${escapeHtml(actualDischarge)}</td>
+        </tr>
+      `;
+    })
+    .join('');
+}
+
 function renderUnclassifiedInputNotifications(inputs = []) {
   if (!inputs.length) {
     return '';
@@ -161,22 +221,7 @@ function renderDryerPanelPage(res, { batch, readings, settings, message, error, 
   const startedAt = batch ? formatDateTime(batch.started_at) : 'Nenhuma batelada ativa';
   const dischargeStartedAt = formatDischargeForecast(dischargeForecast);
   const initialMoisture = batch ? `${formatMoisture(batch.umidade_inicial)}%` : '-';
-  const readingsRows = readings
-    .map((reading) => {
-      const detailId = `reading-detail-${reading.id}`;
-
-      return `
-        <tr class="dryer-reading-row" tabindex="0" role="button" aria-expanded="false" data-detail-target="${escapeHtml(detailId)}">
-          <td>${escapeHtml(formatTime(reading.measured_at))}</td>
-          <td>${escapeHtml(formatMoisture(reading.moisture_percent))}%</td>
-        </tr>
-        <tr class="dryer-reading-detail" id="${escapeHtml(detailId)}" hidden>
-          <td colspan="2">Operador: ${escapeHtml(reading.measured_by_login)}</td>
-        </tr>
-      `;
-    })
-    .join('');
-  const emptyReadings = '<tr><td colspan="2">Nenhuma medição lançada.</td></tr>';
+  const readingsRows = renderDryerReadingRows(batch, readings);
   const batchStatusHtml = formatDryerStatus(batch);
   const moistureFormDisabled = batch ? '' : 'disabled';
   const batchAction = batch && !batch.discharge_started_at
@@ -216,7 +261,7 @@ function renderDryerPanelPage(res, { batch, readings, settings, message, error, 
     BATCH_ACTION_CONFIRM: escapeHtml(batchAction.confirm),
     BATCH_ACTION_CLASS: escapeHtml(batchAction.cssClass),
     BATCH_ACTION_LABEL: escapeHtml(batchAction.label),
-    READINGS_ROWS: readingsRows || emptyReadings,
+    READINGS_ROWS: readingsRows,
     STOP_DRYER_ACTION: stopDryerAction,
     MOISTURE_FORM_DISABLED: moistureFormDisabled,
     MOISTURE_ACTION_HELPER: batch ? 'Digite a umidade medida e toque em Registrar umidade.' : 'Inicie uma batelada para liberar o registro de umidade.',
