@@ -668,6 +668,34 @@ body {
   padding-top: 0;
 }
 
+.dryer-reading-detail-list {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0;
+}
+
+.dryer-reading-detail-list div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.dryer-reading-detail-list dt,
+.dryer-reading-detail-list dd {
+  margin: 0;
+}
+
+.dryer-reading-detail-list dt {
+  color: rgba(234, 246, 238, 0.78);
+  font-weight: 700;
+}
+
+.dryer-reading-detail-list dd {
+  color: var(--white);
+  font-weight: 700;
+  text-align: right;
+}
+
 .contact-form .form-control:disabled,
 .contact-form .form-control[readonly],
 .dryer-moisture-form .form-control:disabled {

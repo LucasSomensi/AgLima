@@ -149,7 +149,7 @@ Regras atuais:
 - cada leitura fica vinculada à batelada ativa no momento do lançamento;
 - a leitura salva o usuário responsável e o login usado no momento.
 
-A lista exibida no painel mostra apenas as medições da batelada ativa, ordenadas por horário de medição. Medições de bateladas anteriores permanecem no banco para consulta posterior pela administração.
+A lista exibida no painel mostra apenas as medições da batelada ativa, ordenadas por horário de medição. Na tabela operacional, cada linha exibe inicialmente só horário e umidade medida; umidade média, previsão de descarga, umidade alvo, operador e descarga real ficam disponíveis ao clicar ou acionar a linha pelo teclado. Medições de bateladas anteriores permanecem no banco para consulta posterior pela administração.
 
 ### 5. Acompanhar a previsão de descarga
 

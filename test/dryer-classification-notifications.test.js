@@ -70,3 +70,32 @@ test('dryer classification form posts to the dryer mobile classification route',
   assert.match(html, /name="graos_avariados_percent"[^>]+value="0"/);
   assert.match(html, /href="\/secador">Cancelar/);
 });
+
+test('dryer panel keeps moisture table compact and exposes extra reading data on row expansion', () => {
+  const html = renderPage(renderDryerPanelPage, {
+    batch: {
+      id: 5,
+      started_at: '2026-07-10T12:00:00.000Z',
+      discharge_started_at: null,
+      umidade_inicial: '28',
+      target_moisture: '14',
+    },
+    readings: [{
+      id: 22,
+      measured_at: '2026-07-10T14:20:00.000Z',
+      moisture_percent: '26.6',
+      measured_by_login: 'operador',
+    }],
+    settings: { target_moisture: '14' },
+    message: '',
+    error: '',
+    unclassifiedInputs: [],
+  });
+
+  assert.match(html, /<th>Horário<\/th>\s*<th>Umidade medida<\/th>\s*<\/tr>/);
+  assert.doesNotMatch(html, /<th>Umidade média<\/th>/);
+  assert.doesNotMatch(html, /<th>Previsão de descarga<\/th>/);
+  assert.doesNotMatch(html, /<th>Umidade alvo<\/th>/);
+  assert.match(html, /class="dryer-reading-row"[\s\S]*<td>11:20<\/td>\s*<td>26,6%<\/td>\s*<\/tr>/);
+  assert.match(html, /class="dryer-reading-detail"[\s\S]*Umidade média[\s\S]*Previsão de descarga[\s\S]*Umidade alvo[\s\S]*Operador[\s\S]*operador/);
+});
