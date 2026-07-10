@@ -184,17 +184,14 @@ function calculateDischargeForecast({ batch, readings, now = new Date() }) {
     return { status: 'unavailable' };
   }
 
-  if (!lastReading) {
-    return { status: 'unavailable', averageMoisture };
-  }
-
   const minutesRemaining = calculateMinutesRemainingFromAverageMoisture(averageMoisture);
 
   if (!Number.isFinite(minutesRemaining)) {
     return { status: 'unavailable', averageMoisture };
   }
 
-  const forecastAt = new Date(periodEnd + minutesRemaining * MILLISECONDS_PER_MINUTE);
+  const forecastBaseTimestamp = lastReading ? periodEnd : batchStartedAt;
+  const forecastAt = new Date(forecastBaseTimestamp + minutesRemaining * MILLISECONDS_PER_MINUTE);
   const nowTimestamp = toValidTimestamp(now) || Date.now();
 
   if (nowTimestamp > forecastAt.getTime()) {
@@ -202,7 +199,7 @@ function calculateDischargeForecast({ batch, readings, now = new Date() }) {
       status: 'immediate',
       averageMoisture,
       forecastAt,
-      lastMeasuredAt: new Date(periodEnd),
+      lastMeasuredAt: lastReading ? new Date(periodEnd) : null,
     };
   }
 
@@ -210,7 +207,7 @@ function calculateDischargeForecast({ batch, readings, now = new Date() }) {
     status: 'forecast',
     averageMoisture,
     forecastAt,
-    lastMeasuredAt: new Date(periodEnd),
+    lastMeasuredAt: lastReading ? new Date(periodEnd) : null,
   };
 }
 

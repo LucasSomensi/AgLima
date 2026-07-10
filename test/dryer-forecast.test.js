@@ -7,7 +7,7 @@ const {
   calculateMinutesRemainingFromAverageMoisture,
 } = require('../routes/dryer-forecast');
 
-test('não calcula previsão antes da primeira medição de umidade', () => {
+test('calcula previsão antes da primeira medição usando umidade inicial e início da batelada', () => {
   const batchStartedAt = new Date('2026-06-21T13:00:00.000Z');
   const forecast = calculateDischargeForecast({
     batch: {
@@ -19,8 +19,10 @@ test('não calcula previsão antes da primeira medição de umidade', () => {
     now: new Date('2026-06-21T13:01:00.000Z'),
   });
 
-  assert.equal(forecast.status, 'unavailable');
+  assert.equal(forecast.status, 'forecast');
   assert.equal(forecast.averageMoisture, 28);
+  assert.equal(forecast.lastMeasuredAt, null);
+  assert.equal(forecast.forecastAt.toISOString(), '2026-06-21T21:05:00.000Z');
 });
 
 test('mantém a umidade inicial antes da primeira medição ao calcular a média real', () => {
