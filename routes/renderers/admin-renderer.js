@@ -214,6 +214,30 @@ function formatDischargeForecast(dischargeForecast) {
   return formatDateTime(dischargeForecast.forecastAt);
 }
 
+function buildPersistedForecast(reading) {
+  if (!reading || !reading.discharge_forecast_status) {
+    return null;
+  }
+
+  return {
+    status: reading.discharge_forecast_status,
+    averageMoisture: reading.average_moisture,
+    forecastAt: reading.discharge_forecast_at ? new Date(reading.discharge_forecast_at) : null,
+  };
+}
+
+function getLatestPersistedForecast(readings = []) {
+  return [...readings].reverse().map(buildPersistedForecast).find(Boolean) || null;
+}
+
+function getBatchDischargeForecast(batch, readings = []) {
+  if (batch?.discharge_started_at) {
+    return calculateDischargeForecast({ batch, readings });
+  }
+
+  return getLatestPersistedForecast(readings) || calculateDischargeForecast({ batch, readings });
+}
+
 function formatBatchStatusLabel(batch) {
   if (!batch) {
     return 'Parado';
@@ -233,7 +257,6 @@ function buildReadingEvolutionRows(batch, readings = [], { includeOperator = tru
     return `<tr><td colspan="${columns}">Nenhuma medição lançada.</td></tr>`;
   }
 
-  const batchForForecast = batch ? { ...batch, discharge_started_at: null } : null;
   const validReadings = readings
     .filter((reading) => toChartTimestamp(reading.measured_at) !== null)
     .sort((left, right) => toChartTimestamp(left.measured_at) - toChartTimestamp(right.measured_at));
@@ -242,8 +265,8 @@ function buildReadingEvolutionRows(batch, readings = [], { includeOperator = tru
   validReadings.forEach((reading, index) => {
     const measuredAt = new Date(reading.measured_at);
     const readingsUntilPoint = validReadings.slice(0, index + 1);
-    const forecast = calculateDischargeForecast({
-      batch: batchForForecast,
+    const forecast = buildPersistedForecast(reading) || calculateDischargeForecast({
+      batch: batch ? { ...batch, discharge_started_at: null } : null,
       readings: readingsUntilPoint,
       now: measuredAt,
     });
@@ -339,7 +362,7 @@ function buildBatchEvolutionPoints(batch, readings) {
   validReadings.forEach((reading, index) => {
     const measuredAt = new Date(reading.measured_at);
     const readingsUntilPoint = validReadings.slice(0, index + 1);
-    const forecast = calculateDischargeForecast({
+    const forecast = buildPersistedForecast(reading) || calculateDischargeForecast({
       batch: batchForForecast,
       readings: readingsUntilPoint,
       now: measuredAt,
@@ -584,7 +607,7 @@ function renderAdminContractsPanel(summary = {}) {
 }
 
 function renderAdminDryerPanel(batch, readings = []) {
-  const dischargeForecast = calculateDischargeForecast({ batch, readings });
+  const dischargeForecast = getBatchDischargeForecast(batch, readings);
   const dischargeLabel = batch?.discharge_started_at ? 'Início da descarga' : 'Previsão da próxima descarga';
 
   return `
@@ -669,7 +692,7 @@ function renderAdminDashboardPage(res, { batch, readings, settings, message, err
   const currentTargetMoisture = formatMoisture(settings?.target_moisture);
   const batchTargetMoisture = batch ? formatMoisture(batch.target_moisture) : currentTargetMoisture;
   const readingsRows = renderReadingsRows(readings, { batch });
-  const dischargeForecast = calculateDischargeForecast({ batch, readings });
+  const dischargeForecast = getBatchDischargeForecast(batch, readings);
   const dashboardHtml = fs
     .readFileSync(dashboardPath, 'utf8')
     .replace('{{ADMIN_PANEL_MESSAGE}}', buildAlertHtml(message))
@@ -709,7 +732,7 @@ function renderAdminBatchesPage(res, { batches }) {
 
 function renderAdminBatchDetailPage(res, { batch, readings }) {
   const batchPath = path.join(__dirname, '../../views/admin-batch-detail.html');
-  const finalMoisture = calculateBatchDischargeAverageMoisture(batch, readings);
+  const finalMoisture = batch.final_moisture ?? calculateBatchDischargeAverageMoisture(batch, readings);
   const detailHtml = fs
     .readFileSync(batchPath, 'utf8')
     .replace('{{BATCH_STATUS}}', escapeHtml(formatBatchStatusLabel(batch)))
