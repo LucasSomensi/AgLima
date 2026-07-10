@@ -742,6 +742,7 @@ function renderAdminBatchDetailPage(res, { batch, readings }) {
     .replace('{{BATCH_TARGET_MOISTURE}}', escapeHtml(formatMoisture(batch.target_moisture)))
     .replace('{{BATCH_PRODUCT}}', escapeHtml(getGrainLabel(batch.grain_type)))
     .replace('{{BATCH_DURATION}}', escapeHtml(formatDurationBetween(batch.started_at, batch.completed_at)))
+    .replace('{{BATCH_DRYING_DURATION}}', escapeHtml(formatDurationBetween(batch.started_at, batch.discharge_started_at)))
     .replace('{{BATCH_DISCHARGE_DURATION}}', escapeHtml(formatDurationBetween(batch.discharge_started_at, batch.completed_at)))
     .replace('{{BATCH_INITIAL_MOISTURE}}', escapeHtml(formatOptionalMoisture(batch.umidade_inicial)))
     .replace('{{BATCH_FINAL_MOISTURE}}', escapeHtml(formatOptionalMoisture(finalMoisture)))

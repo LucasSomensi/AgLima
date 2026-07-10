@@ -6,6 +6,7 @@ const {
   getActiveDryerBatch,
   getDryerSettings,
   getLastCompletedDryerBatchSummary,
+  listRecentCompletedDryerBatchSummaries,
   getDefaultInitialMoisture,
   listDryerMoistureReadings,
   startDryerBatch,
@@ -18,7 +19,12 @@ const {
   getScaleInputById,
   listUnclassifiedScaleInputs,
 } = require('./weighbridge-service');
-const { renderDryerInputClassificationPage, renderDryerPanelPage, renderDryerStartBatchPage } = require('./renderers/dryer-renderer');
+const {
+  renderCompletedBatchHistoryPage,
+  renderDryerInputClassificationPage,
+  renderDryerPanelPage,
+  renderDryerStartBatchPage,
+} = require('./renderers/dryer-renderer');
 const { buildRedirect, parseInitialMoisturePercent, parseMoisturePercent } = require('./utils');
 
 const router = express.Router();
@@ -60,6 +66,17 @@ router.get('/secador', canAccessDryer, async (req, res) => {
   } catch (error) {
     console.error('Error loading dryer panel:', error.message);
     return res.status(500).send('Não foi possível carregar o painel do secador agora.');
+  }
+});
+
+router.get('/secador/bateladas/anteriores', canAccessDryer, async (req, res) => {
+  try {
+    const completedBatches = await listRecentCompletedDryerBatchSummaries(10);
+
+    return renderCompletedBatchHistoryPage(res, { completedBatches });
+  } catch (error) {
+    console.error('Error loading dryer batch history:', error.message);
+    return res.status(500).send('Não foi possível carregar as bateladas anteriores agora.');
   }
 });
 
