@@ -133,7 +133,7 @@ function toReadingTimestamp(value) {
 }
 
 function renderDryerReadingRows(batch, readings = []) {
-  const columns = 5;
+  const columns = 2;
 
   if (!readings.length) {
     return `<tr><td colspan="${columns}">Nenhuma medição lançada.</td></tr>`;
@@ -171,15 +171,20 @@ function renderDryerReadingRows(batch, readings = []) {
       const actualDischarge = batch?.discharge_started_at ? formatDateTime(batch.discharge_started_at) : '-';
 
       return `
-        <tr class="dryer-reading-row" tabindex="0" role="button" aria-expanded="false" data-detail-target="${escapeHtml(detailId)}">
+        <tr class="dryer-reading-row" tabindex="0" role="button" aria-expanded="false" data-detail-target="${escapeHtml(detailId)}" aria-label="Ver detalhes da medição de ${escapeHtml(formatTime(reading.measured_at))}">
           <td>${escapeHtml(formatTime(reading.measured_at))}</td>
           <td>${escapeHtml(formatMoisture(reading.moisture_percent))}%</td>
-          <td>${escapeHtml(averageMoisture)}</td>
-          <td>${escapeHtml(evolution.forecastLabel || '-')}</td>
-          <td>${escapeHtml(targetMoisture)}</td>
         </tr>
         <tr class="dryer-reading-detail" id="${escapeHtml(detailId)}" hidden>
-          <td colspan="${columns}">Operador: ${escapeHtml(reading.measured_by_login)} · Descarga real: ${escapeHtml(actualDischarge)}</td>
+          <td colspan="${columns}">
+            <dl class="dryer-reading-detail-list">
+              <div><dt>Umidade média</dt><dd>${escapeHtml(averageMoisture)}</dd></div>
+              <div><dt>Previsão de descarga</dt><dd>${escapeHtml(evolution.forecastLabel || '-')}</dd></div>
+              <div><dt>Umidade alvo</dt><dd>${escapeHtml(targetMoisture)}</dd></div>
+              <div><dt>Operador</dt><dd>${escapeHtml(reading.measured_by_login)}</dd></div>
+              <div><dt>Descarga real</dt><dd>${escapeHtml(actualDischarge)}</dd></div>
+            </dl>
+          </td>
         </tr>
       `;
     })
