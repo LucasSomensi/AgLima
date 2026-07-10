@@ -50,7 +50,7 @@ test('admin home combines next receipt date and contract link in one metric', ()
 });
 
 
-test('admin home waits for a moisture reading before showing discharge forecast', () => {
+test('admin home shows initial forecast before the first moisture reading', () => {
   const html = renderPage(renderAdminHomePage, {
     notifications: [],
     contractsSummary: {},
@@ -68,5 +68,5 @@ test('admin home waits for a moisture reading before showing discharge forecast'
   });
 
   assert.match(html, /<span>Previsão da próxima descarga<\/span>/);
-  assert.match(html, /<span>Previsão da próxima descarga<\/span>\s*<strong>-<\/strong>/);
+  assert.match(html, /<span>Previsão da próxima descarga<\/span>\s*<strong>Descarga imediata<\/strong>/);
 });
