@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { GRAIN_LABELS, ROOT_LOGIN, ROLES } = require('../constants');
-const { calculateDischargeForecast } = require('../dryer-forecast');
+const { calculateAverageMoisture, calculateDischargeForecast } = require('../dryer-forecast');
 const {
   escapeHtml,
   formatDate,
@@ -63,6 +63,63 @@ function renderAdminUsersPage(res, { users, message, error }) {
   res.send(adminHtml);
 }
 
+
+function formatDurationBetween(start, end) {
+  if (!start || !end) {
+    return '-';
+  }
+
+  const startDate = new Date(start);
+  const endDate = new Date(end);
+  const durationMs = endDate.getTime() - startDate.getTime();
+
+  if (!Number.isFinite(durationMs) || durationMs < 0) {
+    return '-';
+  }
+
+  const totalMinutes = Math.round(durationMs / 60000);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+
+  if (hours && minutes) {
+    return `${hours}h ${minutes}min`;
+  }
+
+  if (hours) {
+    return `${hours}h`;
+  }
+
+  return `${minutes}min`;
+}
+
+function formatOptionalMoisture(value) {
+  return value === null || value === undefined ? '-' : `${formatMoisture(value)}%`;
+}
+
+function calculateBatchDischargeAverageMoisture(batch, readings = []) {
+  if (!batch) {
+    return null;
+  }
+
+  const dischargeStartedAt = toChartTimestamp(batch.discharge_started_at);
+  const completedAt = toChartTimestamp(batch.completed_at);
+
+  if (dischargeStartedAt === null || completedAt === null) {
+    return null;
+  }
+
+  return calculateAverageMoisture({
+    readings: [
+      {
+        measured_at: batch.started_at,
+        moisture_percent: batch.umidade_inicial,
+      },
+      ...readings,
+    ],
+    periodStart: dischargeStartedAt,
+    periodEnd: completedAt,
+  });
+}
 
 function formatProductLabel(value) {
   const labels = {
@@ -652,6 +709,7 @@ function renderAdminBatchesPage(res, { batches }) {
 
 function renderAdminBatchDetailPage(res, { batch, readings }) {
   const batchPath = path.join(__dirname, '../../views/admin-batch-detail.html');
+  const finalMoisture = calculateBatchDischargeAverageMoisture(batch, readings);
   const detailHtml = fs
     .readFileSync(batchPath, 'utf8')
     .replace('{{BATCH_STATUS}}', escapeHtml(formatBatchStatusLabel(batch)))
@@ -660,6 +718,10 @@ function renderAdminBatchDetailPage(res, { batch, readings }) {
     .replace('{{BATCH_COMPLETED_AT}}', escapeHtml(batch.completed_at ? formatDateTime(batch.completed_at) : '-'))
     .replace('{{BATCH_TARGET_MOISTURE}}', escapeHtml(formatMoisture(batch.target_moisture)))
     .replace('{{BATCH_PRODUCT}}', escapeHtml(getGrainLabel(batch.grain_type)))
+    .replace('{{BATCH_DURATION}}', escapeHtml(formatDurationBetween(batch.started_at, batch.completed_at)))
+    .replace('{{BATCH_DISCHARGE_DURATION}}', escapeHtml(formatDurationBetween(batch.discharge_started_at, batch.completed_at)))
+    .replace('{{BATCH_INITIAL_MOISTURE}}', escapeHtml(formatOptionalMoisture(batch.umidade_inicial)))
+    .replace('{{BATCH_FINAL_MOISTURE}}', escapeHtml(formatOptionalMoisture(finalMoisture)))
     .replace('{{READINGS_ROWS}}', renderReadingsRows(readings, { batch }));
 
   res.send(detailHtml);
