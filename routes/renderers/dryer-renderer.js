@@ -114,6 +114,22 @@ function formatDischargeForecast(dischargeForecast) {
   return formatDateTime(dischargeForecast.forecastAt);
 }
 
+function buildPersistedForecast(reading) {
+  if (!reading || !reading.discharge_forecast_status) {
+    return null;
+  }
+
+  return {
+    status: reading.discharge_forecast_status,
+    averageMoisture: reading.average_moisture,
+    forecastAt: reading.discharge_forecast_at ? new Date(reading.discharge_forecast_at) : null,
+  };
+}
+
+function getLatestPersistedForecast(readings = []) {
+  return [...readings].reverse().map(buildPersistedForecast).find(Boolean) || null;
+}
+
 function formatDryerStatus(batch) {
   if (!batch) {
     return `<span class="status-pill status-empty">Parado</span>`;
@@ -139,15 +155,14 @@ function renderDryerReadingRows(batch, readings = []) {
     return `<tr><td colspan="${columns}">Nenhuma medição lançada.</td></tr>`;
   }
 
-  const batchForForecast = batch ? { ...batch, discharge_started_at: null } : null;
   const validReadings = readings
     .filter((reading) => toReadingTimestamp(reading.measured_at) !== null)
     .sort((left, right) => toReadingTimestamp(left.measured_at) - toReadingTimestamp(right.measured_at));
   const evolutionById = new Map();
 
   validReadings.forEach((reading, index) => {
-    const forecast = calculateDischargeForecast({
-      batch: batchForForecast,
+    const forecast = buildPersistedForecast(reading) || calculateDischargeForecast({
+      batch: batch ? { ...batch, discharge_started_at: null } : null,
       readings: validReadings.slice(0, index + 1),
       now: new Date(reading.measured_at),
     });
@@ -234,7 +249,9 @@ function renderDryerStartBatchPage(res, { defaultInitialMoisture, error }) {
 }
 
 function renderDryerPanelPage(res, { batch, readings, settings, message, error, unclassifiedInputs = [], lastCompletedBatch = null }) {
-  const dischargeForecast = calculateDischargeForecast({ batch, readings });
+  const dischargeForecast = batch?.discharge_started_at
+    ? calculateDischargeForecast({ batch, readings })
+    : (getLatestPersistedForecast(readings) || calculateDischargeForecast({ batch, readings }));
   const startedAt = batch ? formatDateTime(batch.started_at) : 'Nenhuma batelada ativa';
   const dischargeStartedAt = formatDischargeForecast(dischargeForecast);
   const initialMoisture = batch ? `${formatMoisture(batch.umidade_inicial)}%` : '-';

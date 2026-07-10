@@ -1,4 +1,4 @@
-const { calculateAverageMoisture } = require('./dryer-forecast');
+const { calculateAverageMoisture, calculateDischargeForecast } = require('./dryer-forecast');
 const { ensureDatabaseConfigured, pool } = require('./database');
 
 async function getDryerSettings() {
@@ -40,7 +40,7 @@ async function getActiveDryerBatch() {
 
   const result = await pool.query(
     `
-      SELECT id, grain_type, status, started_at, discharge_started_at, completed_at, target_moisture, umidade_inicial, created_at
+      SELECT id, grain_type, status, started_at, discharge_started_at, completed_at, target_moisture, umidade_inicial, final_moisture, created_at
       FROM dryer_batches
       WHERE status = 'active'
       ORDER BY started_at DESC
@@ -56,7 +56,7 @@ async function getDryerBatchById(batchId) {
 
   const result = await pool.query(
     `
-      SELECT id, grain_type, status, started_at, discharge_started_at, completed_at, target_moisture, umidade_inicial, created_at
+      SELECT id, grain_type, status, started_at, discharge_started_at, completed_at, target_moisture, umidade_inicial, final_moisture, created_at
       FROM dryer_batches
       WHERE id = $1
       LIMIT 1
@@ -72,7 +72,7 @@ async function listCompletedDryerBatches() {
 
   const result = await pool.query(
     `
-      SELECT id, grain_type, status, started_at, discharge_started_at, completed_at, target_moisture, umidade_inicial, created_at
+      SELECT id, grain_type, status, started_at, discharge_started_at, completed_at, target_moisture, umidade_inicial, final_moisture, created_at
       FROM dryer_batches
       WHERE status <> 'active'
       ORDER BY started_at DESC, created_at DESC
@@ -87,7 +87,7 @@ async function getLastCompletedDryerBatchSummary() {
 
   const batchResult = await pool.query(
     `
-      SELECT id, started_at, discharge_started_at, completed_at, umidade_inicial, created_at
+      SELECT id, started_at, discharge_started_at, completed_at, umidade_inicial, final_moisture, created_at
       FROM dryer_batches
       WHERE status <> 'active'
       ORDER BY started_at DESC, created_at DESC
@@ -100,26 +100,9 @@ async function getLastCompletedDryerBatchSummary() {
     return null;
   }
 
-  const readings = await listDryerMoistureReadings(batch.id);
-  const dischargeStartedAt = new Date(batch.discharge_started_at).getTime();
-  const completedAt = new Date(batch.completed_at).getTime();
-  const dischargeAverageMoisture = Number.isFinite(dischargeStartedAt) && Number.isFinite(completedAt)
-    ? calculateAverageMoisture({
-        readings: [
-          {
-            measured_at: batch.started_at,
-            moisture_percent: batch.umidade_inicial,
-          },
-          ...readings,
-        ],
-        periodStart: dischargeStartedAt,
-        periodEnd: completedAt,
-      })
-    : null;
-
   return {
     ...batch,
-    discharge_average_moisture: dischargeAverageMoisture,
+    discharge_average_moisture: batch.final_moisture,
   };
 }
 
@@ -132,7 +115,7 @@ async function listDryerMoistureReadings(batchId) {
 
   const result = await pool.query(
     `
-      SELECT id, measured_at, moisture_percent, measured_by_login, created_at
+      SELECT id, measured_at, moisture_percent, measured_by_login, created_at, average_moisture, discharge_forecast_at, discharge_forecast_status
       FROM dryer_moisture_readings
       WHERE batch_id = $1
       ORDER BY measured_at ASC, created_at ASC
@@ -168,6 +151,73 @@ async function getDefaultInitialMoisture() {
   return 28;
 }
 
+async function listDryerMoistureReadingsForUpdate(client, batchId) {
+  const result = await client.query(
+    `
+      SELECT id, measured_at, moisture_percent, measured_by_login, created_at, average_moisture, discharge_forecast_at, discharge_forecast_status
+      FROM dryer_moisture_readings
+      WHERE batch_id = $1
+      ORDER BY measured_at ASC, created_at ASC
+    `,
+    [batchId]
+  );
+
+  return result.rows;
+}
+
+function calculateFinalMoistureForBatch(batch, readings = []) {
+  const dischargeStartedAt = new Date(batch.discharge_started_at).getTime();
+  const completedAt = new Date(batch.completed_at).getTime();
+
+  if (!Number.isFinite(dischargeStartedAt) || !Number.isFinite(completedAt)) {
+    return null;
+  }
+
+  return calculateAverageMoisture({
+    readings: [
+      {
+        measured_at: batch.started_at,
+        moisture_percent: batch.umidade_inicial,
+      },
+      ...readings,
+    ],
+    periodStart: dischargeStartedAt,
+    periodEnd: completedAt,
+  });
+}
+
+async function updateBatchFinalMoisture(client, batchId) {
+  const batchResult = await client.query(
+    `
+      SELECT id, started_at, discharge_started_at, completed_at, umidade_inicial
+      FROM dryer_batches
+      WHERE id = $1
+      LIMIT 1
+    `,
+    [batchId]
+  );
+  const batch = batchResult.rows[0];
+
+  if (!batch) {
+    return null;
+  }
+
+  const readings = await listDryerMoistureReadingsForUpdate(client, batchId);
+  const finalMoisture = calculateFinalMoistureForBatch(batch, readings);
+
+  await client.query(
+    `
+      UPDATE dryer_batches
+      SET final_moisture = $1,
+          updated_at = now()
+      WHERE id = $2
+    `,
+    [finalMoisture, batchId]
+  );
+
+  return finalMoisture;
+}
+
 async function startDryerBatch({ startedAt, grainType, initialMoisture, user }) {
   ensureDatabaseConfigured();
 
@@ -194,7 +244,7 @@ async function startDryerBatch({ startedAt, grainType, initialMoisture, user }) 
       throw error;
     }
 
-    await client.query(
+    const completedBatchResult = await client.query(
       `
         UPDATE dryer_batches
         SET status = 'completed',
@@ -202,9 +252,14 @@ async function startDryerBatch({ startedAt, grainType, initialMoisture, user }) 
             completed_by_user_id = $2,
             updated_at = now()
         WHERE status = 'active'
+        RETURNING id
       `,
       [startedAt, user.userId]
     );
+
+    if (completedBatchResult.rowCount > 0) {
+      await updateBatchFinalMoisture(client, completedBatchResult.rows[0].id);
+    }
 
     const settingsResult = await client.query(
       `
@@ -323,6 +378,8 @@ async function stopDryerBatch({ stoppedAt, user }) {
       throw error;
     }
 
+    await updateBatchFinalMoisture(client, updateResult.rows[0].id);
+
     await client.query('COMMIT');
     return updateResult.rows[0];
   } catch (error) {
@@ -336,27 +393,68 @@ async function stopDryerBatch({ stoppedAt, user }) {
 async function addDryerMoistureReading({ measuredAt, moisturePercent, user }) {
   ensureDatabaseConfigured();
 
-  const activeBatch = await getActiveDryerBatch();
+  const client = await pool.connect();
 
-  if (!activeBatch) {
-    const error = new Error('Não há batelada ativa. Inicie uma nova batelada antes de lançar umidade.');
-    error.code = 'NO_ACTIVE_BATCH';
+  try {
+    await client.query('BEGIN');
+    await client.query('SELECT pg_advisory_xact_lock(20260530)');
+
+    const activeBatchResult = await client.query(
+      `
+        SELECT id, grain_type, status, started_at, discharge_started_at, completed_at, target_moisture, umidade_inicial, final_moisture, created_at
+        FROM dryer_batches
+        WHERE status = 'active'
+        ORDER BY started_at DESC
+        LIMIT 1
+      `
+    );
+    const activeBatch = activeBatchResult.rows[0];
+
+    if (!activeBatch) {
+      const error = new Error('Não há batelada ativa. Inicie uma nova batelada antes de lançar umidade.');
+      error.code = 'NO_ACTIVE_BATCH';
+      throw error;
+    }
+
+    const existingReadings = await listDryerMoistureReadingsForUpdate(client, activeBatch.id);
+    const readingForForecast = {
+      measured_at: measuredAt,
+      moisture_percent: moisturePercent,
+      measured_by_login: user.login,
+    };
+    const forecast = calculateDischargeForecast({
+      batch: { ...activeBatch, discharge_started_at: null },
+      readings: [...existingReadings, readingForForecast],
+      now: measuredAt,
+    });
+    const forecastAt = forecast.forecastAt || null;
+    const forecastStatus = forecast.status || 'unavailable';
+    const averageMoisture = forecast.averageMoisture ?? null;
+
+    await client.query(
+      `
+        INSERT INTO dryer_moisture_readings (
+          batch_id,
+          measured_at,
+          moisture_percent,
+          measured_by_user_id,
+          measured_by_login,
+          average_moisture,
+          discharge_forecast_at,
+          discharge_forecast_status
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      `,
+      [activeBatch.id, measuredAt, moisturePercent, user.userId, user.login, averageMoisture, forecastAt, forecastStatus]
+    );
+
+    await client.query('COMMIT');
+  } catch (error) {
+    await client.query('ROLLBACK');
     throw error;
+  } finally {
+    client.release();
   }
-
-  await pool.query(
-    `
-      INSERT INTO dryer_moisture_readings (
-        batch_id,
-        measured_at,
-        moisture_percent,
-        measured_by_user_id,
-        measured_by_login
-      )
-      VALUES ($1, $2, $3, $4, $5)
-    `,
-    [activeBatch.id, measuredAt, moisturePercent, user.userId, user.login]
-  );
 }
 
 module.exports = {

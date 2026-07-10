@@ -99,3 +99,32 @@ test('dryer panel keeps moisture table compact and exposes extra reading data on
   assert.match(html, /class="dryer-reading-row"[\s\S]*<td>11:20<\/td>\s*<td>26,6%<\/td>\s*<\/tr>/);
   assert.match(html, /class="dryer-reading-detail"[\s\S]*Umidade média[\s\S]*Previsão de descarga[\s\S]*Umidade alvo[\s\S]*Operador[\s\S]*operador/);
 });
+
+test('dryer panel uses persisted moisture evolution values when available', () => {
+  const html = renderPage(renderDryerPanelPage, {
+    batch: {
+      id: 5,
+      started_at: '2026-07-10T12:00:00.000Z',
+      discharge_started_at: null,
+      umidade_inicial: '28',
+      target_moisture: '14',
+    },
+    readings: [{
+      id: 22,
+      measured_at: '2026-07-10T14:20:00.000Z',
+      moisture_percent: '26.6',
+      average_moisture: '18.75',
+      discharge_forecast_at: '2026-07-10T15:30:00.000Z',
+      discharge_forecast_status: 'forecast',
+      measured_by_login: 'operador',
+    }],
+    settings: { target_moisture: '14' },
+    message: '',
+    error: '',
+    unclassifiedInputs: [],
+  });
+
+  assert.match(html, /Previsão \/ início da descarga<\/span>\s*<strong>10\/07\/2026, 12:30<\/strong>/);
+  assert.match(html, /Umidade média<\/dt><dd>18,8%<\/dd>/);
+  assert.match(html, /Previsão de descarga<\/dt><dd>10\/07\/2026, 12:30<\/dd>/);
+});
