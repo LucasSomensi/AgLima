@@ -47,3 +47,43 @@ test('dryer panel omits the last batch summary when there is no completed batch'
 
   assert.doesNotMatch(html, /Última batelada/);
 });
+
+test('admin batch detail renders the saved batch summary in one dryer-style card', () => {
+  const { renderAdminBatchDetailPage } = require('../routes/renderers');
+  let html = '';
+
+  renderAdminBatchDetailPage({ send: (value) => { html = value; } }, {
+    batch: {
+      id: 7,
+      grain_type: 'corn',
+      status: 'completed',
+      started_at: '2026-06-12T10:00:00.000Z',
+      discharge_started_at: '2026-06-12T13:30:00.000Z',
+      completed_at: '2026-06-12T15:05:00.000Z',
+      target_moisture: '14.5',
+      umidade_inicial: '27.54',
+    },
+    readings: [
+      {
+        id: 1,
+        measured_at: '2026-06-12T12:00:00.000Z',
+        moisture_percent: '20',
+        measured_by_login: 'operador',
+        created_at: '2026-06-12T12:00:00.000Z',
+      },
+      {
+        id: 2,
+        measured_at: '2026-06-12T14:00:00.000Z',
+        moisture_percent: '13.46',
+        measured_by_login: 'operador',
+        created_at: '2026-06-12T14:00:00.000Z',
+      },
+    ],
+  });
+
+  assert.match(html, /Resumo da batelada/);
+  assert.match(
+    html,
+    /Status<\/dt>\s*<dd>Concluída<\/dd>[\s\S]*Produto<\/dt>\s*<dd>Milho<\/dd>[\s\S]*Início<\/dt>\s*<dd>12\/06\/2026, 07:00<\/dd>[\s\S]*Início descarga<\/dt>\s*<dd>12\/06\/2026, 10:30<\/dd>[\s\S]*Fim descarga<\/dt>\s*<dd>12\/06\/2026, 12:05<\/dd>[\s\S]*Duração<\/dt>\s*<dd>5h 5min<\/dd>[\s\S]*Tempo descarga<\/dt>\s*<dd>1h 35min<\/dd>[\s\S]*Umidade inicial<\/dt>\s*<dd>27,5%<\/dd>[\s\S]*Umidade final<\/dt>\s*<dd>13,7%<\/dd>[\s\S]*Umidade alvo<\/dt>\s*<dd>14,5%<\/dd>/
+  );
+});

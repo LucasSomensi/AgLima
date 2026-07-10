@@ -26,29 +26,50 @@
         </div>
 
         <section class="dryer-status-grid admin-dashboard-grid" aria-label="Informações da batelada salva">
-          <article class="dryer-status-card">
-            <span class="dryer-card-label">Status</span>
-            <strong>{{BATCH_STATUS}}</strong>
-          </article>
-          <article class="dryer-status-card">
-            <span class="dryer-card-label">Produto</span>
-            <strong>{{BATCH_PRODUCT}}</strong>
-          </article>
-          <article class="dryer-status-card">
-            <span class="dryer-card-label">Início</span>
-            <strong>{{BATCH_STARTED_AT}}</strong>
-          </article>
-          <article class="dryer-status-card">
-            <span class="dryer-card-label">Início da descarga</span>
-            <strong>{{BATCH_DISCHARGE_STARTED_AT}}</strong>
-          </article>
-          <article class="dryer-status-card">
-            <span class="dryer-card-label">Conclusão</span>
-            <strong>{{BATCH_COMPLETED_AT}}</strong>
-          </article>
-          <article class="dryer-status-card">
-            <span class="dryer-card-label">Umidade alvo</span>
-            <strong>{{BATCH_TARGET_MOISTURE}}%</strong>
+          <article class="dryer-status-card dryer-summary-card">
+            <span class="dryer-card-label">Resumo da batelada</span>
+            <dl class="dryer-summary-list">
+              <div>
+                <dt>Status</dt>
+                <dd>{{BATCH_STATUS}}</dd>
+              </div>
+              <div>
+                <dt>Produto</dt>
+                <dd>{{BATCH_PRODUCT}}</dd>
+              </div>
+              <div>
+                <dt>Início</dt>
+                <dd>{{BATCH_STARTED_AT}}</dd>
+              </div>
+              <div>
+                <dt>Início descarga</dt>
+                <dd>{{BATCH_DISCHARGE_STARTED_AT}}</dd>
+              </div>
+              <div>
+                <dt>Fim descarga</dt>
+                <dd>{{BATCH_COMPLETED_AT}}</dd>
+              </div>
+              <div>
+                <dt>Duração</dt>
+                <dd>{{BATCH_DURATION}}</dd>
+              </div>
+              <div>
+                <dt>Tempo descarga</dt>
+                <dd>{{BATCH_DISCHARGE_DURATION}}</dd>
+              </div>
+              <div>
+                <dt>Umidade inicial</dt>
+                <dd>{{BATCH_INITIAL_MOISTURE}}</dd>
+              </div>
+              <div>
+                <dt>Umidade final</dt>
+                <dd>{{BATCH_FINAL_MOISTURE}}</dd>
+              </div>
+              <div>
+                <dt>Umidade alvo</dt>
+                <dd>{{BATCH_TARGET_MOISTURE}}%</dd>
+              </div>
+            </dl>
           </article>
         </section>
 
