@@ -39,6 +39,7 @@ Campos centrais:
 - `completed_by_user_id`: usuário que concluiu/parou a batelada.
 - `target_moisture`: umidade alvo copiada de `dryer_settings` no momento do início da batelada.
 - `umidade_inicial`: umidade inicial digitada pelo operador ao confirmar o início da batelada. Aceita valores decimais entre `5%` e `50%`.
+- `final_moisture`: umidade final média durante a descarga. É preenchida a partir da média ponderada entre `discharge_started_at` e `completed_at`; registros antigos podem permanecer `NULL` até o backfill.
 - `notes`: observações, atualmente sem uso direto nas telas principais.
 
 ### `dryer_moisture_readings`
@@ -52,12 +53,16 @@ Campos centrais:
 - `moisture_percent`: percentual de umidade medido.
 - `measured_by_user_id`: usuário que registrou a medição.
 - `measured_by_login`: login gravado no momento da medição, preservando o histórico mesmo que o cadastro do usuário mude depois.
+- `average_moisture`: umidade média calculada imediatamente após a medição, usando a umidade inicial da batelada e as leituras existentes até aquele ponto.
+- `discharge_forecast_at`: horário previsto para início da descarga calculado imediatamente após a medição, quando a previsão retorna um horário.
+- `discharge_forecast_status`: status da previsão calculada após a medição, como `forecast`, `immediate` ou `unavailable`.
 
 ## Arquivos principais
 
 - `routes/dryer-routes.js`: rotas HTTP do painel operacional do secador.
 - `routes/dryer-service.js`: queries, transações e regras de negócio do secador.
 - `routes/dryer-forecast.js`: cálculo da previsão de início da descarga.
+- `scripts/backfill-dryer-derived-values.js`: script operacional para preencher valores derivados antigos do secador após a criação das colunas `average_moisture`, `discharge_forecast_at`, `discharge_forecast_status` e `final_moisture`.
 - `routes/renderers/dryer-renderer.js`: renderização do painel `/secador`, do quadro de notificações de entradas pendentes e da tela mobile de classificação.
 - `views/dryer-panel.html`: template HTML do painel operacional.
 - `views/dryer-input-classification-form.html`: formulário mobile de classificação de entrada usado pelo operador do silo.
@@ -147,7 +152,8 @@ Regras atuais:
 - o valor aceita no máximo uma casa decimal;
 - o horário da leitura é sempre o horário atual do servidor;
 - cada leitura fica vinculada à batelada ativa no momento do lançamento;
-- a leitura salva o usuário responsável e o login usado no momento.
+- a leitura salva o usuário responsável e o login usado no momento;
+- as colunas derivadas `average_moisture`, `discharge_forecast_at` e `discharge_forecast_status` guardam snapshots calculados para aquela medição, permitindo preservar o histórico mesmo que a regra de previsão mude depois.
 
 A lista exibida no painel mostra apenas as medições da batelada ativa, ordenadas por horário de medição. Na tabela operacional, cada linha exibe inicialmente só horário e umidade medida; umidade média, previsão de descarga, umidade alvo, operador e descarga real ficam disponíveis ao clicar ou acionar a linha pelo teclado. Medições de bateladas anteriores permanecem no banco para consulta posterior pela administração.
 
@@ -157,7 +163,7 @@ Enquanto a descarga ainda não foi iniciada, o painel calcula uma previsão por 
 
 A base da previsão continua sendo a umidade média real da batelada em janelas móveis de 1h45min. No horário da última medição, o sistema olha 105 minutos para trás, integra a curva de umidade nesse intervalo e divide a área pelo tempo da janela. A curva é formada pela umidade inicial da batelada e pelas medições registradas, com interpolação linear entre pontos. Se a janela começa antes do início da batelada ou antes da primeira medição real, a umidade inicial é mantida para preencher esse trecho. O cálculo usa data e hora completas, então funciona corretamente quando a batelada atravessa a meia-noite.
 
-Depois de calcular a umidade média, o sistema consulta a tabela fixa de calibração em `routes/dryer-forecast.js`. Quando a umidade média fica entre dois pontos da tabela, os minutos restantes são interpolados linearmente entre esses dois pontos. Quando a umidade média fica acima de `29,5%`, a previsão é limitada ao valor máximo calibrado, retornando sempre `520` minutos restantes. Quando a umidade média fica abaixo de `15,2%`, o sistema considera `0` minuto restante, o que leva o painel a indicar descarga imediata se o horário previsto já tiver passado.
+Depois de calcular a umidade média, o resultado pode ser persistido em `dryer_moisture_readings.average_moisture` como snapshot da leitura. Em seguida, o sistema consulta a tabela fixa de calibração em `routes/dryer-forecast.js`. Quando a umidade média fica entre dois pontos da tabela, os minutos restantes são interpolados linearmente entre esses dois pontos. Quando a umidade média fica acima de `29,5%`, a previsão é limitada ao valor máximo calibrado, retornando sempre `520` minutos restantes. Quando a umidade média fica abaixo de `15,2%`, o sistema considera `0` minuto restante, o que leva o painel a indicar descarga imediata se o horário previsto já tiver passado.
 
 ```text
 minutos_restantes = interpolar_tabela_calibrada(umidade_media_atual)
@@ -166,7 +172,7 @@ hora_prevista_para_inicio_da_descarga = horario_da_ultima_medicao + minutos_rest
 
 A tabela atual ignora temporariamente a umidade alvo da batelada ao calcular os minutos restantes. A umidade alvo padrão continua sendo `14,5%` e administradores ainda podem alterá-la para registro operacional, mas a previsão por interpolação usa somente a umidade média calculada e os pontos calibrados no código. O parâmetro atual da média móvel é fixo no código: janela de `105` minutos.
 
-Se o horário atual do servidor já for maior que o horário previsto, o painel mostra “Descarga imediata”. Depois que o operador clica em “Iniciar descarga”, toda essa lógica deixa de ser recalculada para a batelada e o painel passa a mostrar o horário em que a descarga realmente começou.
+Se o horário atual do servidor já for maior que o horário previsto, o painel mostra “Descarga imediata”. Depois que o operador clica em “Iniciar descarga”, toda essa lógica deixa de ser recalculada para a batelada ativa e o painel passa a mostrar o horário em que a descarga realmente começou. As previsões já persistidas nas leituras continuam representando o snapshot histórico calculado no momento de cada medição.
 
 ### 6. Iniciar descarga
 
@@ -188,7 +194,7 @@ Em qualquer batelada ativa, o operador pode usar “Parar secador”. A ação p
 - `completed_at` com o horário atual do servidor;
 - `completed_by_user_id` com o operador logado.
 
-Após a parada, o painel volta ao estado **Parado** e a única ação operacional liberada é iniciar uma nova batelada.
+Ao concluir a batelada, o sistema deve preencher `dryer_batches.final_moisture` com a média ponderada da umidade durante o intervalo de descarga, quando `discharge_started_at` e `completed_at` estiverem disponíveis. Após a parada, o painel volta ao estado **Parado** e a única ação operacional liberada é iniciar uma nova batelada.
 
 ## Regras de negócio atuais
 
@@ -203,6 +209,20 @@ CREATE UNIQUE INDEX IF NOT EXISTS dryer_batches_one_active_idx
 ON dryer_batches ((status))
 WHERE status = 'active';
 ```
+
+
+### Backfill de valores derivados
+
+Depois de criar ou alterar as colunas derivadas do secador, use o script `npm run backfill-dryer-derived-values` para preencher dados históricos. O script lê `DATABASE_URL`, percorre todas as bateladas em ordem cronológica e recalcula:
+
+- `dryer_moisture_readings.average_moisture`;
+- `dryer_moisture_readings.discharge_forecast_at`;
+- `dryer_moisture_readings.discharge_forecast_status`;
+- `dryer_batches.final_moisture`.
+
+Para preservar o comportamento histórico das tabelas de medição, a previsão de cada leitura é recalculada usando somente as medições existentes até aquela leitura e tratando `discharge_started_at` como ausente. Assim, uma batelada já descarregada não faz as leituras antigas receberem status `started`; elas mantêm o snapshot que seria exibido na época da medição.
+
+O script é idempotente: executar novamente recalcula e sobrescreve os mesmos campos derivados com base nas regras atuais do código. Rode novamente apenas quando quiser atualizar o histórico para refletir uma mudança deliberada na regra de cálculo.
 
 ### Horários operacionais
 
