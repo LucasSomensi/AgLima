@@ -36,23 +36,27 @@ function formatDurationBetween(start, end) {
   return `${minutes}min`;
 }
 
-function renderLastCompletedBatchSummary(lastCompletedBatch) {
-  if (!lastCompletedBatch) {
+function renderCompletedBatchSummaryCard(completedBatch, { title = 'Última batelada', showPreviousLink = false } = {}) {
+  if (!completedBatch) {
     return '';
   }
 
-  const initialMoisture = lastCompletedBatch.umidade_inicial !== null
-    && lastCompletedBatch.umidade_inicial !== undefined
-    ? `${formatMoisture(lastCompletedBatch.umidade_inicial)}%`
+  const initialMoisture = completedBatch.umidade_inicial !== null
+    && completedBatch.umidade_inicial !== undefined
+    ? `${formatMoisture(completedBatch.umidade_inicial)}%`
     : '-';
-  const dischargeMoisture = lastCompletedBatch.discharge_average_moisture !== null
-    && lastCompletedBatch.discharge_average_moisture !== undefined
-    ? `${formatMoisture(lastCompletedBatch.discharge_average_moisture)}%`
+  const finalMoisture = completedBatch.discharge_average_moisture ?? completedBatch.final_moisture;
+  const dischargeMoisture = finalMoisture !== null
+    && finalMoisture !== undefined
+    ? `${formatMoisture(finalMoisture)}%`
     : '-';
 
   return `
           <article class="dryer-status-card dryer-summary-card">
-            <span class="dryer-card-label">Última batelada</span>
+            <div class="dryer-summary-card-header">
+              <span class="dryer-card-label">${escapeHtml(title)}</span>
+              ${showPreviousLink ? '<a class="dryer-summary-link" href="/secador/bateladas/anteriores">Ver anteriores</a>' : ''}
+            </div>
             <dl class="dryer-summary-list">
               <div>
                 <dt>Umidade inicial</dt>
@@ -60,23 +64,27 @@ function renderLastCompletedBatchSummary(lastCompletedBatch) {
               </div>
               <div>
                 <dt>Início</dt>
-                <dd>${escapeHtml(formatDateTime(lastCompletedBatch.started_at))}</dd>
+                <dd>${escapeHtml(formatDateTime(completedBatch.started_at))}</dd>
               </div>
               <div>
                 <dt>Início descarga</dt>
-                <dd>${escapeHtml(formatDateTime(lastCompletedBatch.discharge_started_at))}</dd>
+                <dd>${escapeHtml(formatDateTime(completedBatch.discharge_started_at))}</dd>
               </div>
               <div>
                 <dt>Fim descarga</dt>
-                <dd>${escapeHtml(formatDateTime(lastCompletedBatch.completed_at))}</dd>
+                <dd>${escapeHtml(formatDateTime(completedBatch.completed_at))}</dd>
               </div>
               <div>
                 <dt>Duração</dt>
-                <dd>${escapeHtml(formatDurationBetween(lastCompletedBatch.started_at, lastCompletedBatch.completed_at))}</dd>
+                <dd>${escapeHtml(formatDurationBetween(completedBatch.started_at, completedBatch.completed_at))}</dd>
+              </div>
+              <div>
+                <dt>Tempo secando</dt>
+                <dd>${escapeHtml(formatDurationBetween(completedBatch.started_at, completedBatch.discharge_started_at))}</dd>
               </div>
               <div>
                 <dt>Tempo descarga</dt>
-                <dd>${escapeHtml(formatDurationBetween(lastCompletedBatch.discharge_started_at, lastCompletedBatch.completed_at))}</dd>
+                <dd>${escapeHtml(formatDurationBetween(completedBatch.discharge_started_at, completedBatch.completed_at))}</dd>
               </div>
               <div>
                 <dt>Umidade final</dt>
@@ -84,6 +92,24 @@ function renderLastCompletedBatchSummary(lastCompletedBatch) {
               </div>
             </dl>
           </article>`;
+}
+
+function renderLastCompletedBatchSummary(lastCompletedBatch) {
+  return renderCompletedBatchSummaryCard(lastCompletedBatch, { showPreviousLink: true });
+}
+
+function renderCompletedBatchHistoryPage(res, { completedBatches = [] }) {
+  const cardsHtml = completedBatches.length
+    ? completedBatches.map((batch, index) => renderCompletedBatchSummaryCard(batch, {
+        title: `Batelada ${index + 1}`,
+      })).join('')
+    : '<p class="empty-state">Nenhuma batelada anterior encontrada.</p>';
+
+  const html = renderTemplate('dryer-batch-history.html', {
+    COMPLETED_BATCH_CARDS: cardsHtml,
+  });
+
+  res.send(html);
 }
 
 function formatProductLabel(value) {
@@ -306,6 +332,7 @@ function renderDryerPanelPage(res, { batch, readings, settings, message, error, 
 }
 
 module.exports = {
+  renderCompletedBatchHistoryPage,
   renderDryerInputClassificationPage,
   renderDryerPanelPage,
   renderDryerStartBatchPage,

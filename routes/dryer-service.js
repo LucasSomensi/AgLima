@@ -82,6 +82,26 @@ async function listCompletedDryerBatches() {
   return result.rows;
 }
 
+async function listRecentCompletedDryerBatchSummaries(limit = 10) {
+  ensureDatabaseConfigured();
+
+  const result = await pool.query(
+    `
+      SELECT id, started_at, discharge_started_at, completed_at, umidade_inicial, final_moisture, created_at
+      FROM dryer_batches
+      WHERE status <> 'active'
+      ORDER BY started_at DESC, created_at DESC
+      LIMIT $1
+    `,
+    [limit]
+  );
+
+  return result.rows.map((batch) => ({
+    ...batch,
+    discharge_average_moisture: batch.final_moisture,
+  }));
+}
+
 async function getLastCompletedDryerBatchSummary() {
   ensureDatabaseConfigured();
 
@@ -464,6 +484,7 @@ module.exports = {
   getDefaultInitialMoisture,
   getDryerSettings,
   getLastCompletedDryerBatchSummary,
+  listRecentCompletedDryerBatchSummaries,
   listCompletedDryerBatches,
   listDryerMoistureReadings,
   startDryerBatch,

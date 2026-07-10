@@ -518,6 +518,34 @@ body {
   grid-column: span 2;
 }
 
+.dryer-summary-card-header {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.dryer-summary-link {
+  color: #ffffff;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+.dryer-summary-link:hover,
+.dryer-summary-link:focus {
+  color: var(--green-100);
+}
+
+.dryer-history-list {
+  display: grid;
+  gap: 16px;
+}
+
+.dryer-history-list .dryer-summary-card {
+  grid-column: auto;
+}
+
 .dryer-summary-list {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
