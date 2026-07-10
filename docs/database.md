@@ -443,6 +443,7 @@ Armazena as bateladas do secador.
 | `created_at` | `timestamp with time zone` | Não | `now()` | Data/hora de criação do registro. |
 | `updated_at` | `timestamp with time zone` | Não | `now()` | Data/hora da última atualização. |
 | `discharge_started_at` | `timestamp with time zone` | Sim | — | Data/hora em que a descarga da batelada foi iniciada. |
+| `final_moisture` | `numeric` | Sim | — | Umidade final média da batelada durante o período de descarga, calculada pela mesma regra de média ponderada usada no secador. |
 
 ### Restrições
 
@@ -475,6 +476,9 @@ Armazena as leituras de umidade lançadas durante uma batelada do secador.
 | `measured_by_user_id` | `uuid` | Sim | — | Usuário que registrou a medição. FK para `users.id`. |
 | `measured_by_login` | `text` | Não | — | Login gravado no momento da medição, preservando histórico mesmo se o usuário mudar. |
 | `created_at` | `timestamp with time zone` | Não | `now()` | Data/hora de criação do registro. |
+| `average_moisture` | `numeric` | Sim | — | Umidade média calculada após esta leitura, usando a janela móvel e a interpolação de `calculateAverageMoisture`. |
+| `discharge_forecast_at` | `timestamp with time zone` | Sim | — | Horário previsto para início da descarga calculado após esta leitura. |
+| `discharge_forecast_status` | `text` | Sim | — | Status retornado pela previsão após esta leitura, como `forecast`, `immediate` ou `unavailable`. |
 
 ### Restrições
 

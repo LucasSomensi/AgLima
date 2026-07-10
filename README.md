@@ -19,12 +19,13 @@ Aplicação web Node.js/Express para operações da AgroLima, incluindo site pú
 | `npm start` | Inicia o servidor com `node app.js`. |
 | `npm test` | Executa a suíte de testes com o test runner nativo do Node.js (`node --test`). |
 | `npm run create-root-user` | Cria o usuário administrativo `root` no PostgreSQL usando `DATABASE_URL` e `ROOT_PASSWORD`. |
+| `npm run backfill-dryer-derived-values` | Recalcula e preenche os campos derivados históricos do secador usando `DATABASE_URL`. |
 
 ## Variáveis de ambiente
 
 | Variável | Obrigatória | Usada por | Descrição |
 | --- | --- | --- | --- |
-| `DATABASE_URL` | Sim para funcionalidades com banco | Aplicação, autenticação, painéis e `npm run create-root-user` | String de conexão do PostgreSQL usada pela biblioteca `pg`. |
+| `DATABASE_URL` | Sim para funcionalidades com banco | Aplicação, autenticação, painéis, `npm run create-root-user` e `npm run backfill-dryer-derived-values` | String de conexão do PostgreSQL usada pela biblioteca `pg`. |
 | `SESSION_SECRET` | Sim em produção | Autenticação | Segredo usado para assinar o cookie de sessão. Use um valor longo e aleatório; sem ele há apenas um fallback inseguro de desenvolvimento. |
 | `SESSION_DURATION_DAYS` | Não | Autenticação | Duração da sessão em dias. Deve ser número positivo; tem prioridade sobre `SESSION_DURATION_HOURS`. |
 | `SESSION_DURATION_HOURS` | Não | Autenticação | Alternativa para duração da sessão em horas quando `SESSION_DURATION_DAYS` não está definida. Se nenhuma duração válida for informada, o padrão é 8 horas. |
@@ -107,6 +108,30 @@ npm run create-root-user
 ```
 
 Se o login `root` já existir, o script termina com sucesso sem alterar o usuário existente.
+
+
+## Backfill dos valores derivados do secador
+
+O script `scripts/backfill-dryer-derived-values.js` recalcula valores derivados de bateladas e medições antigas depois da criação das colunas `final_moisture`, `average_moisture`, `discharge_forecast_at` e `discharge_forecast_status`. Ele usa as mesmas funções de cálculo da aplicação e sobrescreve esses campos com os valores recalculados.
+
+Para executar localmente a partir da raiz do projeto:
+
+```bash
+DATABASE_URL="postgresql://usuario:senha@localhost:5432/agrolima" npm run backfill-dryer-derived-values
+```
+
+Para executar no Railway:
+
+1. Faça deploy da versão que contém este script.
+2. Confirme que o serviço web tem acesso à variável `DATABASE_URL` do PostgreSQL conectado.
+3. Abra o shell do serviço ou o executor de comandos avulsos do Railway.
+4. Execute:
+
+```bash
+npm run backfill-dryer-derived-values
+```
+
+O script imprime uma linha por batelada processada e um resumo final com quantidade de bateladas, leituras atualizadas e umidades finais preenchidas. Ele é idempotente: se for executado novamente, recalcula e sobrescreve os mesmos campos derivados com base na regra atual do código.
 
 ## Login e gerenciamento de usuários
 
