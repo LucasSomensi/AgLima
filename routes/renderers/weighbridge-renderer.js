@@ -232,6 +232,29 @@ function buildScaleOutputRows(outputs, { showAllLink = false } = {}) {
     .join('') || `<tr><td colspan="8">${showAllLink ? 'Nenhuma saída cadastrada.' : 'Nenhuma saída recente cadastrada.'}</td></tr>`;
 }
 
+
+function buildNextPageHref(currentUrl, nextCursor) {
+  if (!nextCursor) {
+    return '';
+  }
+
+  const url = new URL(currentUrl || '/', 'http://localhost');
+  url.searchParams.set('cursor', nextCursor);
+  return `${url.pathname}${url.search}`;
+}
+
+function buildPaginationHtml({ hasNextPage, nextCursor, currentUrl }) {
+  if (!hasNextPage || !nextCursor) {
+    return '';
+  }
+
+  return `
+        <nav class="pagination-nav" aria-label="Paginação">
+          <a class="btn-secondary-action pagination-link" href="${escapeHtml(buildNextPageHref(currentUrl, nextCursor))}">Próxima página</a>
+          <button class="btn-secondary-action pagination-link" type="button" onclick="history.back()">Voltar</button>
+        </nav>`;
+}
+
 function renderWeighbridgeHomePage(res, { inputs = [], outputs = [], message, error }) {
   const pagePath = path.join(__dirname, '../../views/weighbridge-home.html');
   const html = fs
@@ -244,20 +267,22 @@ function renderWeighbridgeHomePage(res, { inputs = [], outputs = [], message, er
   res.send(html);
 }
 
-function renderScaleInputsListPage(res, { inputs, navigation }) {
+function renderScaleInputsListPage(res, { inputs, navigation, nextCursor = null, hasNextPage = false, currentUrl = '/balanca/entradas' }) {
   const pagePath = path.join(__dirname, '../../views/weighbridge-inputs.html');
   const html = applyWeighbridgeNavigation(fs
     .readFileSync(pagePath, 'utf8')
-    .replace('{{SCALE_INPUT_ROWS}}', buildScaleInputRows(inputs, { showAllLink: true })), navigation);
+    .replace('{{SCALE_INPUT_ROWS}}', buildScaleInputRows(inputs, { showAllLink: true }))
+    .replace('{{PAGINATION_CONTROLS}}', buildPaginationHtml({ hasNextPage, nextCursor, currentUrl })), navigation);
 
   res.send(html);
 }
 
-function renderScaleOutputsListPage(res, { outputs, navigation }) {
+function renderScaleOutputsListPage(res, { outputs, navigation, nextCursor = null, hasNextPage = false, currentUrl = '/balanca/saidas' }) {
   const pagePath = path.join(__dirname, '../../views/weighbridge-outputs.html');
   const html = applyWeighbridgeNavigation(fs
     .readFileSync(pagePath, 'utf8')
-    .replace('{{SCALE_OUTPUT_ROWS}}', buildScaleOutputRows(outputs, { showAllLink: true })), navigation);
+    .replace('{{SCALE_OUTPUT_ROWS}}', buildScaleOutputRows(outputs, { showAllLink: true }))
+    .replace('{{PAGINATION_CONTROLS}}', buildPaginationHtml({ hasNextPage, nextCursor, currentUrl })), navigation);
 
   res.send(html);
 }
