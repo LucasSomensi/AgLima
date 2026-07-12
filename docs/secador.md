@@ -159,18 +159,21 @@ A lista exibida no painel mostra apenas as medições da batelada ativa, ordenad
 
 ### 5. Acompanhar a previsão de descarga
 
-Enquanto a descarga ainda não foi iniciada, o painel calcula uma previsão por interpolação em uma tabela calibrada com dados reais do secador para auxiliar o operador a decidir quando começar a descarga. A previsão não é exibida antes da primeira medição de umidade da batelada, mas a umidade média atual já é calculada para uso interno e para as telas administrativas.
+Enquanto a descarga ainda não foi iniciada, o painel calcula uma previsão por curva quadrática calibrada com dados reais do secador para auxiliar o operador a decidir quando começar a descarga. Antes da primeira medição de umidade da batelada, a previsão já é exibida usando a umidade inicial como umidade média e somando os minutos restantes ao horário de início da batelada.
 
-A base da previsão continua sendo a umidade média real da batelada em janelas móveis de 1h45min. No horário da última medição, o sistema olha 105 minutos para trás, integra a curva de umidade nesse intervalo e divide a área pelo tempo da janela. A curva é formada pela umidade inicial da batelada e pelas medições registradas, com interpolação linear entre pontos. Se a janela começa antes do início da batelada ou antes da primeira medição real, a umidade inicial é mantida para preencher esse trecho. O cálculo usa data e hora completas, então funciona corretamente quando a batelada atravessa a meia-noite.
+A base da previsão continua sendo a umidade média real da batelada em janelas móveis de 1h45min. No horário da última medição, o sistema olha 105 minutos para trás, integra a curva de umidade nesse intervalo e divide a área pelo tempo da janela. Quando ainda não há medições, o horário-base é o início da batelada e a umidade média é a umidade inicial. A curva é formada pela umidade inicial da batelada e pelas medições registradas, com interpolação linear entre pontos. Se a janela começa antes do início da batelada ou antes da primeira medição real, a umidade inicial é mantida para preencher esse trecho. O cálculo usa data e hora completas, então funciona corretamente quando a batelada atravessa a meia-noite.
 
-Depois de calcular a umidade média, o resultado pode ser persistido em `dryer_moisture_readings.average_moisture` como snapshot da leitura. Em seguida, o sistema consulta a tabela fixa de calibração em `routes/dryer-forecast.js`. Quando a umidade média fica entre dois pontos da tabela, os minutos restantes são interpolados linearmente entre esses dois pontos. Quando a umidade média fica acima de `29,5%`, a previsão é limitada ao valor máximo calibrado, retornando sempre `520` minutos restantes. Quando a umidade média fica abaixo de `15,2%`, o sistema considera `0` minuto restante, o que leva o painel a indicar descarga imediata se o horário previsto já tiver passado.
+Depois de calcular a umidade média, o resultado pode ser persistido em `dryer_moisture_readings.average_moisture` como snapshot da leitura. Em seguida, o sistema aplica a curva quadrática calibrada em `routes/dryer-forecast.js`: `-1,6813*x² + 111,7391*x - 1344,3482`, em que `x` é a umidade média. Para evitar que a previsão diminua quando a umidade média aumenta acima do vértice da parábola, o cálculo limita dinamicamente a entrada da curva ao ponto de máximo quando os coeficientes formam uma parábola côncava para baixo. Previsões negativas são tratadas como `0` minuto restante, o que leva o painel a indicar descarga imediata se o horário previsto já tiver passado.
 
 ```text
-minutos_restantes = interpolar_tabela_calibrada(umidade_media_atual)
-hora_prevista_para_inicio_da_descarga = horario_da_ultima_medicao + minutos_restantes
+minutos_base = curva_quadratica_calibrada(umidade_media_atual)
+fator_de_correcao = (14 - umidade_alvo_da_batelada) * 60
+minutos_restantes = max(0, minutos_base + fator_de_correcao)
+horario_base = horario_da_ultima_medicao_ou_inicio_da_batelada
+hora_prevista_para_inicio_da_descarga = horario_base + minutos_restantes
 ```
 
-A tabela atual ignora temporariamente a umidade alvo da batelada ao calcular os minutos restantes. A umidade alvo padrão continua sendo `14,5%` e administradores ainda podem alterá-la para registro operacional, mas a previsão por interpolação usa somente a umidade média calculada e os pontos calibrados no código. O parâmetro atual da média móvel é fixo no código: janela de `105` minutos.
+A previsão considera a umidade alvo copiada para a batelada no momento em que ela foi iniciada. Uma umidade alvo maior antecipa a descarga: por exemplo, `14,5%` aplica uma correção de `-30` minutos em relação à referência de `14%`. O parâmetro atual da média móvel é fixo no código: janela de `105` minutos.
 
 Se o horário atual do servidor já for maior que o horário previsto, o painel mostra “Descarga imediata”. Depois que o operador clica em “Iniciar descarga”, toda essa lógica deixa de ser recalculada para a batelada ativa e o painel passa a mostrar o horário em que a descarga realmente começou. As previsões já persistidas nas leituras continuam representando o snapshot histórico calculado no momento de cada medição.
 

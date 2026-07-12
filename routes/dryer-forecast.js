@@ -1,12 +1,10 @@
 const DISCHARGE_FORECAST_LOOKBACK_MINUTES = 105;
-const DISCHARGE_FORECAST_TABLE = [
-  { moisture: 29.5, minutesRemaining: 520 },
-  { moisture: 25, minutesRemaining: 415 },
-  { moisture: 22, minutesRemaining: 300 },
-  { moisture: 18.5, minutesRemaining: 150 },
-  { moisture: 16.5, minutesRemaining: 45 },
-  { moisture: 15.2, minutesRemaining: 0 },
-];
+const DISCHARGE_FORECAST_CURVE = {
+  quadraticCoefficient: -1.6813,
+  linearCoefficient: 111.7391,
+  constantCoefficient: -1344.3482,
+};
+const TARGET_MOISTURE_REFERENCE = 14;
 const MILLISECONDS_PER_MINUTE = 60 * 1000;
 
 function toValidTimestamp(value) {
@@ -92,38 +90,38 @@ function calculateAverageMoisture({ readings, periodStart, periodEnd }) {
 }
 
 
-function calculateMinutesRemainingFromAverageMoisture(averageMoisture) {
+function calculateForecastCurveMinutes(moisture) {
+  const { quadraticCoefficient, linearCoefficient, constantCoefficient } = DISCHARGE_FORECAST_CURVE;
+  const moistureForCurve = quadraticCoefficient < 0
+    ? Math.min(moisture, -linearCoefficient / (2 * quadraticCoefficient))
+    : moisture;
+
+  return (quadraticCoefficient * (moistureForCurve ** 2))
+    + (linearCoefficient * moistureForCurve)
+    + constantCoefficient;
+}
+
+function calculateTargetMoistureCorrection(targetMoisture) {
+  const target = toFiniteNumber(targetMoisture);
+
+  if (target === null) {
+    return 0;
+  }
+
+  return (TARGET_MOISTURE_REFERENCE - target) * 60;
+}
+
+function calculateMinutesRemainingFromAverageMoisture(averageMoisture, targetMoisture) {
   const moisture = toFiniteNumber(averageMoisture);
 
   if (moisture === null) {
     return null;
   }
 
-  const descendingTable = DISCHARGE_FORECAST_TABLE;
-  const highestMoisturePoint = descendingTable[0];
-  const lowestMoisturePoint = descendingTable[descendingTable.length - 1];
+  const curveMinutes = calculateForecastCurveMinutes(moisture);
+  const correctedMinutes = curveMinutes + calculateTargetMoistureCorrection(targetMoisture);
 
-  if (moisture >= highestMoisturePoint.moisture) {
-    return highestMoisturePoint.minutesRemaining;
-  }
-
-  if (moisture < lowestMoisturePoint.moisture) {
-    return 0;
-  }
-
-  for (let index = 1; index < descendingTable.length; index += 1) {
-    const higherPoint = descendingTable[index - 1];
-    const lowerPoint = descendingTable[index];
-
-    if (moisture >= lowerPoint.moisture) {
-      const ratio = (moisture - lowerPoint.moisture) / (higherPoint.moisture - lowerPoint.moisture);
-
-      return lowerPoint.minutesRemaining
-        + (higherPoint.minutesRemaining - lowerPoint.minutesRemaining) * ratio;
-    }
-  }
-
-  return null;
+  return Math.max(0, correctedMinutes);
 }
 
 function deduplicateReadingsByTimestamp(readings) {
@@ -174,17 +172,19 @@ function calculateDischargeForecast({ batch, readings, now = new Date() }) {
     },
     ...validReadings,
   ];
-  const averageMoisture = calculateAverageMoisture({
-    readings: readingsWithInitialMoisture,
-    periodStart,
-    periodEnd,
-  });
+  const averageMoisture = lastReading
+    ? calculateAverageMoisture({
+        readings: readingsWithInitialMoisture,
+        periodStart,
+        periodEnd,
+      })
+    : initialMoisture;
 
   if (averageMoisture === null) {
     return { status: 'unavailable' };
   }
 
-  const minutesRemaining = calculateMinutesRemainingFromAverageMoisture(averageMoisture);
+  const minutesRemaining = calculateMinutesRemainingFromAverageMoisture(averageMoisture, batch.target_moisture);
 
   if (!Number.isFinite(minutesRemaining)) {
     return { status: 'unavailable', averageMoisture };
