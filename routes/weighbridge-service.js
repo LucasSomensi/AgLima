@@ -1,5 +1,6 @@
 const { ensureDatabaseConfigured, pool } = require('./database');
 const { parseOptionalDateTime } = require('./utils');
+const { InvalidCursorError, PAGE_FETCH_LIMIT, buildPage, decodeCursor } = require('./pagination');
 
 const PRODUCT_VALUES = ['milho', 'soja'];
 const MAX_INPUT_GROSS_WEIGHT_KG = 80000;
@@ -429,9 +430,36 @@ async function createScaleInput(payload, userId) {
 async function listScaleInputs(options = {}) {
   ensureDatabaseConfigured();
 
-  const limitClause = options.limit ? 'LIMIT $1' : '';
-  const values = options.limit ? [options.limit] : [];
+  const isPaginated = options.paginate === true;
   const orderDirection = options.order === 'asc' ? 'ASC' : 'DESC';
+  if (isPaginated && orderDirection !== 'DESC') {
+    throw new Error('Paginação por cursor de entradas suporta apenas ordem decrescente.');
+  }
+
+  let cursorClause = '';
+  const values = [];
+  let limitClause = '';
+
+  if (isPaginated) {
+    const decoded = decodeCursor(options.cursor);
+    if (decoded.error) {
+      throw decoded.error;
+    }
+
+    if (decoded.cursor) {
+      if (!decoded.cursor.data_entrada || !decoded.cursor.id) {
+        throw new InvalidCursorError();
+      }
+      values.push(decoded.cursor.data_entrada, decoded.cursor.id);
+      cursorClause = `WHERE (data_entrada, id) < ($1::timestamptz, $2::bigint)`;
+    }
+
+    values.push(PAGE_FETCH_LIMIT);
+    limitClause = `LIMIT $${values.length}`;
+  } else if (options.limit) {
+    values.push(options.limit);
+    limitClause = 'LIMIT $1';
+  }
   const result = await pool.query(
     `
       SELECT id,
@@ -450,11 +478,19 @@ async function listScaleInputs(options = {}) {
              classificado_em,
              cliente_user_id
       FROM entradas_balanca
+      ${cursorClause}
       ORDER BY data_entrada ${orderDirection}, id ${orderDirection}
       ${limitClause}
     `,
     values
   );
+
+  if (isPaginated) {
+    return buildPage(result.rows, (input) => ({
+      data_entrada: input.data_entrada,
+      id: input.id,
+    }));
+  }
 
   return result.rows;
 }
@@ -790,9 +826,36 @@ async function defineScaleInputOrigin(inputId, origem, userId) {
 async function listScaleOutputs(options = {}) {
   ensureDatabaseConfigured();
 
-  const limitClause = options.limit ? 'LIMIT $1' : '';
-  const values = options.limit ? [options.limit] : [];
+  const isPaginated = options.paginate === true;
   const orderDirection = options.order === 'asc' ? 'ASC' : 'DESC';
+  if (isPaginated && orderDirection !== 'DESC') {
+    throw new Error('Paginação por cursor de saídas suporta apenas ordem decrescente.');
+  }
+
+  let cursorClause = '';
+  const values = [];
+  let limitClause = '';
+
+  if (isPaginated) {
+    const decoded = decodeCursor(options.cursor);
+    if (decoded.error) {
+      throw decoded.error;
+    }
+
+    if (decoded.cursor) {
+      if (!decoded.cursor.data_saida || !decoded.cursor.id) {
+        throw new InvalidCursorError();
+      }
+      values.push(decoded.cursor.data_saida, decoded.cursor.id);
+      cursorClause = `WHERE (s.data_saida, s.id) < ($1::timestamptz, $2::bigint)`;
+    }
+
+    values.push(PAGE_FETCH_LIMIT);
+    limitClause = `LIMIT $${values.length}`;
+  } else if (options.limit) {
+    values.push(options.limit);
+    limitClause = 'LIMIT $1';
+  }
   const result = await pool.query(
     `
       SELECT s.id,
@@ -808,11 +871,19 @@ async function listScaleOutputs(options = {}) {
       FROM saidas_balanca s
       LEFT JOIN contratos c ON c.id = s.contrato_id
       LEFT JOIN compradores comp ON comp.id = c.comprador_id
+      ${cursorClause}
       ORDER BY s.data_saida ${orderDirection}, s.id ${orderDirection}
       ${limitClause}
     `,
     values
   );
+
+  if (isPaginated) {
+    return buildPage(result.rows, (output) => ({
+      data_saida: output.data_saida,
+      id: output.id,
+    }));
+  }
 
   return result.rows;
 }

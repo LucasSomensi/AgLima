@@ -51,6 +51,7 @@ const {
   updateManagedUserPassword,
 } = require('./user-service');
 const { buildRedirect, parseMoisturePercent } = require('./utils');
+const { InvalidCursorError } = require('./pagination');
 const {
   buildStorageRecalibrationPayload,
   countStorageIgnoredInputs,
@@ -507,9 +508,17 @@ router.post('/admin/umidade-alvo', canAccessAdminPanel, async (req, res) => {
 
 router.get('/admin/bateladas', canAccessAdminPanel, async (req, res) => {
   try {
-    const batches = await listCompletedDryerBatches();
-    return renderAdminBatchesPage(res, { batches });
+    const page = await listCompletedDryerBatches({ paginate: true, cursor: req.query.cursor });
+    return renderAdminBatchesPage(res, {
+      batches: page.items,
+      nextCursor: page.nextCursor,
+      hasNextPage: page.hasNextPage,
+      currentUrl: req.originalUrl,
+    });
   } catch (error) {
+    if (error instanceof InvalidCursorError || error.code === 'INVALID_CURSOR') {
+      return res.status(400).send('Cursor de paginação inválido.');
+    }
     console.error('Error listing dryer batches:', error.message);
     return res.status(500).send('Não foi possível carregar as bateladas anteriores agora.');
   }

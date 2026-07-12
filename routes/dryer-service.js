@@ -1,5 +1,6 @@
 const { calculateAverageMoisture, calculateDischargeForecast } = require('./dryer-forecast');
 const { ensureDatabaseConfigured, pool } = require('./database');
+const { InvalidCursorError, PAGE_FETCH_LIMIT, buildPage, decodeCursor } = require('./pagination');
 
 async function getDryerSettings() {
   ensureDatabaseConfigured();
@@ -67,17 +68,51 @@ async function getDryerBatchById(batchId) {
   return result.rows[0] || null;
 }
 
-async function listCompletedDryerBatches() {
+async function listCompletedDryerBatches(options = {}) {
   ensureDatabaseConfigured();
+
+  const isPaginated = options.paginate === true;
+  let cursorClause = '';
+  const values = [];
+  let limitClause = '';
+
+  if (isPaginated) {
+    const decoded = decodeCursor(options.cursor);
+    if (decoded.error) {
+      throw decoded.error;
+    }
+
+    if (decoded.cursor) {
+      if (!decoded.cursor.started_at || !decoded.cursor.created_at || !decoded.cursor.id) {
+        throw new InvalidCursorError();
+      }
+      values.push(decoded.cursor.started_at, decoded.cursor.created_at, decoded.cursor.id);
+      cursorClause = `AND (started_at, created_at, id) < ($1::timestamptz, $2::timestamptz, $3::bigint)`;
+    }
+
+    values.push(PAGE_FETCH_LIMIT);
+    limitClause = `LIMIT $${values.length}`;
+  }
 
   const result = await pool.query(
     `
       SELECT id, grain_type, status, started_at, discharge_started_at, completed_at, target_moisture, umidade_inicial, final_moisture, created_at
       FROM dryer_batches
       WHERE status <> 'active'
-      ORDER BY started_at DESC, created_at DESC
-    `
+      ${cursorClause}
+      ORDER BY started_at DESC, created_at DESC, id DESC
+      ${limitClause}
+    `,
+    values
   );
+
+  if (isPaginated) {
+    return buildPage(result.rows, (batch) => ({
+      started_at: batch.started_at,
+      created_at: batch.created_at,
+      id: batch.id,
+    }));
+  }
 
   return result.rows;
 }
@@ -110,7 +145,8 @@ async function listRecentCompletedDryerBatchSummaries(limit = 10) {
       SELECT id, started_at, discharge_started_at, completed_at, umidade_inicial, final_moisture, created_at
       FROM dryer_batches
       WHERE status <> 'active'
-      ORDER BY started_at DESC, created_at DESC
+      ${cursorClause}
+      ORDER BY started_at DESC, created_at DESC, id DESC
       LIMIT $1
     `,
     [limit]
@@ -130,7 +166,8 @@ async function getLastCompletedDryerBatchSummary() {
       SELECT id, started_at, discharge_started_at, completed_at, umidade_inicial, final_moisture, created_at
       FROM dryer_batches
       WHERE status <> 'active'
-      ORDER BY started_at DESC, created_at DESC
+      ${cursorClause}
+      ORDER BY started_at DESC, created_at DESC, id DESC
       LIMIT 1
     `
   );
