@@ -1,6 +1,8 @@
 const express = require('express');
 const path = require('path');
-const { buildContactEmail, hasEmailConfig, sendMailerSendEmail } = require('./mailer');
+const mailer = require('./mailer');
+const { normalizeContactPayload, validateContactPayload } = require('./contact-validation');
+const { contactRateLimiter } = require('./rate-limit');
 
 const router = express.Router();
 
@@ -12,14 +14,20 @@ router.get('/contato', (req, res) => {
   res.sendFile(path.join(__dirname, '../views/contact.html'));
 });
 
-router.post('/contato', async (req, res) => {
-  const { name, email, subject, message } = req.body;
+router.post('/contato', contactRateLimiter, async (req, res) => {
+  const payload = normalizeContactPayload(req.body);
+  const { name, email, subject, message, website } = payload;
 
-  if (!name || !email || !subject || !message) {
-    return res.status(400).send('Por favor, preencha todos os campos do formulário.');
+  if (website) {
+    return res.sendFile(path.join(__dirname, '../views/contact-received.html'));
   }
 
-  if (!hasEmailConfig()) {
+  const validationError = validateContactPayload(payload);
+  if (validationError) {
+    return res.status(400).send(validationError);
+  }
+
+  if (!mailer.hasEmailConfig()) {
     console.error('Missing MailerSend configuration for contact form.');
     return res
       .status(500)
@@ -27,7 +35,7 @@ router.post('/contato', async (req, res) => {
   }
 
   try {
-    await sendMailerSendEmail(buildContactEmail({ name, email, subject, message }));
+    await mailer.sendMailerSendEmail(mailer.buildContactEmail({ name, email, subject, message }));
 
     return res.sendFile(path.join(__dirname, '../views/contact-received.html'));
   } catch (error) {

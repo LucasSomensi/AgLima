@@ -2,8 +2,9 @@ const bcrypt = require('bcrypt');
 const express = require('express');
 const { clearSessionCookie, setSessionCookie } = require('./auth');
 const { renderLoginPage } = require('./renderers/auth-renderer');
-const { findUserByLogin } = require('./user-service');
+const userService = require('./user-service');
 const { getHomePathForRole } = require('./utils');
+const { loginRateLimiter } = require('./rate-limit');
 
 const router = express.Router();
 
@@ -15,11 +16,11 @@ router.get('/login', (req, res) => {
   return renderLoginPage(res);
 });
 
-router.post('/login', async (req, res) => {
+router.post('/login', loginRateLimiter, async (req, res) => {
   const { login, password } = req.body;
 
   try {
-    const user = await findUserByLogin(login);
+    const user = await userService.findUserByLogin(login);
     const isAuthorized =
       user &&
       !user.disabled &&

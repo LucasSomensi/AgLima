@@ -1809,3 +1809,12 @@ circle.batch-chart-point-forecast {
 .batch-legend-actual {
   background: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.78) 0 4px, transparent 4px 8px);
 }
+
+.contact-honeypot {
+  position: absolute;
+  left: -10000px;
+  top: auto;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
