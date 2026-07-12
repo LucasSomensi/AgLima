@@ -70,3 +70,35 @@ test('admin home shows initial forecast before the first moisture reading', () =
   assert.match(html, /<span>Previsão da próxima descarga<\/span>/);
   assert.match(html, /<span>Previsão da próxima descarga<\/span>\s*<strong>Descarga imediata<\/strong>/);
 });
+
+const { renderAdminBatchesPage } = require('../routes/renderers');
+const { buildDryerMoistureReadingsCsv } = require('../routes/dryer-csv');
+
+test('admin batches page includes completed moisture readings CSV download action', () => {
+  const html = renderPage(renderAdminBatchesPage, { batches: [] });
+
+  assert.match(html, /href="\/admin\/bateladas\/umidades\.csv">Baixar CSV de umidades<\/a>/);
+});
+
+test('dryer moisture readings CSV uses batch id and decimal hours since batch start', () => {
+  const csv = buildDryerMoistureReadingsCsv([
+    {
+      batch_id: 7,
+      batch_started_at: '2026-07-12T10:00:00.000Z',
+      measured_at: '2026-07-12T10:15:00.000Z',
+      moisture_percent: '18.5',
+    },
+    {
+      batch_id: 8,
+      batch_started_at: '2026-07-12T11:00:00.000Z',
+      measured_at: '2026-07-12T13:30:00.000Z',
+      moisture_percent: '17.125',
+    },
+  ]);
+
+  const rows = csv.replace(/^\uFEFF/, '').split('\r\n');
+
+  assert.equal(rows[0], 'batelada;hora;umidade');
+  assert.equal(rows[1], '7;0,25;18,5');
+  assert.equal(rows[2], '8;2,5;17,125');
+});
