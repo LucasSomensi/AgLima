@@ -169,3 +169,16 @@ O botão **Ver bateladas anteriores** abre `/admin/bateladas`, com as bateladas 
 ## Painel do secador
 
 A documentação técnica e operacional do fluxo do operador de secador foi movida para [`docs/secador.md`](docs/secador.md).
+
+## Proteções contra abuso em endpoints públicos
+
+Os endpoints públicos de formulário têm proteções pequenas em memória para reduzir abuso sem alterar o fluxo normal de usuários legítimos:
+
+- `POST /login`: limitado por IP a 10 tentativas em uma janela de 15 minutos. Ao exceder o limite, a aplicação retorna HTTP 429 com uma mensagem genérica, sem indicar se o login existe.
+- `POST /contato`: limitado por IP a 5 envios em uma janela de 30 minutos. Requisições bloqueadas retornam HTTP 429 e não chamam a API do MailerSend.
+- O formulário de contato também valida e normaliza os campos no servidor antes do envio ao MailerSend e rejeita payloads excessivos com HTTP 413.
+- O campo antispam `website` é um honeypot visualmente oculto. Quando preenchido, a aplicação responde como se a mensagem tivesse sido recebida, mas não envia e-mail.
+
+Os limites atuais usam armazenamento em memória do processo Node.js. Em ambientes com múltiplas instâncias ou réplicas, como um deploy escalado horizontalmente no Railway, a contagem é por processo e não é compartilhada entre instâncias. Para limites globais entre réplicas, substitua esse armazenamento por um backend compartilhado, como Redis.
+
+Nenhuma variável de ambiente nova é necessária para essas proteções. As variáveis `MAILERSEND_API_TOKEN`, `MAILERSEND_FROM_EMAIL` e `CONTACT_TO` continuam sendo necessárias para envios reais do formulário de contato.
