@@ -87,14 +87,15 @@ async function listCompletedDryerMoistureReadings() {
 
   const result = await pool.query(
     `
-      SELECT readings.batch_id,
+      SELECT batches.id AS batch_id,
              batches.started_at AS batch_started_at,
+             batches.umidade_inicial AS batch_initial_moisture,
              readings.measured_at,
-             readings.moisture_percent
-      FROM dryer_moisture_readings readings
-      INNER JOIN dryer_batches batches ON batches.id = readings.batch_id
+             readings.average_moisture
+      FROM dryer_batches batches
+      LEFT JOIN dryer_moisture_readings readings ON readings.batch_id = batches.id
       WHERE batches.status <> 'active'
-      ORDER BY batches.started_at ASC, batches.created_at ASC, readings.measured_at ASC, readings.created_at ASC
+      ORDER BY batches.started_at ASC, batches.created_at ASC, readings.measured_at ASC NULLS FIRST, readings.created_at ASC NULLS FIRST
     `
   );
 

@@ -80,25 +80,31 @@ test('admin batches page includes completed moisture readings CSV download actio
   assert.match(html, /href="\/admin\/bateladas\/umidades\.csv">Baixar CSV de umidades<\/a>/);
 });
 
-test('dryer moisture readings CSV uses batch id and decimal hours since batch start', () => {
+test('dryer moisture readings CSV uses batch id, decimal hours since batch start, and average moisture', () => {
   const csv = buildDryerMoistureReadingsCsv([
     {
       batch_id: 7,
       batch_started_at: '2026-07-12T10:00:00.000Z',
       measured_at: '2026-07-12T10:15:00.000Z',
+      batch_initial_moisture: '22.75',
       moisture_percent: '18.5',
+      average_moisture: '21.375',
     },
     {
       batch_id: 8,
       batch_started_at: '2026-07-12T11:00:00.000Z',
       measured_at: '2026-07-12T13:30:00.000Z',
+      batch_initial_moisture: '20',
       moisture_percent: '17.125',
+      average_moisture: '18.25',
     },
   ]);
 
   const rows = csv.replace(/^\uFEFF/, '').split('\r\n');
 
-  assert.equal(rows[0], 'batelada;hora;umidade');
-  assert.equal(rows[1], '7;0,25;18,5');
-  assert.equal(rows[2], '8;2,5;17,125');
+  assert.equal(rows[0], 'batelada;hora;umidade_media');
+  assert.equal(rows[1], '7;0;22,75');
+  assert.equal(rows[2], '7;0,25;21,375');
+  assert.equal(rows[3], '8;0;20');
+  assert.equal(rows[4], '8;2,5;18,25');
 });
