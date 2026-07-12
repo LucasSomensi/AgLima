@@ -22,7 +22,7 @@ test('calcula previsão antes da primeira medição usando umidade inicial e in�
   assert.equal(forecast.status, 'forecast');
   assert.equal(forecast.averageMoisture, 28);
   assert.equal(forecast.lastMeasuredAt, null);
-  assert.equal(forecast.forecastAt.toISOString(), '2026-06-21T21:05:00.000Z');
+  assert.equal(forecast.forecastAt.toISOString(), '2026-06-21T20:16:12.444Z');
 });
 
 test('mantém a umidade inicial antes da primeira medição ao calcular a média real', () => {
@@ -47,10 +47,10 @@ test('mantém a umidade inicial antes da primeira medição ao calcular a média
 
   assert.equal(forecast.status, 'forecast');
   assert.ok(Math.abs(forecast.averageMoisture - expectedAverage) < 0.0000001);
-  assert.equal(forecast.forecastAt.toISOString(), '2026-06-21T21:06:40.000Z');
+  assert.equal(forecast.forecastAt.toISOString(), '2026-06-21T20:20:36.545Z');
 });
 
-test('calcula previsão por interpolação da tabela real de umidade média', () => {
+test('calcula previsão pela curva quadrática de umidade média', () => {
   const readings = [
     ['2026-07-09T02:23:00.000Z', 27.0],
     ['2026-07-09T02:51:00.000Z', 25.8],
@@ -83,16 +83,20 @@ test('calcula previsão por interpolação da tabela real de umidade média', ()
   assert.equal(forecast.status, 'forecast');
   assert.ok(Math.abs(forecast.averageMoisture - 16.452721088435375) < 0.0000001);
   assert.equal(forecast.lastMeasuredAt.toISOString(), '2026-07-09T10:20:00.000Z');
-  assert.equal(forecast.forecastAt.toISOString(), '2026-07-09T11:03:21.805Z');
+  assert.equal(forecast.forecastAt.toISOString(), '2026-07-09T10:28:56.972Z');
 });
 
 
-test('limita a previsão ao maior valor da tabela quando a umidade média passa de 29,5%', () => {
-  assert.equal(calculateMinutesRemainingFromAverageMoisture(29.5), 520);
-  assert.equal(calculateMinutesRemainingFromAverageMoisture(35), 520);
+test('limita a curva ao máximo calculado quando a umidade média passa do vértice', () => {
+  assert.ok(Math.abs(calculateMinutesRemainingFromAverageMoisture(29.5) - 488.803925) < 0.000001);
+  assert.ok(Math.abs(calculateMinutesRemainingFromAverageMoisture(35) - 512.1953182314278) < 0.000001);
+  assert.equal(
+    calculateMinutesRemainingFromAverageMoisture(40),
+    calculateMinutesRemainingFromAverageMoisture(35),
+  );
 });
 
-test('interpola minutos restantes entre pontos da tabela e ignora a umidade alvo', () => {
+test('aplica correção de umidade alvo aos minutos restantes da curva', () => {
   const commonReadings = [
     { measured_at: '2026-07-09T01:00:00.000Z', moisture_percent: 25 },
   ];
@@ -116,13 +120,12 @@ test('interpola minutos restantes entre pontos da tabela e ignora a umidade alvo
     now: '2026-07-09T01:00:00.000Z',
   });
 
-  assert.equal(calculateMinutesRemainingFromAverageMoisture(24.55), 397.75);
+  assert.ok(Math.abs(calculateMinutesRemainingFromAverageMoisture(24.55) - 385.52299175) < 0.0000001);
+  assert.equal(calculateMinutesRemainingFromAverageMoisture(15.2), 0);
   assert.equal(forecastWithLowerTarget.status, 'forecast');
   assert.equal(forecastWithHigherTarget.status, 'forecast');
-  assert.equal(
-    forecastWithLowerTarget.forecastAt.toISOString(),
-    forecastWithHigherTarget.forecastAt.toISOString(),
-  );
+  assert.equal(forecastWithLowerTarget.forecastAt.toISOString(), '2026-07-09T09:08:19.008Z');
+  assert.equal(forecastWithHigherTarget.forecastAt.toISOString(), '2026-07-09T03:08:19.008Z');
 });
 
 test('calcula umidade média por integral com interpolação no período informado', () => {
