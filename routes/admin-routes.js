@@ -28,6 +28,7 @@ const {
   getDryerBatchById,
   getDryerSettings,
   listCompletedDryerBatches,
+  listCompletedDryerMoistureReadings,
   listDryerMoistureReadings,
   updateDryerTargetMoisture,
 } = require('./dryer-service');
@@ -58,6 +59,7 @@ const {
   listStorageRecalibrations,
 } = require('./storage-service');
 const { listScaleInputs, listScaleOutputs } = require('./weighbridge-service');
+const { buildDryerMoistureReadingsCsv } = require('./dryer-csv');
 
 const router = express.Router();
 
@@ -510,6 +512,18 @@ router.get('/admin/bateladas', canAccessAdminPanel, async (req, res) => {
   } catch (error) {
     console.error('Error listing dryer batches:', error.message);
     return res.status(500).send('Não foi possível carregar as bateladas anteriores agora.');
+  }
+});
+
+router.get('/admin/bateladas/umidades.csv', canAccessAdminPanel, async (req, res) => {
+  try {
+    const readings = await listCompletedDryerMoistureReadings();
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="umidades-bateladas.csv"');
+    return res.send(buildDryerMoistureReadingsCsv(readings));
+  } catch (error) {
+    console.error('Error exporting dryer moisture readings CSV:', error.message);
+    return res.status(500).send('Não foi possível exportar as medições de umidade agora.');
   }
 });
 
