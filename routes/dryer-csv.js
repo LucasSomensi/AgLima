@@ -47,14 +47,29 @@ function calculateHoursSinceBatchStart(reading) {
 }
 
 function buildDryerMoistureReadingsCsv(readings) {
-  return buildCsv([
-    ['batelada', 'hora', 'umidade'],
-    ...readings.map((reading) => [
-      reading.batch_id,
-      formatCsvDecimal(calculateHoursSinceBatchStart(reading)),
-      formatCsvDecimal(reading.moisture_percent),
-    ]),
-  ]);
+  const rows = [['batelada', 'hora', 'umidade_media']];
+  const batchesWithInitialMoisture = new Set();
+
+  for (const reading of readings) {
+    if (!batchesWithInitialMoisture.has(reading.batch_id)) {
+      rows.push([
+        reading.batch_id,
+        formatCsvDecimal(0),
+        formatCsvDecimal(reading.batch_initial_moisture),
+      ]);
+      batchesWithInitialMoisture.add(reading.batch_id);
+    }
+
+    if (reading.measured_at) {
+      rows.push([
+        reading.batch_id,
+        formatCsvDecimal(calculateHoursSinceBatchStart(reading)),
+        formatCsvDecimal(reading.average_moisture),
+      ]);
+    }
+  }
+
+  return buildCsv(rows);
 }
 
 module.exports = {
