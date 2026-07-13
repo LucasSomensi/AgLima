@@ -709,30 +709,7 @@ function renderAdminDashboardPage(res, { batch, readings, settings, message, err
   res.send(dashboardHtml);
 }
 
-
-function buildNextPageHref(currentUrl, nextCursor) {
-  if (!nextCursor) {
-    return '';
-  }
-
-  const url = new URL(currentUrl || '/', 'http://localhost');
-  url.searchParams.set('cursor', nextCursor);
-  return `${url.pathname}${url.search}`;
-}
-
-function buildPaginationHtml({ hasNextPage, nextCursor, currentUrl }) {
-  if (!hasNextPage || !nextCursor) {
-    return '';
-  }
-
-  return `
-          <nav class="pagination-nav" aria-label="Paginação">
-            <a class="btn-secondary-action pagination-link" href="${escapeHtml(buildNextPageHref(currentUrl, nextCursor))}">Próxima página</a>
-            <button class="btn-secondary-action pagination-link" type="button" onclick="history.back()">Voltar</button>
-          </nav>`;
-}
-
-function renderAdminBatchesPage(res, { batches, nextCursor = null, hasNextPage = false, currentUrl = '/admin/bateladas' }) {
+function renderAdminBatchesPage(res, { batches }) {
   const batchesPath = path.join(__dirname, '../../views/admin-batches.html');
   const rowsHtml = batches
     .map((batch) => `
@@ -748,8 +725,7 @@ function renderAdminBatchesPage(res, { batches, nextCursor = null, hasNextPage =
   const emptyState = '<tr><td colspan="5">Nenhuma batelada anterior encontrada.</td></tr>';
   const batchesHtml = fs
     .readFileSync(batchesPath, 'utf8')
-    .replace('{{BATCHES_ROWS}}', rowsHtml || emptyState)
-    .replace('{{PAGINATION_CONTROLS}}', buildPaginationHtml({ hasNextPage, nextCursor, currentUrl }));
+    .replace('{{BATCHES_ROWS}}', rowsHtml || emptyState);
 
   res.send(batchesHtml);
 }

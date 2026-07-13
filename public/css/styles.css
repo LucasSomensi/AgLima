@@ -1818,15 +1818,3 @@ circle.batch-chart-point-forecast {
   height: 1px;
   overflow: hidden;
 }
-
-.pagination-nav {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  justify-content: flex-end;
-  margin-top: 20px;
-}
-
-.pagination-link {
-  cursor: pointer;
-}

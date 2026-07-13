@@ -54,7 +54,6 @@ const {
   renderWeighbridgeHomePage,
 } = require('./renderers/weighbridge-renderer');
 const { buildRedirect } = require('./utils');
-const { InvalidCursorError } = require('./pagination');
 const { buildScaleInputsCsv, buildScaleOutputsCsv } = require('./weighbridge-csv');
 const { buildScaleOutputTicketPdf } = require('./weighbridge-ticket-pdf');
 
@@ -148,18 +147,9 @@ router.get('/balanca/entradas/tara-anterior', canAccessWeighbridge, async (req, 
 
 router.get('/balanca/entradas', canAccessWeighbridge, async (req, res) => {
   try {
-    const page = await listScaleInputs({ paginate: true, cursor: req.query.cursor });
-    return renderScaleInputsListPage(res, {
-      inputs: page.items,
-      nextCursor: page.nextCursor,
-      hasNextPage: page.hasNextPage,
-      currentUrl: req.originalUrl,
-      navigation: getWeighbridgeNavigation(req),
-    });
+    const inputs = await listScaleInputs();
+    return renderScaleInputsListPage(res, { inputs, navigation: getWeighbridgeNavigation(req) });
   } catch (error) {
-    if (error instanceof InvalidCursorError || error.code === 'INVALID_CURSOR') {
-      return res.status(400).send('Cursor de paginação inválido.');
-    }
     console.error('Error listing scale inputs:', error.message);
     return res.status(500).send('Não foi possível listar as entradas agora.');
   }
@@ -518,18 +508,9 @@ router.get('/balanca/contratos/:id', canAccessWeighbridge, async (req, res) => {
 
 router.get('/balanca/saidas', canAccessWeighbridge, async (req, res) => {
   try {
-    const page = await listScaleOutputs({ paginate: true, cursor: req.query.cursor });
-    return renderScaleOutputsListPage(res, {
-      outputs: page.items,
-      nextCursor: page.nextCursor,
-      hasNextPage: page.hasNextPage,
-      currentUrl: req.originalUrl,
-      navigation: getWeighbridgeNavigation(req),
-    });
+    const outputs = await listScaleOutputs();
+    return renderScaleOutputsListPage(res, { outputs, navigation: getWeighbridgeNavigation(req) });
   } catch (error) {
-    if (error instanceof InvalidCursorError || error.code === 'INVALID_CURSOR') {
-      return res.status(400).send('Cursor de paginação inválido.');
-    }
     console.error('Error listing scale outputs:', error.message);
     return res.status(500).send('Não foi possível listar as saídas agora.');
   }
