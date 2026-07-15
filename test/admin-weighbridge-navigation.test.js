@@ -108,3 +108,24 @@ test('dryer moisture readings CSV uses batch id, decimal hours since batch start
   assert.equal(rows[3], '8;0;20');
   assert.equal(rows[4], '8;2,5;18,25');
 });
+
+test('admin batches page renders active batch with requested timeline columns', () => {
+  const html = renderPage(renderAdminBatchesPage, {
+    now: new Date('2026-07-15T15:30:00.000Z'),
+    batches: [
+      {
+        id: 12,
+        status: 'active',
+        started_at: '2026-07-15T13:00:00.000Z',
+        discharge_started_at: '2026-07-15T14:15:00.000Z',
+        completed_at: null,
+        target_moisture: '14.0',
+        umidade_inicial: '27.5',
+        final_moisture: null,
+      },
+    ],
+  });
+
+  assert.match(html, /<th>Status<\/th>\s*<th>Umidade inicial<\/th>\s*<th>Início<\/th>\s*<th>Descarga<\/th>\s*<th>Conclusão<\/th>\s*<th>Duração secagem<\/th>\s*<th>Duração descarga<\/th>\s*<th>Duração total<\/th>\s*<th>Umidade final<\/th>\s*<th>Umidade alvo<\/th>/);
+  assert.match(html, /<td>Descarregando<\/td>\s*<td>27,5%<\/td>\s*<td><a class="admin-table-link" href="\/admin\/bateladas\/12">15\/07\/2026, 10:00<\/a><\/td>\s*<td>15\/07\/2026, 11:15<\/td>\s*<td>-<\/td>\s*<td>1h 15min<\/td>\s*<td>1h 15min<\/td>\s*<td>2h 30min<\/td>\s*<td>-<\/td>\s*<td>14,0%<\/td>/);
+});

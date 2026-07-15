@@ -27,7 +27,7 @@ const {
   getActiveDryerBatch,
   getDryerBatchById,
   getDryerSettings,
-  listCompletedDryerBatches,
+  listAdminDryerBatches,
   listCompletedDryerMoistureReadings,
   listDryerMoistureReadings,
   updateDryerTargetMoisture,
@@ -507,7 +507,7 @@ router.post('/admin/umidade-alvo', canAccessAdminPanel, async (req, res) => {
 
 router.get('/admin/bateladas', canAccessAdminPanel, async (req, res) => {
   try {
-    const batches = await listCompletedDryerBatches();
+    const batches = await listAdminDryerBatches();
     return renderAdminBatchesPage(res, { batches });
   } catch (error) {
     console.error('Error listing dryer batches:', error.message);
