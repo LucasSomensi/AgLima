@@ -67,14 +67,13 @@ async function getDryerBatchById(batchId) {
   return result.rows[0] || null;
 }
 
-async function listCompletedDryerBatches() {
+async function listAdminDryerBatches() {
   ensureDatabaseConfigured();
 
   const result = await pool.query(
     `
       SELECT id, grain_type, status, started_at, discharge_started_at, completed_at, target_moisture, umidade_inicial, final_moisture, created_at
       FROM dryer_batches
-      WHERE status <> 'active'
       ORDER BY started_at DESC, created_at DESC
     `
   );
@@ -505,7 +504,8 @@ module.exports = {
   getDryerSettings,
   getLastCompletedDryerBatchSummary,
   listRecentCompletedDryerBatchSummaries,
-  listCompletedDryerBatches,
+  listAdminDryerBatches,
+  listCompletedDryerBatches: listAdminDryerBatches,
   listCompletedDryerMoistureReadings,
   listDryerMoistureReadings,
   startDryerBatch,

@@ -17,8 +17,8 @@
         <div class="admin-header">
           <div>
             <a class="back-link" href="/admin">← Voltar ao painel</a>
-            <h1 id="admin-batches-title" class="page-title">Bateladas anteriores</h1>
-            <p class="page-description">Lista em ordem cronológica reversa, da batelada mais recente para a mais antiga.</p>
+            <h1 id="admin-batches-title" class="page-title">Bateladas</h1>
+            <p class="page-description">Lista em ordem cronológica reversa, incluindo a batelada em andamento quando estiver secando ou descarregando.</p>
           </div>
           <form action="/logout" method="post">
             <input type="hidden" name="_csrf" value="{{CSRF_TOKEN}}">
@@ -35,10 +35,15 @@
             <table class="admin-table">
               <thead>
                 <tr>
-                  <th>Início</th>
-                  <th>Produto</th>
                   <th>Status</th>
+                  <th>Umidade inicial</th>
+                  <th>Início</th>
+                  <th>Descarga</th>
                   <th>Conclusão</th>
+                  <th>Duração secagem</th>
+                  <th>Duração descarga</th>
+                  <th>Duração total</th>
+                  <th>Umidade final</th>
                   <th>Umidade alvo</th>
                 </tr>
               </thead>

@@ -709,20 +709,39 @@ function renderAdminDashboardPage(res, { batch, readings, settings, message, err
   res.send(dashboardHtml);
 }
 
-function renderAdminBatchesPage(res, { batches }) {
+function getBatchTimelineDates(batch, now = new Date()) {
+  const isActive = batch?.status === 'active';
+  const timelineEnd = isActive ? now : batch?.completed_at;
+  const dryingEnd = batch?.discharge_started_at || (isActive ? now : null);
+  const dischargeEnd = batch?.discharge_started_at ? timelineEnd : null;
+
+  return { timelineEnd, dryingEnd, dischargeEnd };
+}
+
+function renderAdminBatchesPage(res, { batches, now = new Date() }) {
   const batchesPath = path.join(__dirname, '../../views/admin-batches.html');
   const rowsHtml = batches
-    .map((batch) => `
+    .map((batch) => {
+      const { timelineEnd, dryingEnd, dischargeEnd } = getBatchTimelineDates(batch, now);
+      const finalMoisture = batch.status === 'active' ? null : batch.final_moisture;
+
+      return `
         <tr>
-          <td><a class="admin-table-link" href="/admin/bateladas/${escapeHtml(batch.id)}">${escapeHtml(formatDateTime(batch.started_at))}</a></td>
-          <td>${escapeHtml(getGrainLabel(batch.grain_type))}</td>
           <td>${escapeHtml(formatBatchStatusLabel(batch))}</td>
+          <td>${escapeHtml(formatOptionalMoisture(batch.umidade_inicial))}</td>
+          <td><a class="admin-table-link" href="/admin/bateladas/${escapeHtml(batch.id)}">${escapeHtml(formatDateTime(batch.started_at))}</a></td>
+          <td>${escapeHtml(batch.discharge_started_at ? formatDateTime(batch.discharge_started_at) : '-')}</td>
           <td>${escapeHtml(batch.completed_at ? formatDateTime(batch.completed_at) : '-')}</td>
+          <td>${escapeHtml(formatDurationBetween(batch.started_at, dryingEnd))}</td>
+          <td>${escapeHtml(formatDurationBetween(batch.discharge_started_at, dischargeEnd))}</td>
+          <td>${escapeHtml(formatDurationBetween(batch.started_at, timelineEnd))}</td>
+          <td>${escapeHtml(formatOptionalMoisture(finalMoisture))}</td>
           <td>${escapeHtml(formatMoisture(batch.target_moisture))}%</td>
         </tr>
-      `)
+      `;
+    })
     .join('');
-  const emptyState = '<tr><td colspan="5">Nenhuma batelada anterior encontrada.</td></tr>';
+  const emptyState = '<tr><td colspan="10">Nenhuma batelada encontrada.</td></tr>';
   const batchesHtml = fs
     .readFileSync(batchesPath, 'utf8')
     .replace('{{BATCHES_ROWS}}', rowsHtml || emptyState);
