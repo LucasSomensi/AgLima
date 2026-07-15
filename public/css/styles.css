@@ -432,9 +432,6 @@ body {
   padding-top: 42px;
 }
 
-.dryer-card {
-  max-width: 1180px;
-}
 
 .dryer-status-grid {
   display: grid;
