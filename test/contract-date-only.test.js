@@ -73,7 +73,7 @@ test('contract form renders fiscal fields inside collapsed advanced section', ()
   assert.match(html, /name="cnpj_transportadora" type="text" value="00.000.000\/0001-00"/);
   assert.match(html, /name="inscricao_estadual_transportadora" type="text" value="ISENTO"/);
   assert.match(html, /name="uf_transportadora" type="text" maxlength="2" value="PR"/);
-  assert.match(html, /name="email" type="email" value="nf@example.com"/);
+  assert.match(html, /name="email" type="text" value="nf@example.com"/);
   assert.match(html, /name="informacoes_interesse_contribuinte" rows="3"[^>]*>Informação complementar<\/textarea>/);
   assert.match(html, /name="observacoes" rows="3"[^>]*>Observação do contrato<\/textarea>/);
   assert.match(html, /Campos avançados em branco serão salvos como nulos\./);
