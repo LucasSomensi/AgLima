@@ -583,17 +583,48 @@ async function updateScaleInput(inputId, payload, user) {
             produto = $4,
             peso_bruto_kg = $5,
             peso_tara_kg = $6,
-            tara_usada_de_entrada_id = NULL,
-            tara_adicionada_por_user_id = CASE WHEN $7::boolean THEN $11 ELSE NULL END,
-            tara_adicionada_em = CASE WHEN $7::boolean THEN COALESCE(tara_adicionada_em, now()) ELSE NULL END,
+            tara_usada_de_entrada_id = CASE
+              WHEN $6::numeric IS NOT DISTINCT FROM peso_tara_kg THEN tara_usada_de_entrada_id
+              ELSE NULL
+            END,
+            tara_adicionada_por_user_id = CASE
+              WHEN NOT $7::boolean THEN NULL
+              WHEN $6::numeric IS NOT DISTINCT FROM peso_tara_kg THEN tara_adicionada_por_user_id
+              ELSE $11
+            END,
+            tara_adicionada_em = CASE
+              WHEN NOT $7::boolean THEN NULL
+              WHEN $6::numeric IS NOT DISTINCT FROM peso_tara_kg THEN tara_adicionada_em
+              ELSE now()
+            END,
             origem = $8,
-            origem_definida_por_user_id = CASE WHEN $9::boolean THEN $11 ELSE NULL END,
-            origem_definida_em = CASE WHEN $9::boolean THEN COALESCE(origem_definida_em, now()) ELSE NULL END,
+            origem_definida_por_user_id = CASE
+              WHEN NOT $9::boolean THEN NULL
+              WHEN $8::text IS NOT DISTINCT FROM origem THEN origem_definida_por_user_id
+              ELSE $11
+            END,
+            origem_definida_em = CASE
+              WHEN NOT $9::boolean THEN NULL
+              WHEN $8::text IS NOT DISTINCT FROM origem THEN origem_definida_em
+              ELSE now()
+            END,
             umidade_percent = $12,
             impureza_percent = $13,
             graos_avariados_percent = $14,
-            classificado_por_user_id = CASE WHEN $10::boolean THEN $11 ELSE NULL END,
-            classificado_em = CASE WHEN $10::boolean THEN COALESCE(classificado_em, now()) ELSE NULL END,
+            classificado_por_user_id = CASE
+              WHEN NOT $10::boolean THEN NULL
+              WHEN ROW($12::numeric, $13::numeric, $14::numeric)
+                IS NOT DISTINCT FROM ROW(umidade_percent, impureza_percent, graos_avariados_percent)
+                THEN classificado_por_user_id
+              ELSE $11
+            END,
+            classificado_em = CASE
+              WHEN NOT $10::boolean THEN NULL
+              WHEN ROW($12::numeric, $13::numeric, $14::numeric)
+                IS NOT DISTINCT FROM ROW(umidade_percent, impureza_percent, graos_avariados_percent)
+                THEN classificado_em
+              ELSE now()
+            END,
             atualizado_em = now()
         WHERE id = $1
           AND ($6::numeric IS NULL OR $5::numeric > $6::numeric)
