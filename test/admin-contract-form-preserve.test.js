@@ -138,7 +138,7 @@ test('contract form keeps submitted values when rendering validation errors', ()
   assert.match(html, /name="cnpj_transportadora" type="text" value="12345678000190"/);
   assert.match(html, /name="inscricao_estadual_transportadora" type="text" value="ISENTO"/);
   assert.match(html, /name="uf_transportadora" type="text" maxlength="2" value="PR"/);
-  assert.match(html, /name="email" type="email" value="teste@example.com"/);
+  assert.match(html, /name="email" type="text" value="teste@example.com"/);
   assert.match(html, />Info fiscal<\/textarea>/);
   assert.match(html, />Observação<\/textarea>/);
   assert.match(html, /Informe um preço por saca válido\./);
