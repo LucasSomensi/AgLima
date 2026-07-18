@@ -1,5 +1,5 @@
 const DISCHARGE_FORECAST_LOOKBACK_MINUTES = 105;
-const DISCHARGE_FORECAST_CURVE = {
+const DEFAULT_DISCHARGE_FORECAST_CURVE = {
   quadraticCoefficient: -1.6813,
   linearCoefficient: 111.7391,
   constantCoefficient: -1344.3482,
@@ -15,6 +15,10 @@ function toValidTimestamp(value) {
 }
 
 function toFiniteNumber(value) {
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
+
   const number = Number(value);
 
   return Number.isFinite(number) ? number : null;
@@ -90,8 +94,16 @@ function calculateAverageMoisture({ readings, periodStart, periodEnd }) {
 }
 
 
-function calculateForecastCurveMinutes(moisture) {
-  const { quadraticCoefficient, linearCoefficient, constantCoefficient } = DISCHARGE_FORECAST_CURVE;
+function normalizeDischargeForecastCurve(settings = {}) {
+  return {
+    quadraticCoefficient: toFiniteNumber(settings.discharge_forecast_quadratic_coefficient) ?? DEFAULT_DISCHARGE_FORECAST_CURVE.quadraticCoefficient,
+    linearCoefficient: toFiniteNumber(settings.discharge_forecast_linear_coefficient) ?? DEFAULT_DISCHARGE_FORECAST_CURVE.linearCoefficient,
+    constantCoefficient: toFiniteNumber(settings.discharge_forecast_constant_coefficient) ?? DEFAULT_DISCHARGE_FORECAST_CURVE.constantCoefficient,
+  };
+}
+
+function calculateForecastCurveMinutes(moisture, curveSettings) {
+  const { quadraticCoefficient, linearCoefficient, constantCoefficient } = normalizeDischargeForecastCurve(curveSettings);
   const moistureForCurve = quadraticCoefficient < 0
     ? Math.min(moisture, -linearCoefficient / (2 * quadraticCoefficient))
     : moisture;
@@ -111,14 +123,14 @@ function calculateTargetMoistureCorrection(targetMoisture) {
   return (TARGET_MOISTURE_REFERENCE - target) * 60;
 }
 
-function calculateMinutesRemainingFromAverageMoisture(averageMoisture, targetMoisture) {
+function calculateMinutesRemainingFromAverageMoisture(averageMoisture, targetMoisture, curveSettings) {
   const moisture = toFiniteNumber(averageMoisture);
 
   if (moisture === null) {
     return null;
   }
 
-  const curveMinutes = calculateForecastCurveMinutes(moisture);
+  const curveMinutes = calculateForecastCurveMinutes(moisture, curveSettings);
   const correctedMinutes = curveMinutes + calculateTargetMoistureCorrection(targetMoisture);
 
   return Math.max(0, correctedMinutes);
@@ -134,7 +146,7 @@ function deduplicateReadingsByTimestamp(readings) {
   return [...readingsByTimestamp.values()].sort((left, right) => left.measuredAtTimestamp - right.measuredAtTimestamp);
 }
 
-function calculateDischargeForecast({ batch, readings, now = new Date() }) {
+function calculateDischargeForecast({ batch, readings, now = new Date(), curveSettings } = {}) {
   if (!batch) {
     return { status: 'unavailable' };
   }
@@ -184,7 +196,7 @@ function calculateDischargeForecast({ batch, readings, now = new Date() }) {
     return { status: 'unavailable' };
   }
 
-  const minutesRemaining = calculateMinutesRemainingFromAverageMoisture(averageMoisture, batch.target_moisture);
+  const minutesRemaining = calculateMinutesRemainingFromAverageMoisture(averageMoisture, batch.target_moisture, curveSettings);
 
   if (!Number.isFinite(minutesRemaining)) {
     return { status: 'unavailable', averageMoisture };
@@ -215,4 +227,6 @@ module.exports = {
   calculateAverageMoisture,
   calculateDischargeForecast,
   calculateMinutesRemainingFromAverageMoisture,
+  DEFAULT_DISCHARGE_FORECAST_CURVE,
+  normalizeDischargeForecastCurve,
 };

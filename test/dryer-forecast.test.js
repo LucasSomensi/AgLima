@@ -152,3 +152,25 @@ test('calcula umidade média por integral com interpolação no período informa
 
   assert.ok(Math.abs(averageMoisture - 16.25) < 0.0000001);
 });
+
+test('usa parâmetros customizados da curva de previsão quando informados', () => {
+  assert.equal(
+    calculateMinutesRemainingFromAverageMoisture(20, 14, {
+      discharge_forecast_quadratic_coefficient: 0,
+      discharge_forecast_linear_coefficient: 10,
+      discharge_forecast_constant_coefficient: -100,
+    }),
+    100,
+  );
+});
+
+test('mantém coeficientes padrão como fallback quando parâmetros da curva são nulos', () => {
+  assert.equal(
+    calculateMinutesRemainingFromAverageMoisture(35, undefined, {
+      discharge_forecast_quadratic_coefficient: null,
+      discharge_forecast_linear_coefficient: null,
+      discharge_forecast_constant_coefficient: null,
+    }),
+    calculateMinutesRemainingFromAverageMoisture(35),
+  );
+});

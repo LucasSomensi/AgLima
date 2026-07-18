@@ -18,7 +18,7 @@
           <div>
             <span class="eyebrow">Área administrativa</span>
             <h1 id="admin-dashboard-title" class="page-title">Secador</h1>
-            <p class="page-description">Acompanhe a batelada atual e ajuste a umidade alvo do secador.</p>
+            <p class="page-description">Acompanhe a batelada atual e ajuste a umidade alvo e a curva de previsão do secador.</p>
             <a class="back-link admin-back-link" href="/admin">← Voltar à administração</a>
           </div>
           <form action="/logout" method="post">
@@ -58,12 +58,18 @@
         </section>
 
         <section class="admin-section" aria-labelledby="target-moisture-title">
-          <h2 id="target-moisture-title">Alterar umidade alvo</h2>
+          <h2 id="target-moisture-title">Alterar configurações do secador</h2>
           <form class="dryer-moisture-form admin-target-form" action="/admin/umidade-alvo" method="post">
             <input type="hidden" name="_csrf" value="{{CSRF_TOKEN}}">
-            <label class="sr-only" for="target_moisture">Nova umidade alvo em porcentagem</label>
+            <label for="target_moisture">Umidade alvo (%)</label>
             <input class="form-control" id="target_moisture" name="target_moisture" type="number" min="7" max="40" step="0.1" value="{{TARGET_MOISTURE_VALUE}}" inputmode="decimal" required>
-            <button class="btn-primary-action" type="submit">Salvar umidade alvo</button>
+            <label for="discharge_forecast_quadratic_coefficient">Coeficiente quadrático da curva</label>
+            <input class="form-control" id="discharge_forecast_quadratic_coefficient" name="discharge_forecast_quadratic_coefficient" type="number" step="any" value="{{DISCHARGE_FORECAST_QUADRATIC_COEFFICIENT_VALUE}}" inputmode="decimal" required>
+            <label for="discharge_forecast_linear_coefficient">Coeficiente linear da curva</label>
+            <input class="form-control" id="discharge_forecast_linear_coefficient" name="discharge_forecast_linear_coefficient" type="number" step="any" value="{{DISCHARGE_FORECAST_LINEAR_COEFFICIENT_VALUE}}" inputmode="decimal" required>
+            <label for="discharge_forecast_constant_coefficient">Coeficiente constante da curva</label>
+            <input class="form-control" id="discharge_forecast_constant_coefficient" name="discharge_forecast_constant_coefficient" type="number" step="any" value="{{DISCHARGE_FORECAST_CONSTANT_COEFFICIENT_VALUE}}" inputmode="decimal" required>
+            <button class="btn-primary-action" type="submit">Salvar configurações</button>
           </form>
         </section>
 

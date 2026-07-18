@@ -20,6 +20,9 @@ Campos centrais:
 
 - `id`: chave booleana fixa para manter um único registro de configuração.
 - `target_moisture`: umidade alvo padrão usada ao iniciar novas bateladas.
+- `discharge_forecast_quadratic_coefficient`: coeficiente quadrático da curva de previsão de descarga. Quando `NULL`, o código usa o coeficiente padrão atual.
+- `discharge_forecast_linear_coefficient`: coeficiente linear da curva de previsão de descarga. Quando `NULL`, o código usa o coeficiente padrão atual.
+- `discharge_forecast_constant_coefficient`: coeficiente constante da curva de previsão de descarga. Quando `NULL`, o código usa o coeficiente padrão atual.
 - `updated_at`: data/hora da última alteração da configuração.
 - `updated_by_user_id`: usuário que alterou a configuração.
 
@@ -70,7 +73,7 @@ Campos centrais:
 - `public/js/dryer-pwa.js`: registro do service worker do painel do secador.
 - `public/sw.js`: regras de cache; rotas autenticadas do secador consultam a rede. Sempre incremente `CACHE_VERSION` quando alterar assets estáticos usados pelo PWA, como CSS ou JavaScript.
 - `public/manifest.webmanifest`: metadados de instalação/PWA do painel.
-- `routes/admin-routes.js` e `routes/renderers/admin-renderer.js`: telas administrativas de consulta do secador e ajuste de umidade alvo.
+- `routes/admin-routes.js` e `routes/renderers/admin-renderer.js`: telas administrativas de consulta do secador e ajuste de umidade alvo e dos coeficientes da curva de previsão.
 
 ## Rotas implementadas
 
@@ -88,7 +91,7 @@ Campos centrais:
 ### Administração relacionada
 
 - `GET /admin/secador`: mostra o painel administrativo de consulta do secador.
-- `POST /admin/secador/configuracoes`: atualiza a umidade alvo global em `dryer_settings`.
+- `POST /admin/secador/configuracoes`: atualiza a umidade alvo global e os coeficientes da curva de previsão em `dryer_settings`.
 - `GET /admin/bateladas`: lista bateladas concluídas em ordem cronológica reversa.
 - `GET /admin/bateladas/:id`: mostra os detalhes e medições de uma batelada concluída.
 
@@ -163,7 +166,7 @@ Enquanto a descarga ainda não foi iniciada, o painel calcula uma previsão por 
 
 A base da previsão continua sendo a umidade média real da batelada em janelas móveis de 1h45min. No horário da última medição, o sistema olha 105 minutos para trás, integra a curva de umidade nesse intervalo e divide a área pelo tempo da janela. Quando ainda não há medições, o horário-base é o início da batelada e a umidade média é a umidade inicial. A curva é formada pela umidade inicial da batelada e pelas medições registradas, com interpolação linear entre pontos. Se a janela começa antes do início da batelada ou antes da primeira medição real, a umidade inicial é mantida para preencher esse trecho. O cálculo usa data e hora completas, então funciona corretamente quando a batelada atravessa a meia-noite.
 
-Depois de calcular a umidade média, o resultado pode ser persistido em `dryer_moisture_readings.average_moisture` como snapshot da leitura. Em seguida, o sistema aplica a curva quadrática calibrada em `routes/dryer-forecast.js`: `-1,6813*x² + 111,7391*x - 1344,3482`, em que `x` é a umidade média. Para evitar que a previsão diminua quando a umidade média aumenta acima do vértice da parábola, o cálculo limita dinamicamente a entrada da curva ao ponto de máximo quando os coeficientes formam uma parábola côncava para baixo. Previsões negativas são tratadas como `0` minuto restante, o que leva o painel a indicar descarga imediata se o horário previsto já tiver passado.
+Depois de calcular a umidade média, o resultado pode ser persistido em `dryer_moisture_readings.average_moisture` como snapshot da leitura. Em seguida, o sistema aplica a curva quadrática calibrada em `routes/dryer-forecast.js`. Os coeficientes são lidos de `dryer_settings.discharge_forecast_quadratic_coefficient`, `dryer_settings.discharge_forecast_linear_coefficient` e `dryer_settings.discharge_forecast_constant_coefficient`; se algum deles estiver `NULL`, o cálculo usa o respectivo fallback padrão atual (`-1,6813`, `111,7391` e `-1344,3482`). Com os fallbacks, a fórmula é `-1,6813*x² + 111,7391*x - 1344,3482`, em que `x` é a umidade média. Para evitar que a previsão diminua quando a umidade média aumenta acima do vértice da parábola, o cálculo limita dinamicamente a entrada da curva ao ponto de máximo quando os coeficientes formam uma parábola côncava para baixo. Previsões negativas são tratadas como `0` minuto restante, o que leva o painel a indicar descarga imediata se o horário previsto já tiver passado.
 
 ```text
 minutos_base = curva_quadratica_calibrada(umidade_media_atual)
@@ -234,6 +237,10 @@ As ações do operador usam o horário atual do servidor. A interface não permi
 ### Umidade alvo
 
 A umidade alvo é configurada no painel administrativo e fica em `dryer_settings.target_moisture`. Quando uma nova batelada começa, o valor vigente é copiado para `dryer_batches.target_moisture`. Alterações posteriores na configuração global não mudam a umidade alvo de bateladas já iniciadas.
+
+### Parâmetros da curva de previsão
+
+Os três coeficientes da curva quadrática de previsão de descarga também são configurados no painel administrativo e ficam em `dryer_settings`. Diferente da umidade alvo da batelada, esses coeficientes não são copiados para `dryer_batches`; eles são lidos das configurações globais para calcular novas previsões. As previsões já gravadas em `dryer_moisture_readings.discharge_forecast_at` continuam sendo snapshots históricos do momento da medição. Se qualquer coeficiente estiver `NULL`, o código usa apenas para ele o fallback hard-coded correspondente em `routes/dryer-forecast.js`.
 
 ### Produto
 

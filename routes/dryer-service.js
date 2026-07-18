@@ -1,4 +1,4 @@
-const { calculateAverageMoisture, calculateDischargeForecast } = require('./dryer-forecast');
+const { DEFAULT_DISCHARGE_FORECAST_CURVE, calculateAverageMoisture, calculateDischargeForecast } = require('./dryer-forecast');
 const { ensureDatabaseConfigured, pool } = require('./database');
 
 async function getDryerSettings() {
@@ -6,30 +6,52 @@ async function getDryerSettings() {
 
   const result = await pool.query(
     `
-      SELECT target_moisture
+      SELECT target_moisture,
+             discharge_forecast_quadratic_coefficient,
+             discharge_forecast_linear_coefficient,
+             discharge_forecast_constant_coefficient
       FROM dryer_settings
       WHERE id = true
       LIMIT 1
     `
   );
 
-  return result.rows[0] || { target_moisture: '14.5' };
+  return result.rows[0] || {
+    target_moisture: '14.5',
+    discharge_forecast_quadratic_coefficient: DEFAULT_DISCHARGE_FORECAST_CURVE.quadraticCoefficient,
+    discharge_forecast_linear_coefficient: DEFAULT_DISCHARGE_FORECAST_CURVE.linearCoefficient,
+    discharge_forecast_constant_coefficient: DEFAULT_DISCHARGE_FORECAST_CURVE.constantCoefficient,
+  };
 }
 
-async function updateDryerTargetMoisture({ targetMoisture, user }) {
+async function updateDryerSettings({ targetMoisture, quadraticCoefficient, linearCoefficient, constantCoefficient, user }) {
   ensureDatabaseConfigured();
 
   const result = await pool.query(
     `
-      INSERT INTO dryer_settings (id, target_moisture, updated_at, updated_by_user_id)
-      VALUES (true, $1, now(), $2)
+      INSERT INTO dryer_settings (
+        id,
+        target_moisture,
+        discharge_forecast_quadratic_coefficient,
+        discharge_forecast_linear_coefficient,
+        discharge_forecast_constant_coefficient,
+        updated_at,
+        updated_by_user_id
+      )
+      VALUES (true, $1, $2, $3, $4, now(), $5)
       ON CONFLICT (id)
       DO UPDATE SET target_moisture = EXCLUDED.target_moisture,
+                    discharge_forecast_quadratic_coefficient = EXCLUDED.discharge_forecast_quadratic_coefficient,
+                    discharge_forecast_linear_coefficient = EXCLUDED.discharge_forecast_linear_coefficient,
+                    discharge_forecast_constant_coefficient = EXCLUDED.discharge_forecast_constant_coefficient,
                     updated_at = now(),
                     updated_by_user_id = EXCLUDED.updated_by_user_id
-      RETURNING target_moisture
+      RETURNING target_moisture,
+                discharge_forecast_quadratic_coefficient,
+                discharge_forecast_linear_coefficient,
+                discharge_forecast_constant_coefficient
     `,
-    [targetMoisture, user.userId]
+    [targetMoisture, quadraticCoefficient, linearCoefficient, constantCoefficient, user.userId]
   );
 
   return result.rows[0];
@@ -456,6 +478,7 @@ async function addDryerMoistureReading({ measuredAt, moisturePercent, user }) {
     }
 
     const existingReadings = await listDryerMoistureReadingsForUpdate(client, activeBatch.id);
+    const settings = await getDryerSettings();
     const readingForForecast = {
       measured_at: measuredAt,
       moisture_percent: moisturePercent,
@@ -465,6 +488,7 @@ async function addDryerMoistureReading({ measuredAt, moisturePercent, user }) {
       batch: { ...activeBatch, discharge_started_at: null },
       readings: [...existingReadings, readingForForecast],
       now: measuredAt,
+      curveSettings: settings,
     });
     const forecastAt = forecast.forecastAt || null;
     const forecastStatus = forecast.status || 'unavailable';
@@ -511,5 +535,5 @@ module.exports = {
   startDryerBatch,
   startDryerBatchDischarge,
   stopDryerBatch,
-  updateDryerTargetMoisture,
+  updateDryerSettings,
 };
