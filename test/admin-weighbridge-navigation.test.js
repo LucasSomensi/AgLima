@@ -130,11 +130,24 @@ test('admin batches page renders active batch with requested timeline columns', 
   assert.match(html, /<td>Descarregando<\/td>\s*<td>27,5%<\/td>\s*<td><a class="admin-table-link" href="\/admin\/bateladas\/12">15\/07\/2026, 10:00<\/a><\/td>\s*<td>15\/07\/2026, 11:15<\/td>\s*<td>-<\/td>\s*<td>1h 15min<\/td>\s*<td>1h 15min<\/td>\s*<td>2h 30min<\/td>\s*<td>-<\/td>\s*<td>14,0%<\/td>/);
 });
 
-test('admin dryer dashboard shows forecast preview table for configured moisture examples', () => {
+test('admin dryer dashboard links to dedicated dryer configuration page', () => {
   const { renderAdminDashboardPage } = require('../routes/renderers');
   const html = renderPage(renderAdminDashboardPage, {
     batch: null,
     readings: [],
+    settings: { target_moisture: 14 },
+    message: '',
+    error: '',
+  });
+
+  assert.match(html, /href="\/admin\/secador\/config">Alterar configurações do secador<\/a>/);
+  assert.doesNotMatch(html, /<form class="dryer-moisture-form admin-target-form"/);
+  assert.doesNotMatch(html, /Previsão por umidade/);
+});
+
+test('admin dryer config page shows forecast preview table for configured moisture examples', () => {
+  const { renderAdminDryerConfigPage } = require('../routes/renderers');
+  const html = renderPage(renderAdminDryerConfigPage, {
     settings: {
       target_moisture: 14,
       discharge_forecast_quadratic_coefficient: 0,
@@ -145,6 +158,7 @@ test('admin dryer dashboard shows forecast preview table for configured moisture
     error: '',
   });
 
+  assert.match(html, /action="\/admin\/umidade-alvo"/);
   assert.match(html, /Previsão por umidade/);
   assert.match(html, /<td>16,0%<\/td>\s*<td>1h 0m<\/td>/);
   assert.match(html, /<td>30,0%<\/td>\s*<td>3h 20m<\/td>/);
