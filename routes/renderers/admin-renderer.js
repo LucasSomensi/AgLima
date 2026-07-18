@@ -1,7 +1,12 @@
 const fs = require('fs');
 const path = require('path');
 const { GRAIN_LABELS, ROOT_LOGIN, ROLES } = require('../constants');
-const { DEFAULT_DISCHARGE_FORECAST_CURVE, calculateAverageMoisture, calculateDischargeForecast } = require('../dryer-forecast');
+const {
+  DEFAULT_DISCHARGE_FORECAST_CURVE,
+  calculateAverageMoisture,
+  calculateDischargeForecast,
+  calculateMinutesRemainingFromAverageMoisture,
+} = require('../dryer-forecast');
 const {
   escapeHtml,
   formatDate,
@@ -692,6 +697,43 @@ function formatForecastCurveInputValue(value, fallback) {
   return Number.isFinite(number) ? String(number) : '';
 }
 
+const DISCHARGE_FORECAST_PREVIEW_MOISTURES = [16, 18, 20, 22, 24, 26, 28, 30];
+
+function formatForecastPreviewDuration(minutes) {
+  if (!Number.isFinite(minutes)) {
+    return '-';
+  }
+
+  const totalMinutes = Math.max(0, Math.round(minutes));
+  const hours = Math.floor(totalMinutes / 60);
+  const remainingMinutes = totalMinutes % 60;
+
+  if (hours === 0) {
+    return `${remainingMinutes}m`;
+  }
+
+  return `${hours}h ${remainingMinutes}m`;
+}
+
+function renderDischargeForecastPreviewRows(settings) {
+  return DISCHARGE_FORECAST_PREVIEW_MOISTURES
+    .map((moisture) => {
+      const minutesRemaining = calculateMinutesRemainingFromAverageMoisture(
+        moisture,
+        settings?.target_moisture,
+        settings,
+      );
+
+      return `
+        <tr>
+          <td>${escapeHtml(formatMoisture(moisture))}%</td>
+          <td>${escapeHtml(formatForecastPreviewDuration(minutesRemaining))}</td>
+        </tr>
+      `;
+    })
+    .join('');
+}
+
 function renderAdminDashboardPage(res, { batch, readings, settings, message, error }) {
   const dashboardPath = path.join(__dirname, '../../views/admin-dashboard.html');
   const statusLabel = formatBatchStatusLabel(batch);
@@ -708,6 +750,7 @@ function renderAdminDashboardPage(res, { batch, readings, settings, message, err
     .replace('{{DISCHARGE_FORECAST_QUADRATIC_COEFFICIENT_VALUE}}', escapeHtml(formatForecastCurveInputValue(settings?.discharge_forecast_quadratic_coefficient, DEFAULT_DISCHARGE_FORECAST_CURVE.quadraticCoefficient)))
     .replace('{{DISCHARGE_FORECAST_LINEAR_COEFFICIENT_VALUE}}', escapeHtml(formatForecastCurveInputValue(settings?.discharge_forecast_linear_coefficient, DEFAULT_DISCHARGE_FORECAST_CURVE.linearCoefficient)))
     .replace('{{DISCHARGE_FORECAST_CONSTANT_COEFFICIENT_VALUE}}', escapeHtml(formatForecastCurveInputValue(settings?.discharge_forecast_constant_coefficient, DEFAULT_DISCHARGE_FORECAST_CURVE.constantCoefficient)))
+    .replace('{{DISCHARGE_FORECAST_PREVIEW_ROWS}}', renderDischargeForecastPreviewRows(settings))
     .replace('{{BATCH_STATUS}}', escapeHtml(statusLabel))
     .replace('{{BATCH_STARTED_AT}}', escapeHtml(batch ? formatDateTime(batch.started_at) : 'Nenhuma batelada ativa'))
     .replace('{{BATCH_DISCHARGE_STARTED_AT}}', escapeHtml(formatDischargeForecast(dischargeForecast)))
