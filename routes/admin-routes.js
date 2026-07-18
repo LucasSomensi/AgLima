@@ -30,7 +30,7 @@ const {
   listAdminDryerBatches,
   listCompletedDryerMoistureReadings,
   listDryerMoistureReadings,
-  updateDryerTargetMoisture,
+  updateDryerSettings,
 } = require('./dryer-service');
 const {
   renderAdminBatchDetailPage,
@@ -51,6 +51,18 @@ const {
   updateManagedUserPassword,
 } = require('./user-service');
 const { buildRedirect, parseMoisturePercent } = require('./utils');
+
+function parseForecastCurveCoefficient(rawValue) {
+  const normalizedValue = String(rawValue || '').trim().replace(',', '.');
+
+  if (!normalizedValue || !/^-?\d+(?:\.\d+)?$/.test(normalizedValue)) {
+    return null;
+  }
+
+  const value = Number(normalizedValue);
+
+  return Number.isFinite(value) ? value : null;
+}
 const {
   buildStorageRecalibrationPayload,
   countStorageIgnoredInputs,
@@ -491,17 +503,30 @@ router.post('/admin/contratos/contratos/:id', canAccessAdminPanel, async (req, r
 
 router.post('/admin/umidade-alvo', canAccessAdminPanel, async (req, res) => {
   const targetMoisture = parseMoisturePercent(req.body.target_moisture);
+  const quadraticCoefficient = parseForecastCurveCoefficient(req.body.discharge_forecast_quadratic_coefficient);
+  const linearCoefficient = parseForecastCurveCoefficient(req.body.discharge_forecast_linear_coefficient);
+  const constantCoefficient = parseForecastCurveCoefficient(req.body.discharge_forecast_constant_coefficient);
 
   if (targetMoisture === null) {
     return res.redirect(buildAdminPanelRedirect({ error: 'Informe uma umidade alvo entre 7,0% e 40,0%, com no máximo uma casa decimal.' }));
   }
 
+  if (quadraticCoefficient === null || linearCoefficient === null || constantCoefficient === null) {
+    return res.redirect(buildAdminPanelRedirect({ error: 'Informe números válidos para todos os parâmetros da curva de previsão.' }));
+  }
+
   try {
-    await updateDryerTargetMoisture({ targetMoisture, user: req.sessionUser });
+    await updateDryerSettings({
+      targetMoisture,
+      quadraticCoefficient,
+      linearCoefficient,
+      constantCoefficient,
+      user: req.sessionUser,
+    });
     return res.redirect(buildAdminPanelRedirect({ target: '1' }));
   } catch (error) {
-    console.error('Error updating dryer target moisture:', error.message);
-    return res.redirect(buildAdminPanelRedirect({ error: 'Não foi possível atualizar a umidade alvo agora.' }));
+    console.error('Error updating dryer settings:', error.message);
+    return res.redirect(buildAdminPanelRedirect({ error: 'Não foi possível atualizar as configurações do secador agora.' }));
   }
 });
 

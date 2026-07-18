@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { GRAIN_LABELS, ROOT_LOGIN, ROLES } = require('../constants');
-const { calculateAverageMoisture, calculateDischargeForecast } = require('../dryer-forecast');
+const { DEFAULT_DISCHARGE_FORECAST_CURVE, calculateAverageMoisture, calculateDischargeForecast } = require('../dryer-forecast');
 const {
   escapeHtml,
   formatDate,
@@ -230,12 +230,12 @@ function getLatestPersistedForecast(readings = []) {
   return [...readings].reverse().map(buildPersistedForecast).find(Boolean) || null;
 }
 
-function getBatchDischargeForecast(batch, readings = []) {
+function getBatchDischargeForecast(batch, readings = [], curveSettings) {
   if (batch?.discharge_started_at) {
-    return calculateDischargeForecast({ batch, readings });
+    return calculateDischargeForecast({ batch, readings, curveSettings });
   }
 
-  return getLatestPersistedForecast(readings) || calculateDischargeForecast({ batch, readings });
+  return getLatestPersistedForecast(readings) || calculateDischargeForecast({ batch, readings, curveSettings });
 }
 
 function formatBatchStatusLabel(batch) {
@@ -686,19 +686,28 @@ function renderAdminHomePage(res, { notifications = [], contractsSummary = {}, d
   res.send(adminHomeHtml);
 }
 
+function formatForecastCurveInputValue(value, fallback) {
+  const number = Number(value ?? fallback);
+
+  return Number.isFinite(number) ? String(number) : '';
+}
+
 function renderAdminDashboardPage(res, { batch, readings, settings, message, error }) {
   const dashboardPath = path.join(__dirname, '../../views/admin-dashboard.html');
   const statusLabel = formatBatchStatusLabel(batch);
   const currentTargetMoisture = formatMoisture(settings?.target_moisture);
   const batchTargetMoisture = batch ? formatMoisture(batch.target_moisture) : currentTargetMoisture;
   const readingsRows = renderReadingsRows(readings, { batch });
-  const dischargeForecast = getBatchDischargeForecast(batch, readings);
+  const dischargeForecast = getBatchDischargeForecast(batch, readings, settings);
   const dashboardHtml = fs
     .readFileSync(dashboardPath, 'utf8')
     .replace('{{ADMIN_PANEL_MESSAGE}}', buildAlertHtml(message))
     .replace('{{ADMIN_PANEL_ERROR}}', buildAlertHtml(error, 'error'))
     .replace('{{CURRENT_TARGET_MOISTURE}}', escapeHtml(currentTargetMoisture))
     .replace('{{TARGET_MOISTURE_VALUE}}', escapeHtml(formatMoisture(settings?.target_moisture).replace(',', '.')))
+    .replace('{{DISCHARGE_FORECAST_QUADRATIC_COEFFICIENT_VALUE}}', escapeHtml(formatForecastCurveInputValue(settings?.discharge_forecast_quadratic_coefficient, DEFAULT_DISCHARGE_FORECAST_CURVE.quadraticCoefficient)))
+    .replace('{{DISCHARGE_FORECAST_LINEAR_COEFFICIENT_VALUE}}', escapeHtml(formatForecastCurveInputValue(settings?.discharge_forecast_linear_coefficient, DEFAULT_DISCHARGE_FORECAST_CURVE.linearCoefficient)))
+    .replace('{{DISCHARGE_FORECAST_CONSTANT_COEFFICIENT_VALUE}}', escapeHtml(formatForecastCurveInputValue(settings?.discharge_forecast_constant_coefficient, DEFAULT_DISCHARGE_FORECAST_CURVE.constantCoefficient)))
     .replace('{{BATCH_STATUS}}', escapeHtml(statusLabel))
     .replace('{{BATCH_STARTED_AT}}', escapeHtml(batch ? formatDateTime(batch.started_at) : 'Nenhuma batelada ativa'))
     .replace('{{BATCH_DISCHARGE_STARTED_AT}}', escapeHtml(formatDischargeForecast(dischargeForecast)))
