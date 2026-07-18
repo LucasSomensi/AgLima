@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+      <meta charset="utf-8">
+      <meta name="author" content="Lucas">
+      <meta name="description" content="Configurações do secador AgroLima">
+      <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+      <title>Configurações do secador | AgroLima</title>
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" integrity="sha384-xOolHFLEh07PJGoPkLv1IbcEPTNtaed2xpHsD9ESMhqIYd0nLMwNLD69Npy4HI+N" crossorigin="anonymous">
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:400,500,700&display=swap">
+      <link rel="stylesheet" href="/css/styles.css">
+      <link rel="icon" href="/favicon.ico" type="image/x-icon">
+  </head>
+  <body>
+    <main class="page-shell admin-shell dryer-shell">
+      <section class="content-card admin-card dryer-card admin-home-card" aria-labelledby="dryer-config-title">
+        <div class="admin-header">
+          <div>
+            <span class="eyebrow">Área administrativa</span>
+            <h1 id="dryer-config-title" class="page-title">Configurações do secador</h1>
+            <p class="page-description">Ajuste a umidade alvo e a curva usada para prever o início da descarga.</p>
+            <a class="back-link admin-back-link" href="/admin/secador">← Voltar ao secador</a>
+          </div>
+          <form action="/logout" method="post">
+            <input type="hidden" name="_csrf" value="{{CSRF_TOKEN}}">
+            <button class="btn-secondary-action" type="submit">Sair</button>
+          </form>
+        </div>
+
+        {{ADMIN_PANEL_MESSAGE}}
+        {{ADMIN_PANEL_ERROR}}
+
+        <section class="admin-section" aria-labelledby="target-moisture-title">
+          <h2 id="target-moisture-title">Alterar configurações do secador</h2>
+          <div class="dryer-settings-layout">
+            <form class="dryer-moisture-form admin-target-form" action="/admin/umidade-alvo" method="post">
+              <input type="hidden" name="_csrf" value="{{CSRF_TOKEN}}">
+              <label for="target_moisture">Umidade alvo (%)</label>
+              <input class="form-control" id="target_moisture" name="target_moisture" type="number" min="7" max="40" step="0.1" value="{{TARGET_MOISTURE_VALUE}}" inputmode="decimal" required>
+              <label for="discharge_forecast_quadratic_coefficient">Coeficiente quadrático da curva</label>
+              <input class="form-control" id="discharge_forecast_quadratic_coefficient" name="discharge_forecast_quadratic_coefficient" type="number" step="any" value="{{DISCHARGE_FORECAST_QUADRATIC_COEFFICIENT_VALUE}}" inputmode="decimal" required>
+              <label for="discharge_forecast_linear_coefficient">Coeficiente linear da curva</label>
+              <input class="form-control" id="discharge_forecast_linear_coefficient" name="discharge_forecast_linear_coefficient" type="number" step="any" value="{{DISCHARGE_FORECAST_LINEAR_COEFFICIENT_VALUE}}" inputmode="decimal" required>
+              <label for="discharge_forecast_constant_coefficient">Coeficiente constante da curva</label>
+              <input class="form-control" id="discharge_forecast_constant_coefficient" name="discharge_forecast_constant_coefficient" type="number" step="any" value="{{DISCHARGE_FORECAST_CONSTANT_COEFFICIENT_VALUE}}" inputmode="decimal" required>
+              <button class="btn-primary-action" type="submit">Salvar configurações</button>
+            </form>
+
+            <aside class="dryer-forecast-preview" aria-labelledby="dryer-forecast-preview-title">
+              <h3 id="dryer-forecast-preview-title">Previsão por umidade</h3>
+              <p>Minutos restantes calculados pela curva atual.</p>
+              <div class="admin-table-wrapper dryer-forecast-preview-table-wrapper">
+                <table class="admin-table dryer-forecast-preview-table">
+                  <thead>
+                    <tr>
+                      <th>Umidade</th>
+                      <th>Previsão</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {{DISCHARGE_FORECAST_PREVIEW_ROWS}}
+                  </tbody>
+                </table>
+              </div>
+            </aside>
+          </div>
+        </section>
+      </section>
+    </main>
+    <footer class="site-footer">
+      <img class="footer-logo" src="/images/logotipo%20agrolima.jpeg" alt="Logotipo da AgroLima">
+      <span>AgroLima © 2026. Todos os direitos reservados.</span>
+    </footer>
+  </body>
+</html>

@@ -746,11 +746,6 @@ function renderAdminDashboardPage(res, { batch, readings, settings, message, err
     .replace('{{ADMIN_PANEL_MESSAGE}}', buildAlertHtml(message))
     .replace('{{ADMIN_PANEL_ERROR}}', buildAlertHtml(error, 'error'))
     .replace('{{CURRENT_TARGET_MOISTURE}}', escapeHtml(currentTargetMoisture))
-    .replace('{{TARGET_MOISTURE_VALUE}}', escapeHtml(formatMoisture(settings?.target_moisture).replace(',', '.')))
-    .replace('{{DISCHARGE_FORECAST_QUADRATIC_COEFFICIENT_VALUE}}', escapeHtml(formatForecastCurveInputValue(settings?.discharge_forecast_quadratic_coefficient, DEFAULT_DISCHARGE_FORECAST_CURVE.quadraticCoefficient)))
-    .replace('{{DISCHARGE_FORECAST_LINEAR_COEFFICIENT_VALUE}}', escapeHtml(formatForecastCurveInputValue(settings?.discharge_forecast_linear_coefficient, DEFAULT_DISCHARGE_FORECAST_CURVE.linearCoefficient)))
-    .replace('{{DISCHARGE_FORECAST_CONSTANT_COEFFICIENT_VALUE}}', escapeHtml(formatForecastCurveInputValue(settings?.discharge_forecast_constant_coefficient, DEFAULT_DISCHARGE_FORECAST_CURVE.constantCoefficient)))
-    .replace('{{DISCHARGE_FORECAST_PREVIEW_ROWS}}', renderDischargeForecastPreviewRows(settings))
     .replace('{{BATCH_STATUS}}', escapeHtml(statusLabel))
     .replace('{{BATCH_STARTED_AT}}', escapeHtml(batch ? formatDateTime(batch.started_at) : 'Nenhuma batelada ativa'))
     .replace('{{BATCH_DISCHARGE_STARTED_AT}}', escapeHtml(formatDischargeForecast(dischargeForecast)))
@@ -759,6 +754,20 @@ function renderAdminDashboardPage(res, { batch, readings, settings, message, err
     .replace('{{READINGS_ROWS}}', readingsRows);
 
   res.send(dashboardHtml);
+}
+
+function renderAdminDryerConfigPage(res, { settings, message, error }) {
+  const configHtml = renderTemplate('admin-dryer-config.html', {
+    ADMIN_PANEL_MESSAGE: buildAlertHtml(message),
+    ADMIN_PANEL_ERROR: buildAlertHtml(error, 'error'),
+    TARGET_MOISTURE_VALUE: escapeHtml(formatMoisture(settings?.target_moisture).replace(',', '.')),
+    DISCHARGE_FORECAST_QUADRATIC_COEFFICIENT_VALUE: escapeHtml(formatForecastCurveInputValue(settings?.discharge_forecast_quadratic_coefficient, DEFAULT_DISCHARGE_FORECAST_CURVE.quadraticCoefficient)),
+    DISCHARGE_FORECAST_LINEAR_COEFFICIENT_VALUE: escapeHtml(formatForecastCurveInputValue(settings?.discharge_forecast_linear_coefficient, DEFAULT_DISCHARGE_FORECAST_CURVE.linearCoefficient)),
+    DISCHARGE_FORECAST_CONSTANT_COEFFICIENT_VALUE: escapeHtml(formatForecastCurveInputValue(settings?.discharge_forecast_constant_coefficient, DEFAULT_DISCHARGE_FORECAST_CURVE.constantCoefficient)),
+    DISCHARGE_FORECAST_PREVIEW_ROWS: renderDischargeForecastPreviewRows(settings),
+  });
+
+  res.send(configHtml);
 }
 
 function getBatchTimelineDates(batch, now = new Date()) {
@@ -1002,6 +1011,7 @@ module.exports = {
   renderAdminSellerFormPage,
   renderAdminContractFormPage,
   renderAdminDashboardPage,
+  renderAdminDryerConfigPage,
   renderAdminHomePage,
   renderAdminStoragePage,
   renderAdminUsersPage,

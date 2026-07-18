@@ -40,6 +40,7 @@ const {
   renderAdminContractFormPage,
   renderAdminSellerFormPage,
   renderAdminDashboardPage,
+  renderAdminDryerConfigPage,
   renderAdminHomePage,
   renderAdminStoragePage,
   renderAdminUsersPage,
@@ -77,8 +78,8 @@ const router = express.Router();
 
 const canAccessAdminPanel = requireRole(ROLES.ADMIN);
 
-function buildAdminPanelRedirect(params) {
-  return buildRedirect('/admin/secador', params);
+function buildAdminDryerConfigRedirect(params) {
+  return buildRedirect('/admin/secador/config', params);
 }
 
 function buildStorageRedirect(params = {}) {
@@ -133,6 +134,22 @@ router.get('/admin/secador', canAccessAdminPanel, async (req, res) => {
   } catch (error) {
     console.error('Error loading admin dryer dashboard:', error.message);
     return res.status(500).send('Não foi possível carregar o painel do secador agora.');
+  }
+});
+
+
+router.get('/admin/secador/config', canAccessAdminPanel, async (req, res) => {
+  try {
+    const settings = await getDryerSettings();
+
+    return renderAdminDryerConfigPage(res, {
+      settings,
+      message: req.query.target ? 'Umidade alvo atualizada com sucesso.' : '',
+      error: req.query.error || '',
+    });
+  } catch (error) {
+    console.error('Error loading admin dryer settings:', error.message);
+    return res.status(500).send('Não foi possível carregar as configurações do secador agora.');
   }
 });
 
@@ -508,11 +525,11 @@ router.post('/admin/umidade-alvo', canAccessAdminPanel, async (req, res) => {
   const constantCoefficient = parseForecastCurveCoefficient(req.body.discharge_forecast_constant_coefficient);
 
   if (targetMoisture === null) {
-    return res.redirect(buildAdminPanelRedirect({ error: 'Informe uma umidade alvo entre 7,0% e 40,0%, com no máximo uma casa decimal.' }));
+    return res.redirect(buildAdminDryerConfigRedirect({ error: 'Informe uma umidade alvo entre 7,0% e 40,0%, com no máximo uma casa decimal.' }));
   }
 
   if (quadraticCoefficient === null || linearCoefficient === null || constantCoefficient === null) {
-    return res.redirect(buildAdminPanelRedirect({ error: 'Informe números válidos para todos os parâmetros da curva de previsão.' }));
+    return res.redirect(buildAdminDryerConfigRedirect({ error: 'Informe números válidos para todos os parâmetros da curva de previsão.' }));
   }
 
   try {
@@ -523,10 +540,10 @@ router.post('/admin/umidade-alvo', canAccessAdminPanel, async (req, res) => {
       constantCoefficient,
       user: req.sessionUser,
     });
-    return res.redirect(buildAdminPanelRedirect({ target: '1' }));
+    return res.redirect(buildAdminDryerConfigRedirect({ target: '1' }));
   } catch (error) {
     console.error('Error updating dryer settings:', error.message);
-    return res.redirect(buildAdminPanelRedirect({ error: 'Não foi possível atualizar as configurações do secador agora.' }));
+    return res.redirect(buildAdminDryerConfigRedirect({ error: 'Não foi possível atualizar as configurações do secador agora.' }));
   }
 });
 
