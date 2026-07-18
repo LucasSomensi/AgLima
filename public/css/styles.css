@@ -348,6 +348,51 @@ body {
   margin-top: 0;
 }
 
+.dryer-settings-layout {
+  display: grid;
+  grid-template-columns: minmax(280px, 540px) minmax(260px, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.dryer-forecast-preview {
+  padding: 18px;
+  border: 1px solid rgba(234, 246, 238, 0.16);
+  border-radius: 18px;
+  background: rgba(6, 42, 23, 0.38);
+}
+
+.dryer-forecast-preview h3 {
+  margin: 0 0 8px;
+  color: #ffffff;
+  font-size: 1.12rem;
+  font-weight: 700;
+}
+
+.dryer-forecast-preview p {
+  margin: 0 0 14px;
+  color: rgba(234, 246, 238, 0.78);
+}
+
+.dryer-forecast-preview-table-wrapper {
+  border-radius: 14px;
+}
+
+.dryer-forecast-preview-table {
+  min-width: 0;
+}
+
+.dryer-forecast-preview-table th,
+.dryer-forecast-preview-table td {
+  padding: 10px 12px;
+}
+
+@media (max-width: 900px) {
+  .dryer-settings-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
 .admin-table-wrapper {
   overflow-x: auto;
   border: 1px solid rgba(234, 246, 238, 0.16);
