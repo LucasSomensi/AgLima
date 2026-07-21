@@ -146,6 +146,24 @@ function formatKg(value) {
   })} kg`;
 }
 
+function formatStorageWeight(value) {
+  if (value === null || value === undefined || value === '') {
+    return '-';
+  }
+
+  const weightKg = Number(value);
+  const roundedKg = Math.round(weightKg);
+  const roundedSacks = Math.round(weightKg / 60);
+
+  return `${roundedKg.toLocaleString('pt-BR', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  })} kg · ${roundedSacks.toLocaleString('pt-BR', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  })} sc`;
+}
+
 function renderAdminStoragePage(res, { summary, recalibrations, ignoredInputs, message, error }) {
   const ignoredInputsByProduct = new Map(
     ignoredInputs.map((item) => [item.produto, Number(item.entradas_pendentes || 0)])
@@ -154,7 +172,7 @@ function renderAdminStoragePage(res, { summary, recalibrations, ignoredInputs, m
     .map((item) => `
         <article class="dryer-status-card storage-status-card">
           <span class="dryer-card-label">${escapeHtml(formatProductLabel(item.produto))}</span>
-          <strong>${escapeHtml(formatKg(item.armazenado_kg))}</strong>
+          <strong>${escapeHtml(formatStorageWeight(item.armazenado_kg))}</strong>
           <small>${item.data_recalibracao ? `Base: ${escapeHtml(formatDateTime(item.data_recalibracao))}` : 'Sem recalibração registrada'}</small>
         </article>
       `)
@@ -165,10 +183,10 @@ function renderAdminStoragePage(res, { summary, recalibrations, ignoredInputs, m
       return `
         <tr>
           <td>${escapeHtml(formatProductLabel(item.produto))}</td>
-          <td>${item.data_recalibracao ? `${escapeHtml(formatKg(item.quantidade_recalibrada_kg))}<br><span class="admin-muted">${escapeHtml(formatDateTime(item.data_recalibracao))}</span>` : '-'}</td>
-          <td>${escapeHtml(formatKg(item.entradas_desde_recalibracao_kg))}</td>
-          <td>${escapeHtml(formatKg(item.saidas_desde_recalibracao_kg))}</td>
-          <td><strong>${escapeHtml(formatKg(item.armazenado_kg))}</strong></td>
+          <td>${item.data_recalibracao ? `${escapeHtml(formatStorageWeight(item.quantidade_recalibrada_kg))}<br><span class="admin-muted">${escapeHtml(formatDateTime(item.data_recalibracao))}</span>` : '-'}</td>
+          <td>${escapeHtml(formatStorageWeight(item.entradas_desde_recalibracao_kg))}</td>
+          <td>${escapeHtml(formatStorageWeight(item.saidas_desde_recalibracao_kg))}</td>
+          <td><strong>${escapeHtml(formatStorageWeight(item.armazenado_kg))}</strong></td>
           <td>${pendingInputs ? `${escapeHtml(String(pendingInputs))} entrada(s)` : '-'}</td>
         </tr>
       `;
@@ -179,7 +197,7 @@ function renderAdminStoragePage(res, { summary, recalibrations, ignoredInputs, m
         <tr>
           <td>${escapeHtml(formatDateTime(item.data_recalibracao))}</td>
           <td>${escapeHtml(formatProductLabel(item.produto))}</td>
-          <td>${escapeHtml(formatKg(item.quantidade_real_kg))}</td>
+          <td>${escapeHtml(formatStorageWeight(item.quantidade_real_kg))}</td>
           <td>${escapeHtml(item.criado_por_login || '-')}</td>
           <td>${escapeHtml(item.observacoes || '-')}</td>
         </tr>
