@@ -13,6 +13,7 @@ const {
   buildScaleInputPayload,
   buildScaleInputTarePayload,
   buildScaleOutputPayload,
+  buildScaleOutputEditPayload,
   buildScaleOutputGrossPayload,
   createScaleInput,
   createScaleOutput,
@@ -34,6 +35,7 @@ const {
   listScaleOutputs,
   splitScaleOutput,
   updateScaleInput,
+  updateScaleOutput,
   unlinkScaleOutputFromContract,
 } = require('./weighbridge-service');
 const {
@@ -106,7 +108,9 @@ router.get('/balanca', canAccessWeighbridge, async (req, res) => {
                   ? 'Origem definida para a entrada com sucesso.'
                   : req.query.saida_criada
                     ? 'Saída adicionada com sucesso.'
-                    : req.query.saida_deletada
+                    : req.query.saida_editada
+                      ? 'Saída atualizada com sucesso.'
+                      : req.query.saida_deletada
                       ? 'Saída deletada com sucesso.'
                       : req.query.saida_dividida
                         ? 'Saída dividida com sucesso.'
@@ -771,6 +775,48 @@ router.get('/balanca/saidas/:id/ticket.pdf', canAccessWeighbridge, async (req, r
   }
 });
 
+
+router.post('/balanca/saidas/:id', canAccessWeighbridge, async (req, res) => {
+  const { payload, error } = buildScaleOutputEditPayload(req.body);
+  const outputInfo = await getScaleOutputDetailInfo(req.params.id).catch(() => null);
+
+  if (!outputInfo) {
+    return res.redirect(buildWeighbridgeRedirect({ error: 'Saída não encontrada.' }));
+  }
+
+  if (error) {
+    return renderScaleOutputDetailPage(res, {
+      outputInfo,
+      formValues: req.body,
+      error,
+      navigation: getWeighbridgeNavigation(req),
+    });
+  }
+
+  try {
+    const updatedOutput = await updateScaleOutput(req.params.id, payload, req.sessionUser);
+
+    if (!updatedOutput) {
+      return renderScaleOutputDetailPage(res, {
+        outputInfo,
+        formValues: req.body,
+        error: 'Confira se o peso bruto está em branco ou maior que o peso tara.',
+        navigation: getWeighbridgeNavigation(req),
+      });
+    }
+
+    return res.redirect(buildRedirect(`/balanca/saidas/${req.params.id}`, { saida_editada: '1' }));
+  } catch (error) {
+    console.error('Error updating scale output:', error.message);
+    return renderScaleOutputDetailPage(res, {
+      outputInfo,
+      formValues: req.body,
+      error: 'Não foi possível atualizar a saída agora.',
+      navigation: getWeighbridgeNavigation(req),
+    });
+  }
+});
+
 router.get('/balanca/saidas/:id', canAccessWeighbridge, async (req, res) => {
   try {
     const outputInfo = await getScaleOutputDetailInfo(req.params.id);
@@ -781,6 +827,7 @@ router.get('/balanca/saidas/:id', canAccessWeighbridge, async (req, res) => {
 
     return renderScaleOutputDetailPage(res, {
       outputInfo,
+      message: req.query.saida_editada ? 'Saída atualizada com sucesso.' : '',
       error: req.query.error || '',
       navigation: getWeighbridgeNavigation(req),
     });

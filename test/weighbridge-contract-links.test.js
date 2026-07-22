@@ -10,6 +10,7 @@ const {
 const {
   buildDeletionReasonPayload,
   buildScaleOutputPayload,
+  buildScaleOutputEditPayload,
   buildScaleOutputGrossPayload,
 } = require('../routes/weighbridge-service');
 const { buildTicketLines } = require('../routes/weighbridge-ticket-pdf');
@@ -536,4 +537,58 @@ test('output invoice uses default NF values when optional contract fields are nu
 
   assert.match(html, /<dt>Natureza da operação<\/dt><dd><span class="copy-field-value">Venda<\/span>/);
   assert.match(html, /<dt>CFOP<\/dt><dd><span class="copy-field-value">5101<\/span>/);
+});
+
+test('output detail edit form exposes weighing fields', () => {
+  const html = renderPage(renderScaleOutputDetailPage, {
+    outputInfo: {
+      ...outputWithContract,
+      saida_id: 7,
+      contrato_saldo_kg: '1000',
+    },
+    navigation: {},
+  });
+
+  assert.match(html, /<h2>Editar saída<\/h2>/);
+  assert.match(html, /action="\/balanca\/saidas\/7" method="post"/);
+  assert.match(html, /name="data_saida" type="datetime-local" value="2026-06-11T09:30" required/);
+  assert.match(html, /<option value="milho" selected>Milho<\/option>/);
+  assert.match(html, /name="placa_caminhao" type="text" value="ABC1D23"/);
+  assert.match(html, /name="peso_tara_kg" type="number" min="0.001" step="0.001" value="10000"/);
+  assert.match(html, /name="peso_bruto_kg" type="number" min="0.001" step="0.001" value="22345.678"/);
+});
+
+test('output edit payload accepts optional gross and validates tare relationship', () => {
+  const completePayload = buildScaleOutputEditPayload({
+    data_saida: '2026-06-11T12:30',
+    placa_caminhao: 'abc-1d23',
+    produto: 'milho',
+    peso_tara_kg: '10000',
+    peso_bruto_kg: '22345.678',
+  });
+
+  assert.equal(completePayload.error, undefined);
+  assert.equal(completePayload.payload.placaCaminhao, 'ABC1D23');
+  assert.equal(completePayload.payload.pesoBrutoKg, '22345.678');
+
+  const blankGrossPayload = buildScaleOutputEditPayload({
+    data_saida: '2026-06-11T12:30',
+    placa_caminhao: 'ABC1D23',
+    produto: 'soja',
+    peso_tara_kg: '10000',
+    peso_bruto_kg: '',
+  });
+
+  assert.equal(blankGrossPayload.error, undefined);
+  assert.equal(blankGrossPayload.payload.pesoBrutoKg, null);
+
+  const invalidGrossPayload = buildScaleOutputEditPayload({
+    data_saida: '2026-06-11T12:30',
+    placa_caminhao: 'ABC1D23',
+    produto: 'milho',
+    peso_tara_kg: '10000',
+    peso_bruto_kg: '9999',
+  });
+
+  assert.equal(invalidGrossPayload.error, 'O peso bruto precisa ser maior que o peso tara.');
 });

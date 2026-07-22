@@ -640,6 +640,47 @@ function buildDeletionReasonFormHtml({ action, buttonLabel, textareaId }) {
   `;
 }
 
+
+function buildScaleOutputEditFormHtml(outputInfo, formValues = {}) {
+  const dataSaidaValue = formValues.data_saida ?? toDateTimeLocalValue(outputInfo.data_saida);
+  const selectedProduct = formValues.produto || outputInfo.produto;
+
+  return `
+        <section class="admin-section">
+          <h2>Editar saída</h2>
+          <form class="contact-form contracts-form" action="/balanca/saidas/${escapeHtml(outputInfo.saida_id)}" method="post">
+            <input type="hidden" name="_csrf" value="{{CSRF_TOKEN}}">
+            <div class="contracts-form-grid contracts-form-grid-two">
+              <label>Data e hora da saída
+                <input class="form-control" name="data_saida" type="datetime-local" value="${escapeHtml(dataSaidaValue)}" required>
+              </label>
+              <label>Produto
+                <select class="form-control" name="produto" required>
+                  <option value="">Selecione</option>
+                  <option value="milho"${selectedProduct === 'milho' ? ' selected' : ''}>Milho</option>
+                  <option value="soja"${selectedProduct === 'soja' ? ' selected' : ''}>Soja</option>
+                </select>
+              </label>
+              <label>Placa do veículo
+                <input class="form-control" name="placa_caminhao" type="text" value="${escapeHtml(formValues.placa_caminhao ?? outputInfo.placa_caminhao ?? '')}" placeholder="ABC1D23" maxlength="10" required>
+              </label>
+              <label>Peso tara (kg)
+                <input class="form-control" name="peso_tara_kg" type="number" min="0.001" step="0.001" value="${escapeHtml(formatDecimalInput(formValues.peso_tara_kg ?? outputInfo.peso_tara_kg))}" inputmode="decimal" required>
+              </label>
+              <label>Peso bruto (kg)
+                <input class="form-control" name="peso_bruto_kg" type="number" min="0.001" step="0.001" value="${escapeHtml(formatDecimalInput(formValues.peso_bruto_kg ?? outputInfo.peso_bruto_kg))}" inputmode="decimal" placeholder="Deixe em branco se pendente">
+              </label>
+            </div>
+            <p class="admin-muted">Para remover o peso bruto e deixar a saída pendente, deixe o campo em branco antes de salvar.</p>
+            <div class="contracts-form-actions">
+              <button class="btn-primary-action" type="submit">Salvar alterações</button>
+              <a class="btn-secondary-action" href="${escapeHtml(outputInfo.contrato_id ? `/balanca/saidas/${outputInfo.saida_id}/nf` : '/balanca')}">Cancelar</a>
+            </div>
+          </form>
+        </section>
+  `;
+}
+
 function buildScaleOutputActionsHtml(outputInfo) {
   if (outputInfo.peso_bruto_kg === null || outputInfo.peso_bruto_kg === undefined) {
     return `
@@ -691,10 +732,11 @@ ${buildDeletionReasonFormHtml({
   `;
 }
 
-function renderScaleOutputDetailPage(res, { outputInfo, error, navigation }) {
+function renderScaleOutputDetailPage(res, { outputInfo, formValues = {}, message, error, navigation }) {
   const pagePath = path.join(__dirname, '../../views/weighbridge-output-detail.html');
   const html = applyWeighbridgeNavigation(fs
     .readFileSync(pagePath, 'utf8')
+    .replace('{{SCALE_OUTPUT_MESSAGE}}', buildAlertHtml(message))
     .replace('{{SCALE_OUTPUT_ERROR}}', buildAlertHtml(error, 'error'))
     .replace(/{{SAIDA_ID}}/g, escapeHtml(outputInfo.saida_id))
     .replace('{{DATA_SAIDA}}', escapeHtml(formatDateTime(outputInfo.data_saida)))
@@ -704,6 +746,7 @@ function renderScaleOutputDetailPage(res, { outputInfo, error, navigation }) {
     .replace('{{PESO_BRUTO_KG}}', escapeHtml(formatPlainDecimal(outputInfo.peso_bruto_kg)))
     .replace(/{{PESO_LIQUIDO_KG}}/g, escapeHtml(formatPlainDecimal(outputInfo.peso_liquido_kg)))
     .replace('{{INVOICE_INFO_LINK}}', buildScaleOutputInvoiceLinkHtml(outputInfo))
+    .replace('{{OUTPUT_EDIT_FORM}}', buildScaleOutputEditFormHtml(outputInfo, formValues))
     .replace('{{OUTPUT_ACTIONS_SECTION}}', buildScaleOutputActionsHtml(outputInfo)), navigation);
 
   res.send(html);
