@@ -221,7 +221,7 @@ function getGrainLabel(grainType) {
 }
 
 
-function formatDischargeForecast(dischargeForecast) {
+function formatDischargeForecast(dischargeForecast, { includeForecastPrefix = false, immediateLabel = 'Descarga imediata' } = {}) {
   if (!dischargeForecast || dischargeForecast.status === 'unavailable') {
     return '-';
   }
@@ -231,10 +231,11 @@ function formatDischargeForecast(dischargeForecast) {
   }
 
   if (dischargeForecast.status === 'immediate') {
-    return 'Descarga imediata';
+    return immediateLabel;
   }
 
-  return formatDateTime(dischargeForecast.forecastAt);
+  const forecastAt = formatDateTime(dischargeForecast.forecastAt);
+  return includeForecastPrefix ? `Prevista para ${forecastAt}` : forecastAt;
 }
 
 function buildPersistedForecast(reading) {
@@ -767,7 +768,10 @@ function renderAdminDashboardPage(res, { batch, readings, settings, message, err
     .replace('{{CURRENT_TARGET_MOISTURE}}', escapeHtml(currentTargetMoisture))
     .replace('{{BATCH_STATUS}}', escapeHtml(statusLabel))
     .replace('{{BATCH_STARTED_AT}}', escapeHtml(batch ? formatDateTime(batch.started_at) : 'Nenhuma batelada ativa'))
-    .replace('{{BATCH_DISCHARGE_STARTED_AT}}', escapeHtml(formatDischargeForecast(dischargeForecast)))
+    .replace('{{BATCH_DISCHARGE_STARTED_AT}}', escapeHtml(formatDischargeForecast(dischargeForecast, {
+      includeForecastPrefix: true,
+      immediateLabel: 'Iniciar descarga imediatamente',
+    })))
     .replace('{{BATCH_TARGET_MOISTURE}}', escapeHtml(batchTargetMoisture))
     .replace('{{BATCH_PRODUCT}}', escapeHtml(batch ? getGrainLabel(batch.grain_type) : '-'))
     .replace('{{READINGS_ROWS}}', readingsRows);

@@ -124,7 +124,7 @@ function formatDecimalInput(value) {
   return String(value).replace(',', '.');
 }
 
-function formatDischargeForecast(dischargeForecast) {
+function formatDischargeForecast(dischargeForecast, { includeForecastPrefix = false, immediateLabel = 'Descarga imediata' } = {}) {
   if (!dischargeForecast || dischargeForecast.status === 'unavailable') {
     return '-';
   }
@@ -134,10 +134,11 @@ function formatDischargeForecast(dischargeForecast) {
   }
 
   if (dischargeForecast.status === 'immediate') {
-    return 'Descarga imediata';
+    return immediateLabel;
   }
 
-  return formatDateTime(dischargeForecast.forecastAt);
+  const forecastAt = formatDateTime(dischargeForecast.forecastAt);
+  return includeForecastPrefix ? `Prevista para ${forecastAt}` : forecastAt;
 }
 
 function buildPersistedForecast(reading) {
@@ -280,7 +281,10 @@ function renderDryerPanelPage(res, { batch, readings, settings, message, error, 
     ? calculateDischargeForecast({ batch, readings, curveSettings: settings })
     : (getLatestPersistedForecast(readings) || calculateDischargeForecast({ batch, readings, curveSettings: settings }));
   const startedAt = batch ? formatDateTime(batch.started_at) : 'Nenhuma batelada ativa';
-  const dischargeStartedAt = formatDischargeForecast(dischargeForecast);
+  const dischargeStartedAt = formatDischargeForecast(dischargeForecast, {
+    includeForecastPrefix: true,
+    immediateLabel: 'Iniciar descarga imediatamente',
+  });
   const initialMoisture = batch ? `${formatMoisture(batch.umidade_inicial)}%` : '-';
   const readingsRows = renderDryerReadingRows(batch, readings, settings);
   const batchStatusHtml = formatDryerStatus(batch);

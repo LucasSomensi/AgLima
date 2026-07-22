@@ -206,7 +206,7 @@ function calculateDischargeForecast({ batch, readings, now = new Date(), curveSe
   const forecastAt = new Date(forecastBaseTimestamp + minutesRemaining * MILLISECONDS_PER_MINUTE);
   const nowTimestamp = toValidTimestamp(now) || Date.now();
 
-  if (nowTimestamp > forecastAt.getTime()) {
+  if (nowTimestamp >= forecastAt.getTime()) {
     return {
       status: 'immediate',
       averageMoisture,

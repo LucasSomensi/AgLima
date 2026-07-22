@@ -124,9 +124,36 @@ test('dryer panel uses persisted moisture evolution values when available', () =
     unclassifiedInputs: [],
   });
 
-  assert.match(html, /Previsão \/ início da descarga<\/span>\s*<strong>10\/07\/2026, 12:30<\/strong>/);
+  assert.match(html, /Descarga<\/span>\s*<strong>Prevista para 10\/07\/2026, 12:30<\/strong>/);
   assert.match(html, /Umidade média<\/dt><dd>18,8%<\/dd>/);
   assert.match(html, /Previsão de descarga<\/dt><dd>10\/07\/2026, 12:30<\/dd>/);
+});
+
+
+test('dryer panel asks to start discharge immediately when forecast is due', () => {
+  const html = renderPage(renderDryerPanelPage, {
+    batch: {
+      id: 6,
+      started_at: '2026-07-10T12:00:00.000Z',
+      discharge_started_at: null,
+      umidade_inicial: '20',
+      target_moisture: '14',
+    },
+    readings: [{
+      measured_at: '2026-07-10T13:40:00.000Z',
+      moisture_percent: '20',
+      average_moisture: '20',
+      discharge_forecast_at: '2026-07-10T13:40:00.000Z',
+      discharge_forecast_status: 'immediate',
+      measured_by_login: 'operador',
+    }],
+    settings: { target_moisture: '14' },
+    message: '',
+    error: '',
+    unclassifiedInputs: [],
+  });
+
+  assert.match(html, /Descarga<\/span>\s*<strong>Iniciar descarga imediatamente<\/strong>/);
 });
 
 test('dryer panel uses configured forecast curve before the first moisture reading', () => {
@@ -150,5 +177,5 @@ test('dryer panel uses configured forecast curve before the first moisture readi
     unclassifiedInputs: [],
   });
 
-  assert.match(html, /Previsão \/ início da descarga<\/span>\s*<strong>10\/07\/2099, 10:40<\/strong>/);
+  assert.match(html, /Descarga<\/span>\s*<strong>Prevista para 10\/07\/2099, 10:40<\/strong>/);
 });
