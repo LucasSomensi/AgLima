@@ -146,6 +146,32 @@ function buildScaleOutputPayload(body) {
   };
 }
 
+function buildScaleOutputEditPayload(body) {
+  const basePayload = buildScaleOutputPayload(body);
+
+  if (basePayload.error) {
+    return basePayload;
+  }
+
+  const pesoBrutoRaw = normalizeText(body.peso_bruto_kg);
+  const pesoBrutoKg = pesoBrutoRaw ? normalizeDecimal(pesoBrutoRaw) : null;
+
+  if (pesoBrutoRaw && !pesoBrutoKg) {
+    return { error: 'Informe um peso bruto válido ou deixe o campo em branco.' };
+  }
+
+  if (pesoBrutoKg && Number(pesoBrutoKg) <= Number(basePayload.payload.pesoTaraKg)) {
+    return { error: 'O peso bruto precisa ser maior que o peso tara.' };
+  }
+
+  return {
+    payload: {
+      ...basePayload.payload,
+      pesoBrutoKg,
+    },
+  };
+}
+
 function buildScaleOutputGrossPayload(body) {
   const pesoBrutoKg = normalizeDecimal(body.peso_bruto_kg);
   const pesoBrutoAdicionadoEm = parseOptionalDateTime(body.peso_bruto_adicionado_em);
@@ -721,6 +747,79 @@ async function addScaleInputTare(inputId, pesoTaraKg, userId) {
   );
 
   return result.rows[0] || null;
+}
+
+async function updateScaleOutput(outputId, payload, user) {
+  ensureDatabaseConfigured();
+
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    const previousResult = await client.query(
+      'SELECT * FROM saidas_balanca WHERE id = $1 FOR UPDATE',
+      [outputId]
+    );
+    const previousOutput = previousResult.rows[0] || null;
+
+    if (!previousOutput) {
+      await client.query('COMMIT');
+      return null;
+    }
+
+    const result = await client.query(
+      `
+        UPDATE saidas_balanca
+        SET data_saida = $2,
+            placa_caminhao = $3,
+            produto = $4,
+            peso_tara_kg = $5,
+            peso_bruto_kg = $6,
+            peso_bruto_adicionado_em = CASE
+              WHEN $6::numeric IS NULL THEN NULL
+              WHEN $6::numeric IS NOT DISTINCT FROM peso_bruto_kg THEN peso_bruto_adicionado_em
+              ELSE now()
+            END,
+            atualizado_em = now()
+        WHERE id = $1
+          AND ($6::numeric IS NULL OR $6::numeric > $5::numeric)
+        RETURNING *
+      `,
+      [
+        outputId,
+        payload.dataSaida,
+        payload.placaCaminhao,
+        payload.produto,
+        payload.pesoTaraKg,
+        payload.pesoBrutoKg,
+      ]
+    );
+    const updatedOutput = result.rows[0] || null;
+
+    if (updatedOutput) {
+      await recordAuditAction(client, {
+        tipoAcao: 'editar_saida',
+        entidadeTipo: 'saidas_balanca',
+        entidadeId: outputId,
+        user,
+        dadosAnteriores: previousOutput,
+        dadosPosteriores: updatedOutput,
+      });
+      await refreshContractShippedStatus(client, previousOutput.contrato_id);
+      if (updatedOutput.contrato_id !== previousOutput.contrato_id) {
+        await refreshContractShippedStatus(client, updatedOutput.contrato_id);
+      }
+    }
+
+    await client.query('COMMIT');
+    return updatedOutput ? { id: updatedOutput.id } : null;
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
 }
 
 async function addScaleOutputGross(outputId, payload, user) {
@@ -1442,6 +1541,7 @@ module.exports = {
   buildScaleInputPayload,
   buildScaleInputTarePayload,
   buildScaleOutputPayload,
+  buildScaleOutputEditPayload,
   buildScaleOutputGrossPayload,
   createScaleInput,
   createScaleOutput,
@@ -1465,4 +1565,5 @@ module.exports = {
   splitScaleOutput,
   unlinkScaleOutputFromContract,
   updateScaleInput,
+  updateScaleOutput,
 };
