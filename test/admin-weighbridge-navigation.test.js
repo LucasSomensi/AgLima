@@ -191,7 +191,7 @@ test('admin dryer dashboard uses configured forecast curve before the first mois
     error: '',
   });
 
-  assert.match(html, /Previsão \/ início da descarga<\/span>\s*<strong>10\/07\/2099, 10:40<\/strong>/);
+  assert.match(html, /Descarga<\/span>\s*<strong>Prevista para 10\/07\/2099, 10:40<\/strong>/);
 });
 
 test('admin dryer config page shows forecast preview table for configured moisture examples', () => {

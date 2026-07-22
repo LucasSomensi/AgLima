@@ -25,6 +25,27 @@ test('calcula previsão antes da primeira medição usando umidade inicial e in�
   assert.equal(forecast.forecastAt.toISOString(), '2026-06-21T20:16:12.444Z');
 });
 
+
+test('marca descarga imediata quando o horário atual é igual à previsão', () => {
+  const forecast = calculateDischargeForecast({
+    batch: {
+      started_at: '2026-07-10T12:00:00.000Z',
+      target_moisture: '14',
+      umidade_inicial: '20',
+    },
+    readings: [],
+    now: '2026-07-10T13:40:00.000Z',
+    curveSettings: {
+      discharge_forecast_quadratic_coefficient: 0,
+      discharge_forecast_linear_coefficient: 10,
+      discharge_forecast_constant_coefficient: -100,
+    },
+  });
+
+  assert.equal(forecast.status, 'immediate');
+  assert.equal(forecast.forecastAt.toISOString(), '2026-07-10T13:40:00.000Z');
+});
+
 test('mantém a umidade inicial antes da primeira medição ao calcular a média real', () => {
   const batchStartedAt = new Date('2026-06-21T13:00:00.000Z');
   const lastMeasuredAt = new Date('2026-06-21T13:15:00.000Z');
