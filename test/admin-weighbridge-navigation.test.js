@@ -71,6 +71,32 @@ test('admin home shows initial forecast before the first moisture reading', () =
   assert.match(html, /<span>Previsão da próxima descarga<\/span>\s*<strong>Descarga imediata<\/strong>/);
 });
 
+test('admin home uses configured forecast curve before the first moisture reading', () => {
+  const html = renderPage(renderAdminHomePage, {
+    notifications: [],
+    contractsSummary: {},
+    dryerBatch: {
+      started_at: '2099-07-10T12:00:00.000Z',
+      target_moisture: '14',
+      umidade_inicial: '20',
+    },
+    dryerReadings: [],
+    dryerSettings: {
+      target_moisture: '14',
+      discharge_forecast_quadratic_coefficient: 0,
+      discharge_forecast_linear_coefficient: 10,
+      discharge_forecast_constant_coefficient: -100,
+    },
+    storageSummary: [],
+    scaleInputs: [],
+    scaleOutputs: [],
+    message: '',
+    error: '',
+  });
+
+  assert.match(html, /<span>Previsão da próxima descarga<\/span>\s*<strong>10\/07\/2099, 10:40<\/strong>/);
+});
+
 const { renderAdminBatchesPage } = require('../routes/renderers');
 const { buildDryerMoistureReadingsCsv } = require('../routes/dryer-csv');
 
@@ -143,6 +169,29 @@ test('admin dryer dashboard links to dedicated dryer configuration page', () => 
   assert.match(html, /href="\/admin\/secador\/config">Alterar configurações do secador<\/a>/);
   assert.doesNotMatch(html, /<form class="dryer-moisture-form admin-target-form"/);
   assert.doesNotMatch(html, /Previsão por umidade/);
+});
+
+test('admin dryer dashboard uses configured forecast curve before the first moisture reading', () => {
+  const { renderAdminDashboardPage } = require('../routes/renderers');
+  const html = renderPage(renderAdminDashboardPage, {
+    batch: {
+      started_at: '2099-07-10T12:00:00.000Z',
+      target_moisture: '14',
+      umidade_inicial: '20',
+      grain_type: 'milho',
+    },
+    readings: [],
+    settings: {
+      target_moisture: '14',
+      discharge_forecast_quadratic_coefficient: 0,
+      discharge_forecast_linear_coefficient: 10,
+      discharge_forecast_constant_coefficient: -100,
+    },
+    message: '',
+    error: '',
+  });
+
+  assert.match(html, /Previsão \/ início da descarga<\/span>\s*<strong>10\/07\/2099, 10:40<\/strong>/);
 });
 
 test('admin dryer config page shows forecast preview table for configured moisture examples', () => {

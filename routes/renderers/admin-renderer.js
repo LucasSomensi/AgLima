@@ -273,7 +273,7 @@ function formatBatchStatusLabel(batch) {
   return batch.discharge_started_at ? 'Descarregando' : 'Secando';
 }
 
-function buildReadingEvolutionRows(batch, readings = [], { includeOperator = true, compactTime = false, expandableOperator = false } = {}) {
+function buildReadingEvolutionRows(batch, readings = [], { includeOperator = true, compactTime = false, expandableOperator = false, curveSettings } = {}) {
   const columns = includeOperator ? 6 : 5;
 
   if (!readings.length) {
@@ -292,6 +292,7 @@ function buildReadingEvolutionRows(batch, readings = [], { includeOperator = tru
       batch: batch ? { ...batch, discharge_started_at: null } : null,
       readings: readingsUntilPoint,
       now: measuredAt,
+      curveSettings,
     });
 
     rowsById.set(String(reading.id), {
@@ -629,8 +630,8 @@ function renderAdminContractsPanel(summary = {}) {
       `;
 }
 
-function renderAdminDryerPanel(batch, readings = []) {
-  const dischargeForecast = getBatchDischargeForecast(batch, readings);
+function renderAdminDryerPanel(batch, readings = [], settings) {
+  const dischargeForecast = getBatchDischargeForecast(batch, readings, settings);
   const dischargeLabel = batch?.discharge_started_at ? 'Início da descarga' : 'Previsão da próxima descarga';
 
   return `
@@ -695,13 +696,13 @@ function renderAdminWeighbridgePanel({ inputs = [], outputs = [] } = {}) {
       `;
 }
 
-function renderAdminHomePage(res, { notifications = [], contractsSummary = {}, dryerBatch = null, dryerReadings = [], storageSummary = [], scaleInputs = [], scaleOutputs = [], message, error } = {}) {
+function renderAdminHomePage(res, { notifications = [], contractsSummary = {}, dryerBatch = null, dryerReadings = [], dryerSettings, storageSummary = [], scaleInputs = [], scaleOutputs = [], message, error } = {}) {
   const adminHomeHtml = renderTemplate('admin-home.html', {
     ADMIN_HOME_MESSAGE: buildAlertHtml(message),
     ADMIN_HOME_ERROR: buildAlertHtml(error, 'error'),
     ADMIN_NOTIFICATIONS_PANEL: renderAdminNotificationsPanel(notifications),
     ADMIN_CONTRACTS_PANEL: renderAdminContractsPanel(contractsSummary),
-    ADMIN_DRYER_PANEL: renderAdminDryerPanel(dryerBatch, dryerReadings),
+    ADMIN_DRYER_PANEL: renderAdminDryerPanel(dryerBatch, dryerReadings, dryerSettings),
     ADMIN_STORAGE_PANEL: renderAdminStoragePanel(storageSummary),
     ADMIN_WEIGHBRIDGE_PANEL: renderAdminWeighbridgePanel({ inputs: scaleInputs, outputs: scaleOutputs }),
   });
@@ -757,7 +758,7 @@ function renderAdminDashboardPage(res, { batch, readings, settings, message, err
   const statusLabel = formatBatchStatusLabel(batch);
   const currentTargetMoisture = formatMoisture(settings?.target_moisture);
   const batchTargetMoisture = batch ? formatMoisture(batch.target_moisture) : currentTargetMoisture;
-  const readingsRows = renderReadingsRows(readings, { batch });
+  const readingsRows = renderReadingsRows(readings, { batch, curveSettings: settings });
   const dischargeForecast = getBatchDischargeForecast(batch, readings, settings);
   const dashboardHtml = fs
     .readFileSync(dashboardPath, 'utf8')

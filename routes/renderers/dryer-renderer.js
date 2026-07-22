@@ -174,7 +174,7 @@ function toReadingTimestamp(value) {
   return Number.isFinite(timestamp) ? timestamp : null;
 }
 
-function renderDryerReadingRows(batch, readings = []) {
+function renderDryerReadingRows(batch, readings = [], curveSettings) {
   const columns = 2;
 
   if (!readings.length) {
@@ -191,6 +191,7 @@ function renderDryerReadingRows(batch, readings = []) {
       batch: batch ? { ...batch, discharge_started_at: null } : null,
       readings: validReadings.slice(0, index + 1),
       now: new Date(reading.measured_at),
+      curveSettings,
     });
 
     evolutionById.set(String(reading.id), {
@@ -276,12 +277,12 @@ function renderDryerStartBatchPage(res, { defaultInitialMoisture, error }) {
 
 function renderDryerPanelPage(res, { batch, readings, settings, message, error, unclassifiedInputs = [], lastCompletedBatch = null }) {
   const dischargeForecast = batch?.discharge_started_at
-    ? calculateDischargeForecast({ batch, readings })
-    : (getLatestPersistedForecast(readings) || calculateDischargeForecast({ batch, readings }));
+    ? calculateDischargeForecast({ batch, readings, curveSettings: settings })
+    : (getLatestPersistedForecast(readings) || calculateDischargeForecast({ batch, readings, curveSettings: settings }));
   const startedAt = batch ? formatDateTime(batch.started_at) : 'Nenhuma batelada ativa';
   const dischargeStartedAt = formatDischargeForecast(dischargeForecast);
   const initialMoisture = batch ? `${formatMoisture(batch.umidade_inicial)}%` : '-';
-  const readingsRows = renderDryerReadingRows(batch, readings);
+  const readingsRows = renderDryerReadingRows(batch, readings, settings);
   const batchStatusHtml = formatDryerStatus(batch);
   const moistureFormDisabled = batch ? '' : 'disabled';
   const batchAction = batch && !batch.discharge_started_at
