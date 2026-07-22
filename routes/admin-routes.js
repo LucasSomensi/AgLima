@@ -92,10 +92,11 @@ function buildAdminHomeRedirect(params = {}) {
 
 router.get('/admin', canAccessAdminPanel, async (req, res) => {
   try {
-    const [notifications, contractsSummary, dryerBatch, storageSummary, scaleInputs, scaleOutputs] = await Promise.all([
+    const [notifications, contractsSummary, dryerBatch, dryerSettings, storageSummary, scaleInputs, scaleOutputs] = await Promise.all([
       listAdminContractNotifications(),
       getAdminContractsSummary(),
       getActiveDryerBatch(),
+      getDryerSettings(),
       getStorageSummary(),
       listScaleInputs({ limit: 10 }),
       listScaleOutputs({ limit: 10 }),
@@ -107,6 +108,7 @@ router.get('/admin', canAccessAdminPanel, async (req, res) => {
       contractsSummary,
       dryerBatch,
       dryerReadings,
+      dryerSettings,
       storageSummary,
       scaleInputs,
       scaleOutputs,
