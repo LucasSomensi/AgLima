@@ -18,6 +18,13 @@
  public       | auditoria_acoes             |                9 | dados_posteriores                        | jsonb                       | YES         | 
  public       | auditoria_acoes             |               10 | detalhes                                 | jsonb                       | NO          | '{}'::jsonb
  public       | auditoria_acoes             |               11 | criado_em                                | timestamp with time zone    | NO          | now()
+ public       | auth_login_events           |                1 | id                                       | bigint                      | NO          | 
+ public       | auth_login_events           |                2 | login_informado                          | text                        | NO          | 
+ public       | auth_login_events           |                3 | usuario_id                               | uuid                        | YES         | 
+ public       | auth_login_events           |                4 | resultado                                | text                        | NO          | 
+ public       | auth_login_events           |                5 | ip_origem                                | text                        | YES         | 
+ public       | auth_login_events           |                6 | user_agent                               | text                        | YES         | 
+ public       | auth_login_events           |                7 | criado_em                                | timestamp with time zone    | NO          | now()
  public       | compradores                 |                1 | id                                       | bigint                      | NO          | nextval('compradores_id_seq'::regclass)
  public       | compradores                 |                2 | nome                                     | character varying           | NO          | 
  public       | compradores                 |                3 | nome_completo                            | character varying           | YES         | 
