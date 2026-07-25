@@ -16,6 +16,7 @@ Este documento descreve o schema `public` do banco PostgreSQL usado pela aplica�
   - [`entradas_balanca`](#entradas_balanca)
   - [`saidas_balanca`](#saidas_balanca)
   - [`auditoria_acoes`](#auditoria_acoes)
+  - [`auth_login_events`](#auth_login_events)
   - [`users`](#users)
   - [`dryer_settings`](#dryer_settings)
   - [`dryer_batches`](#dryer_batches)
@@ -38,6 +39,7 @@ Este documento descreve o schema `public` do banco PostgreSQL usado pela aplica�
 | `saidas_balanca` | `criado_por_user_id` | `users` | `id` | Registra o operador que lançou a saída. |
 | `saidas_balanca` | `associado_por_user_id` | `users` | `id` | Registra o operador que associou a saída ao contrato. |
 | `auditoria_acoes` | `usuario_id` | `users` | `id` | Registra o usuário responsável pela ação auditada. |
+| `auth_login_events` | `usuario_id` | `users` | `id` | Associa eventos de login ao usuário encontrado, quando o login informado corresponde a uma conta existente. |
 | `dryer_batches` | `started_by_user_id` | `users` | `id` | Registra o usuário que iniciou a batelada. |
 | `dryer_batches` | `completed_by_user_id` | `users` | `id` | Registra o usuário que concluiu/parou a batelada. |
 | `dryer_moisture_readings` | `batch_id` | `dryer_batches` | `id` | Vincula medições de umidade a uma batelada. |
@@ -357,6 +359,50 @@ Registra ações sensíveis executadas por usuários em entidades operacionais d
 - Para edições, os dois snapshots são preenchidos.
 - Para divisão de saída, duas linhas são gravadas com o mesmo `grupo_acao_id`: uma para a saída original alterada e outra para a nova saída criada.
 - Consulte também [`docs/auditoria.md`](auditoria.md) para detalhes operacionais.
+
+
+## `auth_login_events`
+
+Registra eventos de autenticação do sistema, incluindo logins bem-sucedidos e tentativas de login sem sucesso. A tabela é separada de `auditoria_acoes` porque tentativas inválidas podem não estar associadas a um usuário existente e, portanto, não devem exigir `usuario_id`.
+
+### Colunas
+
+| Coluna | Tipo | Nulo? | Default | Descrição |
+| --- | --- | --- | --- | --- |
+| `id` | `bigint` | Não | identity | Identificador sequencial do evento de login. |
+| `login_informado` | `text` | Não | — | Login digitado na tentativa de autenticação. Não armazena senha, hash, cookie ou token de sessão. |
+| `usuario_id` | `uuid` | Sim | — | Usuário associado ao login informado, quando a conta existe. FK para `users.id` com `ON DELETE SET NULL`. |
+| `resultado` | `text` | Não | — | Resultado lógico da tentativa: `sucesso`, `senha_invalida`, `usuario_inexistente`, `usuario_desativado` ou `erro_sistema`. |
+| `ip_origem` | `text` | Sim | — | Endereço IP observado na requisição de login, quando disponível. |
+| `user_agent` | `text` | Sim | — | Cabeçalho User-Agent observado na requisição de login, quando disponível. |
+| `criado_em` | `timestamp with time zone` | Não | `now()` | Data/hora em que o evento foi registrado. |
+
+### Restrições
+
+| Tipo | Nome | Coluna(s) / referência |
+| --- | --- | --- |
+| Primary key | `auth_login_events_pkey` | `id` |
+| Foreign key | `auth_login_events_usuario_id_fkey` | `usuario_id` → `users.id` (`ON DELETE SET NULL`) |
+| Check | `auth_login_events_login_informado_texto_check` | `login_informado` |
+| Check | `auth_login_events_resultado_check` | `resultado` |
+| Check | `auth_login_events_ip_origem_texto_check` | `ip_origem` |
+| Check | `auth_login_events_user_agent_texto_check` | `user_agent` |
+
+### Índices operacionais
+
+| Índice | Coluna(s) | Uso |
+| --- | --- | --- |
+| `auth_login_events_criado_em_idx` | `criado_em DESC` | Listagens cronológicas dos eventos de login. |
+| `auth_login_events_login_criado_em_idx` | `login_informado`, `criado_em DESC` | Consultar tentativas por login informado. |
+| `auth_login_events_usuario_criado_em_idx` | `usuario_id`, `criado_em DESC` | Consultar eventos associados a um usuário existente. |
+| `auth_login_events_resultado_criado_em_idx` | `resultado`, `criado_em DESC` | Consultar eventos por resultado, como falhas de senha ou logins bem-sucedidos. |
+
+### Comportamento esperado na aplicação
+
+- A tabela deve receber uma linha para cada tentativa de autenticação, independentemente de sucesso ou falha.
+- O campo `usuario_id` deve ser preenchido somente quando o login informado corresponder a uma conta existente.
+- A aplicação nunca deve gravar senha digitada, hash de senha, cookie, token de sessão nem o corpo completo da requisição nessa tabela.
+- A consulta desses eventos deve ser restrita ao usuário `root`.
 
 
 ## `users`
