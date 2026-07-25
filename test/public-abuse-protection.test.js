@@ -10,6 +10,7 @@ process.env.CONTACT_TO = 'to@example.com';
 const app = require('../app');
 const mailer = require('../routes/mailer');
 const userService = require('../routes/user-service');
+const authLoginService = require('../routes/auth-login-service');
 const { contactRateLimiter, loginRateLimiter } = require('../routes/rate-limit');
 const { normalizeContactPayload, validateContactPayload } = require('../routes/contact-validation');
 
@@ -51,11 +52,13 @@ function validContact(overrides = {}) {
 
 test('public abuse protection integration', async (t) => {
   const originalFindUserByLogin = userService.findUserByLogin;
+  const originalRecordLoginEvent = authLoginService.recordLoginEvent;
   const originalSendMailerSendEmail = mailer.sendMailerSendEmail;
   const originalHasEmailConfig = mailer.hasEmailConfig;
 
   t.after(() => {
     userService.findUserByLogin = originalFindUserByLogin;
+    authLoginService.recordLoginEvent = originalRecordLoginEvent;
     mailer.sendMailerSendEmail = originalSendMailerSendEmail;
     mailer.hasEmailConfig = originalHasEmailConfig;
   });
@@ -67,6 +70,7 @@ test('public abuse protection integration', async (t) => {
     loginRateLimiter.reset();
     contactRateLimiter.reset();
     userService.findUserByLogin = async () => null;
+    authLoginService.recordLoginEvent = async () => {};
     mailer.hasEmailConfig = () => true;
   });
 
