@@ -68,6 +68,53 @@ function renderAdminUsersPage(res, { users, message, error }) {
   res.send(adminHtml);
 }
 
+const LOGIN_RESULT_LABELS = {
+  sucesso: 'Sucesso',
+  senha_invalida: 'Senha inválida',
+  usuario_inexistente: 'Usuário inexistente',
+  usuario_desativado: 'Usuário desativado',
+  erro_sistema: 'Erro do sistema',
+};
+
+function renderAdminLoginEventsPage(res, { events, page, total, totalPages }) {
+  const rowsHtml = events
+    .map((event) => {
+      const resultClass = event.resultado === 'sucesso' ? 'login-event-success' : 'login-event-failure';
+      const associatedUser = event.usuario_id
+        ? `${escapeHtml(event.usuario_login || 'Usuário removido')}<br><span class="admin-muted">${escapeHtml(event.usuario_id)}</span>`
+        : '-';
+
+      return `
+        <tr>
+          <td>${escapeHtml(formatDateTime(event.criado_em))}</td>
+          <td>${escapeHtml(event.login_informado)}</td>
+          <td>${associatedUser}</td>
+          <td><span class="login-event-result ${resultClass}">${escapeHtml(LOGIN_RESULT_LABELS[event.resultado] || event.resultado)}</span></td>
+          <td>${escapeHtml(event.ip_origem || '-')}</td>
+          <td class="login-event-user-agent">${escapeHtml(event.user_agent || '-')}</td>
+        </tr>
+      `;
+    })
+    .join('') || renderEmptyRow(6, 'Nenhuma tentativa de login registrada.');
+  const previousLink = page > 1
+    ? `<a class="btn-secondary-action" href="/admin/tentativas-login?pagina=${page - 1}">← Mais recentes</a>`
+    : '';
+  const nextLink = page < totalPages
+    ? `<a class="btn-secondary-action" href="/admin/tentativas-login?pagina=${page + 1}">Mais antigas →</a>`
+    : '';
+
+  const html = renderTemplate('admin-login-events.html', {
+    LOGIN_EVENTS_ROWS: rowsHtml,
+    LOGIN_EVENTS_TOTAL: escapeHtml(total),
+    LOGIN_EVENTS_PAGE: escapeHtml(page),
+    LOGIN_EVENTS_TOTAL_PAGES: escapeHtml(totalPages),
+    LOGIN_EVENTS_PREVIOUS_LINK: previousLink,
+    LOGIN_EVENTS_NEXT_LINK: nextLink,
+  });
+
+  res.send(html);
+}
+
 
 function formatDurationBetween(start, end) {
   if (!start || !end) {
@@ -1036,6 +1083,7 @@ module.exports = {
   renderAdminDashboardPage,
   renderAdminDryerConfigPage,
   renderAdminHomePage,
+  renderAdminLoginEventsPage,
   renderAdminStoragePage,
   renderAdminUsersPage,
   renderConstructionPage,

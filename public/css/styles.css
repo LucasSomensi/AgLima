@@ -426,6 +426,51 @@ body {
   border-bottom: 0;
 }
 
+.admin-header-actions,
+.login-events-pagination {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.admin-header-actions form {
+  margin: 0;
+}
+
+.login-events-table {
+  min-width: 1050px;
+}
+
+.login-event-result {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 0.2rem 0.65rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.login-event-success {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.login-event-failure {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.login-event-user-agent {
+  max-width: 360px;
+  overflow-wrap: anywhere;
+}
+
+.login-events-pagination {
+  justify-content: flex-end;
+  margin-top: 1.25rem;
+}
+
 .admin-success {
   margin: 0 0 20px;
   padding: 12px 14px;

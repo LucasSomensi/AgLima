@@ -404,6 +404,12 @@ Registra eventos de autenticação do sistema, incluindo logins bem-sucedidos e 
 - A aplicação nunca deve gravar senha digitada, hash de senha, cookie, token de sessão nem o corpo completo da requisição nessa tabela.
 - A consulta desses eventos deve ser restrita ao usuário `root`.
 
+### Uso pela aplicação
+
+- `POST /login` registra o resultado da tentativa junto do login informado, usuário associado (quando existente), IP de origem e cabeçalho `User-Agent`.
+- `/admin/tentativas-login` apresenta ao usuário `root` os eventos mais recentes, em páginas de 100 registros, e identifica separadamente sucesso, senha inválida, usuário inexistente, usuário desativado e erro do sistema.
+- A página de gerenciamento de usuários oferece um atalho para esse histórico. Outros perfis recebem resposta de acesso negado pelo middleware `requireRoot`.
+
 
 ## `users`
 

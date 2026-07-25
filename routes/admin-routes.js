@@ -42,6 +42,7 @@ const {
   renderAdminDashboardPage,
   renderAdminDryerConfigPage,
   renderAdminHomePage,
+  renderAdminLoginEventsPage,
   renderAdminStoragePage,
   renderAdminUsersPage,
 } = require('./renderers/admin-renderer');
@@ -51,6 +52,7 @@ const {
   listManagedUsers,
   updateManagedUserPassword,
 } = require('./user-service');
+const { listLoginEvents } = require('./auth-login-service');
 const { buildRedirect, parseMoisturePercent } = require('./utils');
 
 function parseForecastCurveCoefficient(rawValue) {
@@ -608,6 +610,23 @@ router.get('/admin/usuarios', requireRoot, async (req, res) => {
   } catch (error) {
     console.error('Error listing users:', error.message);
     return res.status(500).send('Não foi possível carregar os usuários agora.');
+  }
+});
+
+router.get('/admin/tentativas-login', requireRoot, async (req, res) => {
+  const requestedPage = Number.parseInt(req.query.pagina, 10);
+
+  try {
+    const loginEvents = await listLoginEvents({ page: requestedPage });
+
+    if (loginEvents.total > 0 && requestedPage > loginEvents.totalPages) {
+      return res.redirect(`/admin/tentativas-login?pagina=${loginEvents.totalPages}`);
+    }
+
+    return renderAdminLoginEventsPage(res, loginEvents);
+  } catch (error) {
+    console.error('Error listing login events:', error.message);
+    return res.status(500).send('Não foi possível carregar as tentativas de login agora.');
   }
 });
 

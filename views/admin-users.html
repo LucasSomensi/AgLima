@@ -20,10 +20,13 @@
             <h1 id="admin-title" class="page-title">Gerenciar usuários</h1>
             <p class="page-description">Crie logins para administradores, clientes e operadores, ou remova usuários que não devem mais acessar o sistema.</p>
           </div>
-          <form action="/logout" method="post">
-            <input type="hidden" name="_csrf" value="{{CSRF_TOKEN}}">
-            <button class="btn-secondary-action" type="submit">Sair</button>
-          </form>
+          <div class="admin-header-actions">
+            <a class="btn-secondary-action" href="/admin/tentativas-login">Tentativas de login</a>
+            <form action="/logout" method="post">
+              <input type="hidden" name="_csrf" value="{{CSRF_TOKEN}}">
+              <button class="btn-secondary-action" type="submit">Sair</button>
+            </form>
+          </div>
         </div>
 
         {{ADMIN_MESSAGE}}
