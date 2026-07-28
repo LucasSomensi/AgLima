@@ -17,7 +17,7 @@ const {
   toDateOnlyInputValue,
   toDateTimeLocalValue,
 } = require('../utils');
-const { buildAlertHtml, renderEmptyRow, renderTemplate } = require('./template-utils');
+const { buildAlertHtml, buildPaginationHtml, renderEmptyRow, renderTemplate } = require('./template-utils');
 const { buildScaleInputRows, buildScaleOutputRows } = require('./weighbridge-renderer');
 
 function renderAdminUsersPage(res, { users, message, error }) {
@@ -849,7 +849,7 @@ function getBatchTimelineDates(batch, now = new Date()) {
   return { timelineEnd, dryingEnd, dischargeEnd };
 }
 
-function renderAdminBatchesPage(res, { batches, now = new Date() }) {
+function renderAdminBatchesPage(res, { batches, pagination = { page: 1, totalPages: 1 }, now = new Date() }) {
   const batchesPath = path.join(__dirname, '../../views/admin-batches.html');
   const rowsHtml = batches
     .map((batch) => {
@@ -875,7 +875,12 @@ function renderAdminBatchesPage(res, { batches, now = new Date() }) {
   const emptyState = '<tr><td colspan="10">Nenhuma batelada encontrada.</td></tr>';
   const batchesHtml = fs
     .readFileSync(batchesPath, 'utf8')
-    .replace('{{BATCHES_ROWS}}', rowsHtml || emptyState);
+    .replace('{{BATCHES_ROWS}}', rowsHtml || emptyState)
+    .replace('{{PAGINATION}}', buildPaginationHtml({
+      ...pagination,
+      basePath: '/admin/bateladas',
+      ariaLabel: 'Paginação das bateladas',
+    }));
 
   res.send(batchesHtml);
 }

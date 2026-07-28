@@ -53,7 +53,7 @@ const {
   updateManagedUserPassword,
 } = require('./user-service');
 const { listLoginEvents } = require('./auth-login-service');
-const { buildRedirect, parseMoisturePercent } = require('./utils');
+const { buildRedirect, paginateItems, parseMoisturePercent } = require('./utils');
 
 function parseForecastCurveCoefficient(rawValue) {
   const normalizedValue = String(rawValue || '').trim().replace(',', '.');
@@ -553,8 +553,9 @@ router.post('/admin/umidade-alvo', canAccessAdminPanel, async (req, res) => {
 
 router.get('/admin/bateladas', canAccessAdminPanel, async (req, res) => {
   try {
-    const batches = await listAdminDryerBatches();
-    return renderAdminBatchesPage(res, { batches });
+    const allBatches = await listAdminDryerBatches();
+    const pagination = paginateItems(allBatches, req.query.pagina);
+    return renderAdminBatchesPage(res, { batches: pagination.items, pagination });
   } catch (error) {
     console.error('Error listing dryer batches:', error.message);
     return res.status(500).send('Não foi possível carregar as bateladas anteriores agora.');

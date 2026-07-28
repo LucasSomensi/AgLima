@@ -55,7 +55,7 @@ const {
   renderScaleOutputsListPage,
   renderWeighbridgeHomePage,
 } = require('./renderers/weighbridge-renderer');
-const { buildRedirect } = require('./utils');
+const { buildRedirect, paginateItems } = require('./utils');
 const { buildScaleInputsCsv, buildScaleOutputsCsv } = require('./weighbridge-csv');
 const { buildScaleOutputTicketPdf } = require('./weighbridge-ticket-pdf');
 
@@ -151,8 +151,13 @@ router.get('/balanca/entradas/tara-anterior', canAccessWeighbridge, async (req, 
 
 router.get('/balanca/entradas', canAccessWeighbridge, async (req, res) => {
   try {
-    const inputs = await listScaleInputs();
-    return renderScaleInputsListPage(res, { inputs, navigation: getWeighbridgeNavigation(req) });
+    const allInputs = await listScaleInputs();
+    const pagination = paginateItems(allInputs, req.query.pagina);
+    return renderScaleInputsListPage(res, {
+      inputs: pagination.items,
+      pagination,
+      navigation: getWeighbridgeNavigation(req),
+    });
   } catch (error) {
     console.error('Error listing scale inputs:', error.message);
     return res.status(500).send('Não foi possível listar as entradas agora.');
@@ -512,8 +517,13 @@ router.get('/balanca/contratos/:id', canAccessWeighbridge, async (req, res) => {
 
 router.get('/balanca/saidas', canAccessWeighbridge, async (req, res) => {
   try {
-    const outputs = await listScaleOutputs();
-    return renderScaleOutputsListPage(res, { outputs, navigation: getWeighbridgeNavigation(req) });
+    const allOutputs = await listScaleOutputs();
+    const pagination = paginateItems(allOutputs, req.query.pagina);
+    return renderScaleOutputsListPage(res, {
+      outputs: pagination.items,
+      pagination,
+      navigation: getWeighbridgeNavigation(req),
+    });
   } catch (error) {
     console.error('Error listing scale outputs:', error.message);
     return res.status(500).send('Não foi possível listar as saídas agora.');
