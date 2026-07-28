@@ -72,6 +72,10 @@ function formatKg(value) {
   return formatWeight(value, 'kg');
 }
 
+function formatKgAndSacks(value) {
+  return `${formatWeight(value, 'kg')} · ${formatWeight(value, 'sc')}`;
+}
+
 function formatRoundedKg(value) {
   if (value === null || value === undefined || value === '') {
     return '-';
@@ -334,19 +338,13 @@ function renderScaleContractDetailPage(res, { contract, outputs }) {
     .replace(/{{CONTRATO_ID}}/g, escapeHtml(contract.contrato_id))
     .replace('{{DATA_CONTRATO}}', escapeHtml(formatDate(contract.data_contrato)))
     .replace('{{PRODUTO}}', escapeHtml(formatProductLabel(contract.produto)))
-    .replace('{{QUANTIDADE_KG}}', escapeHtml(formatPlainDecimal(contract.quantidade_kg)))
-    .replace('{{QUANTIDADE_EMBARCADA_KG}}', escapeHtml(formatPlainDecimal(contract.quantidade_embarcada_kg)))
-    .replace('{{SALDO_KG}}', escapeHtml(formatPlainDecimal(contract.saldo_kg)))
+    .replace('{{QUANTIDADE}}', escapeHtml(formatKgAndSacks(contract.quantidade_kg)))
+    .replace('{{QUANTIDADE_EMBARCADA}}', escapeHtml(formatKgAndSacks(contract.quantidade_embarcada_kg)))
+    .replace('{{SALDO}}', escapeHtml(formatKgAndSacks(contract.saldo_kg)))
     .replace('{{VENDEDOR_NOME_COMPLETO}}', escapeHtml(contract.vendedor_nome_completo))
     .replace('{{COMPRADOR_NOME_COMPLETO}}', escapeHtml(contract.comprador_nome_completo))
-    .replace('{{COMPRADOR_CPF_CNPJ}}', escapeHtml(contract.comprador_cpf_cnpj))
-    .replace('{{COMPRADOR_INSCRICAO_ESTADUAL}}', escapeHtml(contract.comprador_inscricao_estadual))
-    .replace('{{COMPRADOR_ENDERECO}}', escapeHtml(contract.comprador_endereco))
-    .replace('{{COMPRADOR_NUMERO}}', escapeHtml(contract.comprador_numero))
-    .replace('{{COMPRADOR_CEP}}', escapeHtml(formatDigitsOnly(contract.comprador_cep)))
-    .replace('{{PRECO_POR_SACA}}', escapeHtml(formatPlainDecimal(contract.preco_por_saca)))
-    .replace('{{PRECO_POR_KG}}', escapeHtml(formatPlainDecimal(contract.preco_por_kg)))
-    .replace('{{OBSERVACOES}}', escapeHtml(contract.observacoes || '-'))
+    .replace('{{PRECO_POR_SACA}}', escapeHtml(formatMoney(contract.preco_por_saca)))
+    .replace('{{NUMERO_SAIDAS}}', escapeHtml(outputs.length))
     .replace('{{OUTPUT_ROWS}}', buildScaleContractOutputRows(outputs));
 
   res.send(html);

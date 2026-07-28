@@ -1403,20 +1403,11 @@ async function getContractDetailForWeighbridge(contractId) {
              c.data_contrato,
              c.produto,
              c.preco_por_saca,
-             round(c.preco_por_saca / 60, 10) AS preco_por_kg,
-             round(c.preco_por_saca / 60 * 1000, 10) AS preco_por_ton,
              c.quantidade_kg,
              COALESCE(shipped.quantidade_embarcada_kg, 0) AS quantidade_embarcada_kg,
              c.quantidade_kg - COALESCE(shipped.quantidade_embarcada_kg, 0) AS saldo_kg,
-             c.observacoes,
              vend.nome_completo AS vendedor_nome_completo,
-             comp.nome AS comprador_nome,
-             comp.nome_completo AS comprador_nome_completo,
-             comp.cpf_cnpj AS comprador_cpf_cnpj,
-             comp.inscricao_estadual AS comprador_inscricao_estadual,
-             comp.endereco AS comprador_endereco,
-             comp.numero AS comprador_numero,
-             comp.cep AS comprador_cep
+             comp.nome_completo AS comprador_nome_completo
       FROM contratos c
       JOIN vendedores vend ON vend.id = c.vendedor_id
       JOIN compradores comp ON comp.id = c.comprador_id

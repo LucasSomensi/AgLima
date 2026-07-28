@@ -5,6 +5,7 @@ const {
   renderScaleOutputFormPage,
   renderScaleOutputGrossFormPage,
   renderScaleOutputsListPage,
+  renderScaleContractDetailPage,
   renderWeighbridgeHomePage,
 } = require('../routes/renderers');
 const {
@@ -34,6 +35,31 @@ function renderPage(renderFn, params) {
 
   return html;
 }
+
+test('contract detail shows only requested summary fields with weights in kg and sacks', () => {
+  const html = renderPage(renderScaleContractDetailPage, {
+    contract: {
+      contrato_id: 42,
+      data_contrato: '2026-06-11',
+      produto: 'milho',
+      quantidade_kg: '12000',
+      quantidade_embarcada_kg: '3000',
+      saldo_kg: '9000',
+      vendedor_nome_completo: 'Vendedor Teste',
+      comprador_nome_completo: 'Comprador Teste',
+      preco_por_saca: '75.50',
+    },
+    outputs: [outputWithContract, { ...outputWithContract, id: 8 }],
+  });
+
+  assert.match(html, /<dt>Quantidade do contrato \(kg e sc\)<\/dt>[\s\S]*12\.000 kg · 200 sc/);
+  assert.match(html, /<dt>Quantidade embarcada \(kg e sc\)<\/dt>[\s\S]*3\.000 kg · 50 sc/);
+  assert.match(html, /<dt>Saldo \(kg e sc\)<\/dt>[\s\S]*9\.000 kg · 150 sc/);
+  assert.match(html, /<dt>Preço por saca<\/dt>[\s\S]*R\$\s75,50/);
+  assert.match(html, /<dt>Número de saídas associadas<\/dt>[\s\S]*>2<\/span>/);
+  assert.doesNotMatch(html, /CPF\/CNPJ do comprador|Preço por kg|Observações do contrato/);
+  assert.match(html, /<h2 id="contract-outputs-title">Saídas associadas<\/h2>/);
+});
 
 test('weighbridge home links contract column content to contract detail page', () => {
   const html = renderPage(renderWeighbridgeHomePage, {
