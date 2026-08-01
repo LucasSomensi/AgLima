@@ -7,6 +7,8 @@
  public       | armazenamento_recalibracoes |                5 | observacoes                              | text                        | YES         | 
  public       | armazenamento_recalibracoes |                6 | criado_por_user_id                       | uuid                        | NO          | 
  public       | armazenamento_recalibracoes |                7 | criado_em                                | timestamp with time zone    | NO          | now()
+ public       | armazenamento_recalibracoes |                8 | delta                                    | numeric                     | NO          | 0
+ public       | armazenamento_recalibracoes |                9 | delta_porcento                           | numeric                     | YES         | 
  public       | auditoria_acoes             |                1 | id                                       | bigint                      | NO          | 
  public       | auditoria_acoes             |                2 | tipo_acao                                | text                        | NO          | 
  public       | auditoria_acoes             |                3 | entidade_tipo                            | text                        | NO          | 
