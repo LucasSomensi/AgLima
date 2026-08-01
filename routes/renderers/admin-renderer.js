@@ -189,7 +189,7 @@ function formatKg(value) {
 
   return `${Number(value).toLocaleString('pt-BR', {
     minimumFractionDigits: 0,
-    maximumFractionDigits: 3,
+    maximumFractionDigits: 0,
   })} kg`;
 }
 
@@ -629,14 +629,14 @@ function renderAdminNotificationsPanel(notifications) {
       `;
 }
 
-function formatSacks(value) {
+function formatSacks(value, maximumFractionDigits = 0) {
   if (value === null || value === undefined || value === '') {
     return '-';
   }
 
   return `${Number(value).toLocaleString('pt-BR', {
     minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
+    maximumFractionDigits,
   })} sc`;
 }
 
@@ -669,8 +669,8 @@ function renderAdminContractsPanel(summary = {}) {
           </div>
           <div class="admin-home-metrics-grid">
             ${renderAdminMetric('Contratos ativos', String(summary.contratos_ativos || 0))}
-            ${renderAdminMetric('Soja a embarcar', `${formatKg(sojaKg)} · ${formatSacks(sojaKg / 60)}`)}
-            ${renderAdminMetric('Milho a embarcar', `${formatKg(milhoKg)} · ${formatSacks(milhoKg / 60)}`)}
+            ${renderAdminMetric('Soja a embarcar', `${formatKg(sojaKg)} · ${formatSacks(sojaKg / 60, 2)}`)}
+            ${renderAdminMetric('Milho a embarcar', `${formatKg(milhoKg)} · ${formatSacks(milhoKg / 60, 2)}`)}
             ${renderAdminMetric('Valor total a receber', formatMoney(summary.valor_total_a_receber || 0))}
             ${renderAdminMetricHtml('Próximo recebimento', nextReceipt)}
           </div>
@@ -1032,7 +1032,7 @@ function renderAdminContractsPage(res, { buyers, sellers, contracts, selectedBuy
           <td>${escapeHtml(contract.comprador_nome)}</td>
           <td>${escapeHtml(contract.produto)}</td>
           <td>${escapeHtml(formatMoney(contract.preco_por_saca))}</td>
-          <td>${escapeHtml(Number(contract.quantidade_kg).toLocaleString('pt-BR'))} kg</td>
+          <td>${escapeHtml(formatKg(contract.quantidade_kg))}</td>
           <td><a class="admin-table-link" href="${escapeHtml(buildContractsPageHref({ ...contractEditStatusParam })).replace('/admin/contratos', `/admin/contratos/contratos/${escapeHtml(contract.id)}/editar`)}">Editar</a></td>
         </tr>
       `)

@@ -61,7 +61,7 @@
             maximumFractionDigits: unit === 'sc' ? 1 : 3,
           });
           const weightKg = Number(value);
-          const displayWeight = unit === 'sc' ? weightKg / 60 : weightKg;
+          const displayWeight = unit === 'sc' ? weightKg / 60 : Math.round(weightKg);
 
           return formatter.format(displayWeight) + ' ' + unit;
         }

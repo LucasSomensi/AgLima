@@ -1,5 +1,4 @@
 const { APP_TIME_ZONE } = require('./constants');
-const { formatPlainDecimal } = require('./utils');
 
 const THERMAL_80MM_WIDTH_POINTS = 226.77;
 const TICKET_HEIGHT_POINTS = 430;
@@ -40,7 +39,7 @@ function formatTicketWeight(value) {
     return '-';
   }
 
-  return `${formatPlainDecimal(value)} kg`;
+  return `${Math.round(Number(value))} kg`;
 }
 
 function buildTicketLines(outputInfo) {

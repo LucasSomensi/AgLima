@@ -64,7 +64,7 @@ function formatWeight(value, unit = 'kg') {
 
   return `${convertedValue.toLocaleString('pt-BR', {
     minimumFractionDigits: 0,
-    maximumFractionDigits: unit === 'sc' ? 1 : 3,
+    maximumFractionDigits: unit === 'sc' ? 1 : 0,
   })} ${unit}`;
 }
 
@@ -137,7 +137,7 @@ function buildInputClipboardReport(input) {
     formatInputReportDateTime(input.data_entrada),
     input.placa_caminhao || '-',
     input.origem || '-',
-    `${formatPlainDecimal(input.peso_liquido_kg)}kg`,
+    `${formatRoundedKg(input.peso_liquido_kg)}kg`,
     `Umidade: ${formatReportMoisture(input.umidade_percent)}%`,
   ].join('\n');
 }
@@ -332,9 +332,9 @@ function buildScaleContractOutputRows(outputs) {
           <td><a class="admin-table-link" href="/balanca/saidas/${escapeHtml(output.id)}">${escapeHtml(formatDateTime(output.data_saida))}</a></td>
           <td>${escapeHtml(output.placa_caminhao)}</td>
           <td>${escapeHtml(formatProductLabel(output.produto))}</td>
-          <td>${escapeHtml(formatPlainDecimal(output.peso_tara_kg))}</td>
-          <td>${escapeHtml(formatPlainDecimal(output.peso_bruto_kg))}</td>
-          <td>${escapeHtml(formatPlainDecimal(output.peso_liquido_kg))}</td>
+          <td>${escapeHtml(formatRoundedKg(output.peso_tara_kg))}</td>
+          <td>${escapeHtml(formatRoundedKg(output.peso_bruto_kg))}</td>
+          <td>${escapeHtml(formatRoundedKg(output.peso_liquido_kg))}</td>
           <td><a class="admin-table-link" href="/balanca/saidas/${escapeHtml(output.id)}/nf">Informações NF</a></td>
         </tr>
       `)
@@ -463,7 +463,7 @@ function renderScaleInputDetailPage(res, { input, formValues = {}, message, erro
     .replace(/{{ENTRADA_ID}}/g, escapeHtml(input.id))
     .replace('{{DATA_ENTRADA_FORMATTED}}', escapeHtml(formatDateTime(input.data_entrada)))
     .replace('{{PRODUTO}}', escapeHtml(formatProductLabel(input.produto)))
-    .replace('{{PESO_BRUTO_FORMATTED}}', escapeHtml(formatPlainDecimal(input.peso_bruto_kg)))
+    .replace('{{PESO_BRUTO_FORMATTED}}', escapeHtml(formatRoundedKg(input.peso_bruto_kg)))
     .replace(/{{DATA_ENTRADA}}/g, escapeHtml(dataEntradaValue))
     .replace(/{{PLACA_CAMINHAO}}/g, escapeHtml(formValues.placa_caminhao ?? input.placa_caminhao ?? ''))
     .replace('{{PRODUCT_MILHO_SELECTED}}', selectedProduct === 'milho' ? ' selected' : '')
@@ -475,8 +475,8 @@ function renderScaleInputDetailPage(res, { input, formValues = {}, message, erro
     .replace(/{{UMIDADE_PERCENT}}/g, escapeHtml(formatDecimalInput(formValues.umidade_percent ?? input.umidade_percent ?? '')))
     .replace(/{{IMPUREZA_PERCENT}}/g, escapeHtml(formatDecimalInput(formValues.impureza_percent ?? input.impureza_percent ?? '')))
     .replace(/{{GRAOS_AVARIADOS_PERCENT}}/g, escapeHtml(formatDecimalInput(formValues.graos_avariados_percent ?? input.graos_avariados_percent ?? '')))
-    .replace('{{PESO_TARA_KG}}', escapeHtml(input.peso_tara_kg === null || input.peso_tara_kg === undefined ? 'Pendente' : formatPlainDecimal(input.peso_tara_kg)))
-    .replace('{{PESO_LIQUIDO_KG}}', escapeHtml(input.peso_liquido_kg === null || input.peso_liquido_kg === undefined ? '-' : formatPlainDecimal(input.peso_liquido_kg)))
+    .replace('{{PESO_TARA_KG}}', escapeHtml(input.peso_tara_kg === null || input.peso_tara_kg === undefined ? 'Pendente' : formatRoundedKg(input.peso_tara_kg)))
+    .replace('{{PESO_LIQUIDO_KG}}', escapeHtml(input.peso_liquido_kg === null || input.peso_liquido_kg === undefined ? '-' : formatRoundedKg(input.peso_liquido_kg)))
     .replace('{{LIQUIDO_REAL_KG}}', escapeHtml(formatRoundedKg(input.liquido_real_kg)))
     .replace('{{ORIGEM}}', input.origem ? escapeHtml(input.origem) : 'Pendente')
     .replace('{{CLASSIFICACAO}}', isInputClassified(input)
@@ -582,7 +582,7 @@ function buildScaleOutputInvoiceDetailHtml(outputInfo) {
     ['Informações adicionais de interesse do contribuinte', outputInfo.informacoes_interesse_contribuinte, { fullWidth: true }],
     ['Produto', formatProductLabel(outputInfo.produto)],
     ['CFOP', outputInfo.cfop ?? DEFAULT_INVOICE_CFOP],
-    ['Peso Líquido em kg', formatPlainDecimal(outputInfo.peso_liquido_kg)],
+    ['Peso Líquido em kg', formatRoundedKg(outputInfo.peso_liquido_kg)],
     ['Peso Líquido em ton', formatPlainDecimal(Number(outputInfo.peso_liquido_kg) / 1000)],
     ['Preço por kg', formatPlainDecimal(outputInfo.preco_por_kg)],
     ['Preço por ton', formatPlainDecimal(outputInfo.preco_por_ton)],
@@ -750,9 +750,9 @@ function renderScaleOutputDetailPage(res, { outputInfo, formValues = {}, message
     .replace('{{DATA_SAIDA}}', escapeHtml(formatDateTime(outputInfo.data_saida)))
     .replace('{{PLACA_CAMINHAO}}', escapeHtml(outputInfo.placa_caminhao))
     .replace('{{PRODUTO}}', escapeHtml(formatProductLabel(outputInfo.produto)))
-    .replace('{{PESO_TARA_KG}}', escapeHtml(formatPlainDecimal(outputInfo.peso_tara_kg)))
-    .replace('{{PESO_BRUTO_KG}}', escapeHtml(formatPlainDecimal(outputInfo.peso_bruto_kg)))
-    .replace(/{{PESO_LIQUIDO_KG}}/g, escapeHtml(formatPlainDecimal(outputInfo.peso_liquido_kg)))
+    .replace('{{PESO_TARA_KG}}', escapeHtml(formatRoundedKg(outputInfo.peso_tara_kg)))
+    .replace('{{PESO_BRUTO_KG}}', escapeHtml(formatRoundedKg(outputInfo.peso_bruto_kg)))
+    .replace(/{{PESO_LIQUIDO_KG}}/g, escapeHtml(formatRoundedKg(outputInfo.peso_liquido_kg)))
     .replace('{{INVOICE_INFO_LINK}}', buildScaleOutputInvoiceLinkHtml(outputInfo))
     .replace('{{OUTPUT_EDIT_FORM}}', buildScaleOutputEditFormHtml(outputInfo, formValues))
     .replace('{{OUTPUT_ACTIONS_SECTION}}', buildScaleOutputActionsHtml(outputInfo)), navigation);
@@ -770,7 +770,7 @@ function renderScaleOutputInvoicePage(res, { outputInfo, message, error, navigat
     .replace('{{DATA_SAIDA}}', escapeHtml(formatDateTime(outputInfo.data_saida)))
     .replace('{{PLACA_CAMINHAO}}', escapeHtml(outputInfo.placa_caminhao))
     .replace('{{PRODUTO}}', escapeHtml(formatProductLabel(outputInfo.produto)))
-    .replace(/{{PESO_LIQUIDO_KG}}/g, escapeHtml(formatPlainDecimal(outputInfo.peso_liquido_kg)))
+    .replace(/{{PESO_LIQUIDO_KG}}/g, escapeHtml(formatRoundedKg(outputInfo.peso_liquido_kg)))
     .replace('{{INVOICE_DETAIL_SECTION}}', buildScaleOutputInvoiceDetailHtml(outputInfo)), navigation);
 
   res.send(html);

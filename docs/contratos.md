@@ -10,6 +10,8 @@ A tela principal exibe apenas informações resumidas para manter a navegação 
 - **Vendedores:** mostra o nome de cada vendedor e o botão **Editar**.
 - **Contratos:** mostra data, comprador, produto, preço por saca, quantidade em kg e o botão **Editar**.
 
+Na apresentação de pesos, valores em kg são arredondados para o inteiro mais próximo. Valores em sacas também são inteiros nos demais módulos, mas, no contexto de acompanhamento do cumprimento dos contratos (quantidade, quantidade embarcada e saldo), podem ser exibidos com até duas casas decimais.
+
 No topo de cada lista há um botão para criação:
 
 - **Novo comprador** abre `/admin/contratos/compradores/novo`.

@@ -165,7 +165,7 @@ Uma saída só reduz o saldo quando `peso_liquido_kg` está preenchido. Como ess
 
 ### Precisão decimal
 
-O módulo preserva valores decimais em quilogramas e formata a interface com até três casas decimais. O backend aceita recalibrações com até três casas decimais para manter consistência com os pesos da balança.
+O módulo preserva valores decimais em quilogramas e o backend aceita recalibrações com até três casas decimais para manter consistência com os pesos da balança. Na apresentação, pesos em kg e em sacas são arredondados para o inteiro mais próximo.
 
 ## Pontos de atenção para mudanças futuras
 
