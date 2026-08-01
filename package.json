@@ -15,6 +15,7 @@
     "start": "node app.js",
     "create-root-user": "node scripts/create-root-user.js",
     "test": "node --test",
-    "backfill-dryer-derived-values": "node scripts/backfill-dryer-derived-values.js"
+    "backfill-dryer-derived-values": "node scripts/backfill-dryer-derived-values.js",
+    "backfill-storage-recalibration-deltas": "node scripts/backfill-storage-recalibration-deltas.js"
   }
 }

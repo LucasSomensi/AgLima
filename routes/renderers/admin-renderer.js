@@ -211,6 +211,35 @@ function formatStorageWeight(value) {
   })} sc`;
 }
 
+function formatStorageDelta(value) {
+  const numericValue = Number(value);
+
+  if (!Number.isFinite(numericValue)) {
+    return '-';
+  }
+
+  const prefix = numericValue > 0 ? '+' : '';
+  return `${prefix}${Math.round(numericValue).toLocaleString('pt-BR')} kg`;
+}
+
+function formatStoragePercentage(value) {
+  if (value === null || value === undefined || value === '') {
+    return '-';
+  }
+
+  const numericValue = Number(value);
+
+  if (!Number.isFinite(numericValue)) {
+    return '-';
+  }
+
+  const prefix = numericValue > 0 ? '+' : '';
+  return `${prefix}${numericValue.toLocaleString('pt-BR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}%`;
+}
+
 function renderAdminStoragePage(res, { summary, recalibrations, ignoredInputs, message, error }) {
   const ignoredInputsByProduct = new Map(
     ignoredInputs.map((item) => [item.produto, Number(item.entradas_pendentes || 0)])
@@ -245,11 +274,13 @@ function renderAdminStoragePage(res, { summary, recalibrations, ignoredInputs, m
           <td>${escapeHtml(formatDateTime(item.data_recalibracao))}</td>
           <td>${escapeHtml(formatProductLabel(item.produto))}</td>
           <td>${escapeHtml(formatStorageWeight(item.quantidade_real_kg))}</td>
+          <td>${escapeHtml(formatStorageDelta(item.delta))}</td>
+          <td>${escapeHtml(formatStoragePercentage(item.delta_porcento))}</td>
           <td>${escapeHtml(item.criado_por_login || '-')}</td>
           <td>${escapeHtml(item.observacoes || '-')}</td>
         </tr>
       `)
-    .join('') || '<tr><td colspan="5">Nenhuma recalibração registrada.</td></tr>';
+    .join('') || '<tr><td colspan="7">Nenhuma recalibração registrada.</td></tr>';
 
   const storageHtml = renderTemplate('admin-storage.html', {
     STORAGE_MESSAGE: buildAlertHtml(message),

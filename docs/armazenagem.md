@@ -62,6 +62,8 @@ Campos principais:
 - `produto`: `milho` ou `soja`, usando o enum `public.produto_contrato`;
 - `data_recalibracao`: data/hora em que o administrador conferiu fisicamente o silo;
 - `quantidade_real_kg`: quantidade real verificada no silo;
+- `delta`: diferença em kg entre a quantidade real informada e o saldo que o sistema calculava para aquele instante;
+- `delta_porcento`: delta dividido pelo total de entradas (`liquido_real_kg`) desde a recalibração anterior, multiplicado por 100; nulo quando não houve entradas;
 - `observacoes`: texto opcional para contexto da conferência;
 - `criado_por_user_id`: administrador que registrou a recalibração;
 - `criado_em`: data/hora de criação do registro.
@@ -105,6 +107,8 @@ Validações aplicadas:
 
 Após sucesso, redireciona para `/admin/armazenamento?recalibrado=1`.
 
+O insert e o cálculo dos deltas são feitos na mesma transação. Uma trava por produto evita que duas recalibrações simultâneas produzam períodos inconsistentes. Como a tela aceita datas históricas, após o insert a aplicação recalcula as recalibrações do produto em ordem de `data_recalibracao, id`, inclusive registros posteriores ao novo marco.
+
 ## Detalhes do cálculo
 
 A query de resumo usa uma CTE para buscar a última recalibração de cada produto:
@@ -145,6 +149,27 @@ AND (
 
 A decisão de usar `enum_range(NULL::public.produto_contrato)` garante que a tela continue exibindo todos os produtos cadastrados no enum, mesmo que não haja movimentações ou recalibrações para algum deles.
 
+### Delta da recalibração
+
+Para cada recalibração, o saldo calculado antes da medição é:
+
+```text
+saldo calculado = quantidade da recalibração anterior
+                  + soma de liquido_real_kg das entradas do período
+                  - soma de peso_liquido_kg das saídas do período
+
+delta = quantidade_real_kg - saldo calculado
+delta_porcento = delta / soma de liquido_real_kg das entradas do período * 100
+```
+
+O período começa logo após a recalibração anterior (`>`) e termina incluindo o instante da recalibração atual (`<=`). Para a primeira recalibração do produto, a base é zero e o período inclui todo o histórico até a medição. Se a soma das entradas for zero, `delta_porcento` é `NULL`. O histórico em `/admin/armazenamento` mostra os dois valores; deltas positivos recebem sinal `+` e valores nulos são exibidos como `-`.
+
+### Migration e backfill
+
+Execute primeiro `migrations/20260801_add_storage_recalibration_deltas.sql`. A migration cria `delta` como `numeric NOT NULL DEFAULT 0`, garantindo zero para todas as linhas atuais, e cria `delta_porcento` como `numeric` anulável.
+
+Em seguida, com `DATABASE_URL` configurada, execute `npm run backfill-storage-recalibration-deltas`. O script `scripts/backfill-storage-recalibration-deltas.js` recalcula as duas colunas para todas as recalibrações existentes em uma única transação. A execução é idempotente e pode ser repetida.
+
 ## Regras de negócio
 
 ### Recalibração como marco operacional
@@ -174,3 +199,4 @@ O módulo preserva valores decimais em quilogramas e o backend aceita recalibra�
 3. Se a recalibração precisar ser editável ou removível, implemente trilha de auditoria antes de permitir alteração direta de registros históricos.
 4. Se houver múltiplos silos independentes para o mesmo produto, será necessário adicionar uma dimensão de silo/local à tabela de recalibrações e às entradas/saídas usadas no cálculo.
 5. Se uma entrada ou saída for editada com data anterior/posterior à última recalibração, o saldo pode mudar automaticamente. Esse comportamento é esperado porque a data operacional define se o movimento pertence ou não ao período pós-recalibração.
+6. Os deltas são uma fotografia persistida. Se movimentos históricos forem editados depois, execute novamente o backfill para refletir a alteração nos deltas antigos.
