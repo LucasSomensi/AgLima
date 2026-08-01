@@ -9,7 +9,7 @@ const {
   toDateOnlyInputValue,
   toDateTimeLocalValue,
 } = require('../utils');
-const { buildAlertHtml } = require('./template-utils');
+const { buildAlertHtml, buildPaginationHtml } = require('./template-utils');
 
 const DEFAULT_INVOICE_OPERATION_NATURE = 'Venda';
 const DEFAULT_INVOICE_CFOP = '5101';
@@ -248,20 +248,30 @@ function renderWeighbridgeHomePage(res, { inputs = [], outputs = [], message, er
   res.send(html);
 }
 
-function renderScaleInputsListPage(res, { inputs, navigation }) {
+function renderScaleInputsListPage(res, { inputs, navigation, pagination = { page: 1, totalPages: 1 } }) {
   const pagePath = path.join(__dirname, '../../views/weighbridge-inputs.html');
   const html = applyWeighbridgeNavigation(fs
     .readFileSync(pagePath, 'utf8')
-    .replace('{{SCALE_INPUT_ROWS}}', buildScaleInputRows(inputs, { showAllLink: true })), navigation);
+    .replace('{{SCALE_INPUT_ROWS}}', buildScaleInputRows(inputs, { showAllLink: true }))
+    .replace('{{PAGINATION}}', buildPaginationHtml({
+      ...pagination,
+      basePath: '/balanca/entradas',
+      ariaLabel: 'Paginação das entradas',
+    })), navigation);
 
   res.send(html);
 }
 
-function renderScaleOutputsListPage(res, { outputs, navigation }) {
+function renderScaleOutputsListPage(res, { outputs, navigation, pagination = { page: 1, totalPages: 1 } }) {
   const pagePath = path.join(__dirname, '../../views/weighbridge-outputs.html');
   const html = applyWeighbridgeNavigation(fs
     .readFileSync(pagePath, 'utf8')
-    .replace('{{SCALE_OUTPUT_ROWS}}', buildScaleOutputRows(outputs, { showAllLink: true })), navigation);
+    .replace('{{SCALE_OUTPUT_ROWS}}', buildScaleOutputRows(outputs, { showAllLink: true }))
+    .replace('{{PAGINATION}}', buildPaginationHtml({
+      ...pagination,
+      basePath: '/balanca/saidas',
+      ariaLabel: 'Paginação das saídas',
+    })), navigation);
 
   res.send(html);
 }

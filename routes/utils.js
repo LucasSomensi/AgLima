@@ -252,7 +252,25 @@ function buildRedirect(path, params) {
   return `${path}?${searchParams.toString()}`;
 }
 
+const DEFAULT_PAGE_SIZE = 30;
+
+function paginateItems(items, requestedPage, pageSize = DEFAULT_PAGE_SIZE) {
+  const total = items.length;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const parsedPage = Number.parseInt(requestedPage, 10);
+  const page = Math.min(Math.max(Number.isInteger(parsedPage) ? parsedPage : 1, 1), totalPages);
+  const offset = (page - 1) * pageSize;
+
+  return {
+    items: items.slice(offset, offset + pageSize),
+    page,
+    totalPages,
+    total,
+  };
+}
+
 module.exports = {
+  DEFAULT_PAGE_SIZE,
   buildRedirect,
   escapeHtml,
   formatDate,
@@ -266,6 +284,7 @@ module.exports = {
   parseInitialMoisturePercent,
   parseMoisturePercent,
   parseOptionalDateTime,
+  paginateItems,
   toDateInputValue,
   toDateOnlyInputValue,
   toDateTimeLocalValue,

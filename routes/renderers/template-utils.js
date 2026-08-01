@@ -30,8 +30,22 @@ function renderEmptyRow(colSpan, message) {
   return `<tr><td colspan="${escapeHtml(colSpan)}">${escapeHtml(message)}</td></tr>`;
 }
 
+function buildPaginationHtml({ page, totalPages, basePath, ariaLabel }) {
+  const pageLinks = Array.from({ length: totalPages }, (_, index) => {
+    const pageNumber = index + 1;
+    const currentAttribute = pageNumber === page ? ' aria-current="page"' : '';
+    return `<a class="pagination-page${pageNumber === page ? ' is-active' : ''}" href="${escapeHtml(basePath)}?pagina=${pageNumber}"${currentAttribute}>${pageNumber}</a>`;
+  }).join('');
+
+  return `<nav class="table-pagination" aria-label="${escapeHtml(ariaLabel)}">
+    <span class="table-pagination-summary">Página ${escapeHtml(page)} de ${escapeHtml(totalPages)}</span>
+    <div class="table-pagination-pages">${pageLinks}</div>
+  </nav>`;
+}
+
 module.exports = {
   buildAlertHtml,
+  buildPaginationHtml,
   readTemplate,
   renderEmptyRow,
   renderTemplate,
