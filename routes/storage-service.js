@@ -84,6 +84,8 @@ async function listStorageRecalibrations(limit = 20) {
            r.produto,
            r.data_recalibracao,
            r.quantidade_real_kg,
+           r.delta,
+           r.delta_porcento,
            r.observacoes,
            r.criado_em,
            u.login AS criado_por_login
@@ -136,22 +138,83 @@ function buildStorageRecalibrationPayload(body) {
 }
 
 async function createStorageRecalibration(payload, userId) {
-  await pool.query(`
-    INSERT INTO armazenamento_recalibracoes (
-      produto,
-      data_recalibracao,
-      quantidade_real_kg,
-      observacoes,
-      criado_por_user_id
-    )
-    VALUES ($1, $2, $3, $4, $5);
-  `, [
-    payload.produto,
-    payload.dataRecalibracao,
-    payload.quantidadeRealKg,
-    payload.observacoes,
-    userId,
-  ]);
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+    await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [`armazenamento_recalibracoes:${payload.produto}`]);
+    await client.query(`
+      INSERT INTO armazenamento_recalibracoes (
+        produto,
+        data_recalibracao,
+        quantidade_real_kg,
+        observacoes,
+        criado_por_user_id
+      )
+      VALUES ($1, $2, $3, $4, $5);
+    `, [
+      payload.produto,
+      payload.dataRecalibracao,
+      payload.quantidadeRealKg,
+      payload.observacoes,
+      userId,
+    ]);
+
+    // Recalcula todo o produto para manter o histórico correto até quando uma
+    // medição é lançada fora da ordem cronológica.
+    await client.query(`
+      WITH periodos AS (
+        SELECT atual.id,
+               atual.quantidade_real_kg,
+               anterior.quantidade_real_kg AS base_anterior_kg,
+               anterior.data_recalibracao AS data_anterior,
+               COALESCE(entradas.total_kg, 0) AS entradas_kg,
+               COALESCE(saidas.total_kg, 0) AS saidas_kg
+        FROM armazenamento_recalibracoes atual
+        LEFT JOIN LATERAL (
+          SELECT r.data_recalibracao, r.quantidade_real_kg
+          FROM armazenamento_recalibracoes r
+          WHERE r.produto = atual.produto
+            AND (r.data_recalibracao, r.id) < (atual.data_recalibracao, atual.id)
+          ORDER BY r.data_recalibracao DESC, r.id DESC
+          LIMIT 1
+        ) anterior ON true
+        LEFT JOIN LATERAL (
+          SELECT SUM(e.liquido_real_kg) AS total_kg
+          FROM entradas_balanca e
+          WHERE e.produto = atual.produto
+            AND e.liquido_real_kg IS NOT NULL
+            AND (anterior.data_recalibracao IS NULL OR e.data_entrada > anterior.data_recalibracao)
+            AND e.data_entrada <= atual.data_recalibracao
+        ) entradas ON true
+        LEFT JOIN LATERAL (
+          SELECT SUM(s.peso_liquido_kg) AS total_kg
+          FROM saidas_balanca s
+          WHERE s.produto = atual.produto
+            AND s.peso_liquido_kg IS NOT NULL
+            AND (anterior.data_recalibracao IS NULL OR s.data_saida > anterior.data_recalibracao)
+            AND s.data_saida <= atual.data_recalibracao
+        ) saidas ON true
+        WHERE atual.produto = $1
+      ), deltas AS (
+        SELECT id,
+               quantidade_real_kg - (COALESCE(base_anterior_kg, 0) + entradas_kg - saidas_kg) AS delta,
+               entradas_kg
+        FROM periodos
+      )
+      UPDATE armazenamento_recalibracoes r
+      SET delta = d.delta,
+          delta_porcento = d.delta / NULLIF(d.entradas_kg, 0) * 100
+      FROM deltas d
+      WHERE r.id = d.id;
+    `, [payload.produto]);
+    await client.query('COMMIT');
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
 }
 
 module.exports = {

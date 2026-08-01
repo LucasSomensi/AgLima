@@ -163,6 +163,8 @@ Armazena os marcos manuais de recalibração do estoque do silo. Cada registro i
 | `produto` | `USER-DEFINED` | Não | — | Tipo `public.produto_contrato`; pela aplicação, valores aceitos: `milho` e `soja`. |
 | `data_recalibracao` | `timestamp with time zone` | Não | — | Data/hora em que a medição física foi feita. |
 | `quantidade_real_kg` | `numeric` | Não | — | Quantidade real conferida fisicamente no silo, em quilogramas. |
+| `delta` | `numeric` | Não | `0` | Diferença, em kg, entre `quantidade_real_kg` e o saldo calculado imediatamente antes da recalibração. |
+| `delta_porcento` | `numeric` | Sim | — | `delta / total de liquido_real_kg das entradas * 100` desde a recalibração anterior; fica nulo quando esse total é zero. |
 | `observacoes` | `text` | Sim | — | Observações livres sobre a conferência manual. |
 | `criado_por_user_id` | `uuid` | Não | — | Administrador que registrou a recalibração. FK para `users.id`. |
 | `criado_em` | `timestamp with time zone` | Não | `now()` | Data/hora de criação do registro. |
@@ -175,13 +177,16 @@ Armazena os marcos manuais de recalibração do estoque do silo. Cada registro i
 | Foreign key | `armazenamento_recalibracoes_criado_por_user_id_fkey` | `criado_por_user_id` → `users.id` |
 | Check | `armazenamento_recalibracoes_quantidade_real_nao_negativa_check` | `quantidade_real_kg` |
 | Check | `armazenamento_recalibracoes_observacoes_texto_check` | `observacoes` |
-| Check / not null | constraints `armazenamento_recalibracoes_*_not_null` | `id`, `produto`, `data_recalibracao`, `quantidade_real_kg`, `criado_por_user_id`, `criado_em` |
+| Check / not null | constraints `armazenamento_recalibracoes_*_not_null` | `id`, `produto`, `data_recalibracao`, `quantidade_real_kg`, `delta`, `criado_por_user_id`, `criado_em` |
 
 ### Uso pela aplicação
 
 - `/admin/armazenamento` lista o saldo atual por produto, usando a recalibração mais recente como base quando houver.
 - `/admin/armazenamento/recalibracoes` insere uma nova medição manual com produto, data/hora, quantidade real e usuário administrador.
 - O cálculo considera entradas e saídas com data maior que `data_recalibracao`, para que a medição manual represente o saldo exato naquele instante.
+- Ao inserir uma medição, a aplicação calcula `delta = quantidade_real_kg - saldo_calculado`. O saldo anterior usa a recalibração precedente, as entradas (`liquido_real_kg`) e as saídas do intervalo.
+- `delta_porcento` mede o delta em relação à soma das entradas do mesmo intervalo. O valor é `NULL` se não houve entradas, evitando divisão por zero.
+- A migration `migrations/20260801_add_storage_recalibration_deltas.sql` cria as colunas e inicializa registros existentes com `delta = 0`. Depois da migration, `npm run backfill-storage-recalibration-deltas` recalcula o histórico existente.
 
 
 ## `entradas_balanca`
