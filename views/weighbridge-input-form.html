@@ -100,8 +100,12 @@
           if (!hasTare) {
             previousTareCheckbox.checked = false;
           }
+          const formattedTare = Number(tareLabel).toLocaleString('pt-BR', {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0,
+          });
           previousTareHelp.textContent = hasTare
-            ? 'Tara anterior disponível' + (tareLabel ? ': ' + tareLabel + ' kg.' : '.')
+            ? 'Tara anterior disponível' + (tareLabel ? ': ' + formattedTare + ' kg.' : '.')
             : 'Nenhuma tara anterior disponível para esta placa.';
         }
 
@@ -112,7 +116,11 @@
           }
 
           optionsContainer.innerHTML = plates.map(function (plate) {
-            const tareText = plate.tem_tara_anterior ? ' · tara ' + plate.peso_tara_kg + ' kg' : '';
+            const tare = Number(plate.peso_tara_kg).toLocaleString('pt-BR', {
+              minimumFractionDigits: 0,
+              maximumFractionDigits: 0,
+            });
+            const tareText = plate.tem_tara_anterior ? ' · tara ' + tare + ' kg' : '';
             return '<button class="weighbridge-plate-option" type="button" data-plate="' + plate.placa_caminhao + '" data-has-tare="' + (plate.tem_tara_anterior ? '1' : '0') + '" data-tare="' + (plate.peso_tara_kg || '') + '">' + plate.placa_caminhao + tareText + '</button>';
           }).join('');
         }
