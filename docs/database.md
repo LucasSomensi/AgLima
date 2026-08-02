@@ -491,6 +491,7 @@ Armazena as bateladas do secador.
 | Coluna | Tipo | Nulo? | Default | Descrição |
 | --- | --- | --- | --- | --- |
 | `id` | `uuid` | Não | `gen_random_uuid()` | Identificador da batelada. |
+| `n` | `bigint` | Não | `nextval('dryer_batches_n_seq'::regclass)` | Número sequencial positivo e único da batelada, atribuído em ordem cronológica. |
 | `grain_type` | `text` | Não | `'corn'::text` | Tipo de grão. O código usa esse campo para exibir/iniciar bateladas. |
 | `status` | `text` | Não | `'active'::text` | Status da batelada. O código usa `active` e `completed`. |
 | `started_at` | `timestamp with time zone` | Não | `now()` | Data/hora de início da batelada. |
@@ -510,6 +511,7 @@ Armazena as bateladas do secador.
 | Tipo | Nome | Coluna(s) / referência |
 | --- | --- | --- |
 | Primary key | `dryer_batches_pkey` | `id` |
+| Unique (deferrable) | `dryer_batches_n_key` | `n` |
 | Foreign key | `dryer_batches_started_by_user_id_fkey` | `started_by_user_id` → `users.id` |
 | Foreign key | `dryer_batches_completed_by_user_id_fkey` | `completed_by_user_id` → `users.id` |
 | Check | `dryer_batches_grain_type_check` | `grain_type` |
@@ -517,7 +519,8 @@ Armazena as bateladas do secador.
 | Check | `dryer_batches_completed_at_check` | `status`, `completed_at` |
 | Check | `dryer_batches_target_moisture_check` | `target_moisture` |
 | Check | `dryer_batches_umidade_inicial_check` | `umidade_inicial` |
-| Check / not null | constraints `dryer_batches_*_not_null` | `id`, `grain_type`, `status`, `started_at`, `target_moisture`, `umidade_inicial`, `created_at`, `updated_at` |
+| Check | `dryer_batches_n_check` | `n` |
+| Check / not null | constraints `dryer_batches_*_not_null` | `id`, `n`, `grain_type`, `status`, `started_at`, `target_moisture`, `umidade_inicial`, `created_at`, `updated_at` |
 
 ---
 

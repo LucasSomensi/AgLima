@@ -62,7 +62,7 @@ async function getActiveDryerBatch() {
 
   const result = await pool.query(
     `
-      SELECT id, grain_type, status, started_at, discharge_started_at, completed_at, target_moisture, umidade_inicial, final_moisture, created_at
+      SELECT id, n, grain_type, status, started_at, discharge_started_at, completed_at, target_moisture, umidade_inicial, final_moisture, created_at
       FROM dryer_batches
       WHERE status = 'active'
       ORDER BY started_at DESC
@@ -78,7 +78,7 @@ async function getDryerBatchById(batchId) {
 
   const result = await pool.query(
     `
-      SELECT id, grain_type, status, started_at, discharge_started_at, completed_at, target_moisture, umidade_inicial, final_moisture, created_at
+      SELECT id, n, grain_type, status, started_at, discharge_started_at, completed_at, target_moisture, umidade_inicial, final_moisture, created_at
       FROM dryer_batches
       WHERE id = $1
       LIMIT 1
@@ -94,7 +94,7 @@ async function listAdminDryerBatches() {
 
   const result = await pool.query(
     `
-      SELECT id, grain_type, status, started_at, discharge_started_at, completed_at, target_moisture, umidade_inicial, final_moisture, created_at
+      SELECT id, n, grain_type, status, started_at, discharge_started_at, completed_at, target_moisture, umidade_inicial, final_moisture, created_at
       FROM dryer_batches
       ORDER BY started_at DESC, created_at DESC
     `
@@ -128,7 +128,7 @@ async function listRecentCompletedDryerBatchSummaries(limit = 10) {
 
   const result = await pool.query(
     `
-      SELECT id, started_at, discharge_started_at, completed_at, umidade_inicial, final_moisture, created_at
+      SELECT id, n, started_at, discharge_started_at, completed_at, umidade_inicial, final_moisture, created_at
       FROM dryer_batches
       WHERE status <> 'active'
       ORDER BY started_at DESC, created_at DESC
@@ -148,7 +148,7 @@ async function getLastCompletedDryerBatchSummary() {
 
   const batchResult = await pool.query(
     `
-      SELECT id, started_at, discharge_started_at, completed_at, umidade_inicial, final_moisture, created_at
+      SELECT id, n, started_at, discharge_started_at, completed_at, umidade_inicial, final_moisture, created_at
       FROM dryer_batches
       WHERE status <> 'active'
       ORDER BY started_at DESC, created_at DESC

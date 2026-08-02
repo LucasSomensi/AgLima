@@ -33,6 +33,7 @@ Guarda as bateladas do secador.
 Campos centrais:
 
 - `id`: identificador da batelada.
+- `n`: número sequencial positivo e único da batelada. A sequência cresce cronologicamente (`1`, `2`, `3`, ...), sem depender da ordem reversa usada nas listagens.
 - `grain_type`: tipo de grão. O fluxo operacional atual inicia bateladas de milho (`corn`).
 - `status`: status persistido da batelada. O código usa `active` para a batelada em andamento e `completed` para bateladas encerradas.
 - `started_at`: data/hora em que a batelada foi iniciada.
@@ -94,6 +95,8 @@ Campos centrais:
 - `POST /admin/secador/configuracoes`: atualiza a umidade alvo global e os coeficientes da curva de previsão em `dryer_settings`.
 - `GET /admin/bateladas`: lista bateladas concluídas em ordem cronológica reversa.
 - `GET /admin/bateladas/:id`: mostra os detalhes e medições de uma batelada concluída.
+
+O histórico do operador em `GET /secador/bateladas/anteriores` continua mostrando as 10 bateladas concluídas mais recentes em ordem cronológica reversa, mas identifica cada cartão pelo `n` persistido. O quadro de resumo de `GET /admin/bateladas/:id` também mostra esse número.
 
 ## Perfis e permissões
 
@@ -216,6 +219,12 @@ ON dryer_batches ((status))
 WHERE status = 'active';
 ```
 
+
+### Backfill da numeração das bateladas
+
+Após aplicar a migration da coluna `dryer_batches.n`, o comando `npm run backfill-dryer-batch-numbers` pode reconstruir a numeração histórica. O script lê `DATABASE_URL`, bloqueia a tabela durante a operação, ordena as bateladas por `started_at`, `created_at` e `id`, atribui números a partir de `1` e sincroniza `dryer_batches_n_seq` para a próxima inserção. Ele é idempotente e pode ser executado novamente caso a numeração histórica precise ser corrigida.
+
+A migration sincroniza a sequence com um bloco `DO`/`PERFORM`, sem um `SELECT setval(...)` no nível principal. Essa forma permite colar o arquivo inteiro no editor de consultas do Railway sem que o limite automático aplicado pelo editor a consultas `SELECT` produza um `LIMIT` inválido ao final dos comandos. Os comandos de criação também toleram uma nova execução caso o Railway tenha efetivado a transação antes de exibir esse erro.
 
 ### Backfill de valores derivados
 
