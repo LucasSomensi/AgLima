@@ -74,6 +74,32 @@ test('buyer payload accepts only name and stores blank optional fields as null',
   });
 });
 
+test('buyer payload normalizes an alphanumeric CNPJ issued by Receita Federal', () => {
+  const { payload, error } = buildBuyerPayload({
+    nome: 'Banco do Brasil',
+    cpf_cnpj: '00.000.000/E08G-12',
+  });
+
+  assert.equal(error, undefined);
+  assert.equal(payload.cpfCnpj, '00000000E08G12');
+});
+
+test('buyer payload accepts arbitrary alphanumeric CPF or CNPJ lengths', () => {
+  assert.equal(buildBuyerPayload({ nome: 'CPF', cpf_cnpj: 'abc.123-45/678' }).payload.cpfCnpj, 'ABC12345678');
+  assert.equal(buildBuyerPayload({ nome: 'CNPJ', cpf_cnpj: 'ab.cd1.234/EF56-78' }).payload.cpfCnpj, 'ABCD1234EF5678');
+  assert.match(
+    buildBuyerPayload({ nome: 'Inválido', cpf_cnpj: 'ABC-123' }).error,
+    /11 ou 14 caracteres alfanuméricos/
+  );
+});
+
+test('buyer CPF/CNPJ field opens a text keyboard on mobile devices', () => {
+  const html = renderWith(renderAdminBuyerFormPage, { buyer: null, error: '' });
+
+  assert.match(html, /name="cpf_cnpj" type="text" inputmode="text"/);
+  assert.doesNotMatch(html, /name="cpf_cnpj"[^>]*inputmode="numeric"/);
+});
+
 test('seller form keeps submitted values when rendering validation errors', () => {
   const html = renderWith(renderAdminSellerFormPage, {
     seller: {
