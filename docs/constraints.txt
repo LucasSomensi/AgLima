@@ -68,6 +68,8 @@
  dryer_batches               | dryer_batches_grain_type_check                                 | CHECK           |                               | dryer_batches               | grain_type
  dryer_batches               | dryer_batches_grain_type_not_null                              | CHECK           |                               | dryer_batches               | grain_type
  dryer_batches               | dryer_batches_id_not_null                                      | CHECK           |                               | dryer_batches               | id
+ dryer_batches               | dryer_batches_n_check                                          | CHECK           |                               | dryer_batches               | n
+ dryer_batches               | dryer_batches_n_not_null                                       | CHECK           |                               | dryer_batches               | n
  dryer_batches               | dryer_batches_started_at_not_null                              | CHECK           |                               | dryer_batches               | started_at
  dryer_batches               | dryer_batches_status_check                                     | CHECK           |                               | dryer_batches               | status
  dryer_batches               | dryer_batches_status_not_null                                  | CHECK           |                               | dryer_batches               | status
@@ -79,6 +81,7 @@
  dryer_batches               | dryer_batches_completed_by_user_id_fkey                        | FOREIGN KEY     | completed_by_user_id          | users                       | id
  dryer_batches               | dryer_batches_started_by_user_id_fkey                          | FOREIGN KEY     | started_by_user_id            | users                       | id
  dryer_batches               | dryer_batches_pkey                                             | PRIMARY KEY     | id                            | dryer_batches               | id
+ dryer_batches               | dryer_batches_n_key                                            | UNIQUE          | n                             | dryer_batches               | n
  dryer_moisture_readings     | dryer_moisture_readings_batch_id_not_null                      | CHECK           |                               | dryer_moisture_readings     | batch_id
  dryer_moisture_readings     | dryer_moisture_readings_created_at_not_null                    | CHECK           |                               | dryer_moisture_readings     | created_at
  dryer_moisture_readings     | dryer_moisture_readings_id_not_null                            | CHECK           |                               | dryer_moisture_readings     | id
@@ -97,14 +100,14 @@
  dryer_settings              | dryer_settings_updated_by_user_id_fkey                         | FOREIGN KEY     | updated_by_user_id            | users                       | id
  dryer_settings              | dryer_settings_pkey                                            | PRIMARY KEY     | id                            | dryer_settings              | id
  entradas_balanca            | entradas_balanca_atualizado_em_not_null                        | CHECK           |                               | entradas_balanca            | atualizado_em
- entradas_balanca            | entradas_balanca_classificacao_completa_check                  | CHECK           |                               | entradas_balanca            | classificado_em
+ entradas_balanca            | entradas_balanca_classificacao_completa_check                  | CHECK           |                               | entradas_balanca            | classificado_por_user_id
  entradas_balanca            | entradas_balanca_classificacao_completa_check                  | CHECK           |                               | entradas_balanca            | umidade_percent
  entradas_balanca            | entradas_balanca_classificacao_completa_check                  | CHECK           |                               | entradas_balanca            | impureza_percent
  entradas_balanca            | entradas_balanca_classificacao_completa_check                  | CHECK           |                               | entradas_balanca            | graos_avariados_percent
- entradas_balanca            | entradas_balanca_classificacao_completa_check                  | CHECK           |                               | entradas_balanca            | classificado_por_user_id
- entradas_balanca            | entradas_balanca_cliente_completo_check                        | CHECK           |                               | entradas_balanca            | cliente_associado_em
- entradas_balanca            | entradas_balanca_cliente_completo_check                        | CHECK           |                               | entradas_balanca            | cliente_user_id
+ entradas_balanca            | entradas_balanca_classificacao_completa_check                  | CHECK           |                               | entradas_balanca            | classificado_em
  entradas_balanca            | entradas_balanca_cliente_completo_check                        | CHECK           |                               | entradas_balanca            | cliente_associado_por_user_id
+ entradas_balanca            | entradas_balanca_cliente_completo_check                        | CHECK           |                               | entradas_balanca            | cliente_user_id
+ entradas_balanca            | entradas_balanca_cliente_completo_check                        | CHECK           |                               | entradas_balanca            | cliente_associado_em
  entradas_balanca            | entradas_balanca_criado_em_not_null                            | CHECK           |                               | entradas_balanca            | criado_em
  entradas_balanca            | entradas_balanca_criado_por_user_id_not_null                   | CHECK           |                               | entradas_balanca            | criado_por_user_id
  entradas_balanca            | entradas_balanca_data_entrada_not_null                         | CHECK           |                               | entradas_balanca            | data_entrada
@@ -137,16 +140,16 @@
  entradas_balanca            | entradas_balanca_tara_adicionada_por_user_id_fkey              | FOREIGN KEY     | tara_adicionada_por_user_id   | users                       | id
  entradas_balanca            | entradas_balanca_tara_usada_de_entrada_id_fkey                 | FOREIGN KEY     | tara_usada_de_entrada_id      | entradas_balanca            | id
  entradas_balanca            | entradas_balanca_pkey                                          | PRIMARY KEY     | id                            | entradas_balanca            | id
- saidas_balanca              | saidas_balanca_associacao_completa_check                       | CHECK           |                               | saidas_balanca              | contrato_id
- saidas_balanca              | saidas_balanca_associacao_completa_check                       | CHECK           |                               | saidas_balanca              | associado_em
  saidas_balanca              | saidas_balanca_associacao_completa_check                       | CHECK           |                               | saidas_balanca              | associado_por_user_id
+ saidas_balanca              | saidas_balanca_associacao_completa_check                       | CHECK           |                               | saidas_balanca              | associado_em
+ saidas_balanca              | saidas_balanca_associacao_completa_check                       | CHECK           |                               | saidas_balanca              | contrato_id
  saidas_balanca              | saidas_balanca_atualizado_em_not_null                          | CHECK           |                               | saidas_balanca              | atualizado_em
  saidas_balanca              | saidas_balanca_criado_em_not_null                              | CHECK           |                               | saidas_balanca              | criado_em
  saidas_balanca              | saidas_balanca_criado_por_user_id_not_null                     | CHECK           |                               | saidas_balanca              | criado_por_user_id
  saidas_balanca              | saidas_balanca_data_saida_not_null                             | CHECK           |                               | saidas_balanca              | data_saida
  saidas_balanca              | saidas_balanca_id_not_null                                     | CHECK           |                               | saidas_balanca              | id
- saidas_balanca              | saidas_balanca_peso_bruto_maior_tara_check                     | CHECK           |                               | saidas_balanca              | peso_tara_kg
  saidas_balanca              | saidas_balanca_peso_bruto_maior_tara_check                     | CHECK           |                               | saidas_balanca              | peso_bruto_kg
+ saidas_balanca              | saidas_balanca_peso_bruto_maior_tara_check                     | CHECK           |                               | saidas_balanca              | peso_tara_kg
  saidas_balanca              | saidas_balanca_peso_bruto_positivo_check                       | CHECK           |                               | saidas_balanca              | peso_bruto_kg
  saidas_balanca              | saidas_balanca_peso_tara_kg_not_null                           | CHECK           |                               | saidas_balanca              | peso_tara_kg
  saidas_balanca              | saidas_balanca_peso_tara_positivo_check                        | CHECK           |                               | saidas_balanca              | peso_tara_kg
