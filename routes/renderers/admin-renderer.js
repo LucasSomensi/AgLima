@@ -921,6 +921,7 @@ function renderAdminBatchDetailPage(res, { batch, readings }) {
   const finalMoisture = batch.final_moisture ?? calculateBatchDischargeAverageMoisture(batch, readings);
   const detailHtml = fs
     .readFileSync(batchPath, 'utf8')
+    .replace('{{BATCH_NUMBER}}', escapeHtml(batch.n))
     .replace('{{BATCH_STATUS}}', escapeHtml(formatBatchStatusLabel(batch)))
     .replace('{{BATCH_STARTED_AT}}', escapeHtml(formatDateTime(batch.started_at)))
     .replace('{{BATCH_DISCHARGE_STARTED_AT}}', escapeHtml(batch.discharge_started_at ? formatDateTime(batch.discharge_started_at) : '-'))

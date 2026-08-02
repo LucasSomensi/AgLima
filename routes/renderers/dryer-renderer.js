@@ -100,8 +100,8 @@ function renderLastCompletedBatchSummary(lastCompletedBatch) {
 
 function renderCompletedBatchHistoryPage(res, { completedBatches = [] }) {
   const cardsHtml = completedBatches.length
-    ? completedBatches.map((batch, index) => renderCompletedBatchSummaryCard(batch, {
-        title: `Batelada ${index + 1}`,
+    ? completedBatches.map((batch) => renderCompletedBatchSummaryCard(batch, {
+        title: `Batelada ${batch.n}`,
       })).join('')
     : '<p class="empty-state">Nenhuma batelada anterior encontrada.</p>';
 
