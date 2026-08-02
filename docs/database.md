@@ -63,7 +63,7 @@ Armazena os compradores usados no cadastro de contratos.
 | `numero` | `character varying` | Não | — | Número do endereço. |
 | `cep` | `character` | Não | — | CEP do comprador. A aplicação valida 8 dígitos. |
 | `inscricao_estadual` | `character varying` | Não | — | Inscrição estadual. A aplicação valida 10 ou mais dígitos. |
-| `cpf_cnpj` | `character varying` | Não | — | CPF ou CNPJ. A aplicação valida 11 ou 14 dígitos. |
+| `cpf_cnpj` | `character varying` | Não | — | CPF ou CNPJ. A aplicação remove a pontuação, converte letras para maiúsculas e aceita sequências alfanuméricas de 11 ou 14 caracteres. |
 | `criado_em` | `timestamp without time zone` | Não | `now()` | Data/hora de criação do registro. |
 | `atualizado_em` | `timestamp without time zone` | Não | `now()` | Data/hora da última atualização. |
 
@@ -77,6 +77,11 @@ Armazena os compradores usados no cadastro de contratos.
 | Check | `compradores_cpf_cnpj_check` | `cpf_cnpj` |
 | Check | `compradores_inscricao_estadual_check` | `inscricao_estadual` |
 | Check / not null | demais constraints `compradores_*_not_null` | `id`, `nome`, `nome_completo`, `endereco`, `numero`, `cep`, `inscricao_estadual`, `cpf_cnpj`, `criado_em`, `atualizado_em` |
+
+O constraint `compradores_cpf_cnpj_check` permite valores nulos ou sequências de
+11 ou 14 caracteres entre `A-Z` e `0-9`. A migration
+`20260802_allow_alphanumeric_buyer_cpf_cnpj.sql` substitui a validação anterior,
+que aceitava somente dígitos, para acompanhar o formato alfanumérico do CNPJ.
 
 ---
 

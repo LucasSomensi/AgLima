@@ -10,6 +10,10 @@ function normalizeDigits(value) {
   return normalizeText(value).replace(/\D/g, '');
 }
 
+function normalizeCpfCnpj(value) {
+  return normalizeText(value).replace(/[^a-z0-9]/gi, '').toUpperCase();
+}
+
 function normalizeDecimal(value) {
   const normalizedValue = normalizeText(value).replace(',', '.');
 
@@ -47,7 +51,7 @@ function normalizeDate(value) {
 function buildBuyerPayload(body) {
   const cep = normalizeDigits(body.cep);
   const inscricaoEstadual = normalizeDigits(body.inscricao_estadual);
-  const cpfCnpj = normalizeDigits(body.cpf_cnpj);
+  const cpfCnpj = normalizeCpfCnpj(body.cpf_cnpj);
   const payload = {
     nome: normalizeText(body.nome),
     nomeCompleto: normalizeText(body.nome_completo) || null,
@@ -70,8 +74,8 @@ function buildBuyerPayload(body) {
     return { error: 'Informe uma inscrição estadual com 10 dígitos ou mais.' };
   }
 
-  if (payload.cpfCnpj && !/^(\d{11}|\d{14})$/.test(payload.cpfCnpj)) {
-    return { error: 'Informe CPF com 11 dígitos ou CNPJ com 14 dígitos.' };
+  if (payload.cpfCnpj && !/^([A-Z0-9]{11}|[A-Z0-9]{14})$/.test(payload.cpfCnpj)) {
+    return { error: 'Informe CPF ou CNPJ com 11 ou 14 caracteres alfanuméricos.' };
   }
 
   return { payload };
