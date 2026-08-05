@@ -837,13 +837,14 @@ function renderAdminDashboardPage(res, { batch, readings, settings, message, err
   const statusLabel = formatBatchStatusLabel(batch);
   const currentTargetMoisture = formatMoisture(settings?.target_moisture);
   const batchTargetMoisture = batch ? formatMoisture(batch.target_moisture) : currentTargetMoisture;
+  const batchInitialMoisture = formatOptionalMoisture(batch?.umidade_inicial);
   const readingsRows = renderReadingsRows(readings, { batch, curveSettings: settings });
   const dischargeForecast = getBatchDischargeForecast(batch, readings, settings);
   const dashboardHtml = fs
     .readFileSync(dashboardPath, 'utf8')
     .replace('{{ADMIN_PANEL_MESSAGE}}', buildAlertHtml(message))
     .replace('{{ADMIN_PANEL_ERROR}}', buildAlertHtml(error, 'error'))
-    .replace('{{CURRENT_TARGET_MOISTURE}}', escapeHtml(currentTargetMoisture))
+    .replace('{{BATCH_INITIAL_MOISTURE}}', escapeHtml(batchInitialMoisture))
     .replace('{{BATCH_STATUS}}', escapeHtml(statusLabel))
     .replace('{{BATCH_STARTED_AT}}', escapeHtml(batch ? formatDateTime(batch.started_at) : 'Nenhuma batelada ativa'))
     .replace('{{BATCH_DISCHARGE_STARTED_AT}}', escapeHtml(formatDischargeForecast(dischargeForecast, {
