@@ -582,8 +582,12 @@ router.get('/admin/bateladas/:id', canAccessAdminPanel, async (req, res) => {
   try {
     const batch = await getDryerBatchById(req.params.id);
 
-    if (!batch || batch.status === 'active') {
+    if (!batch) {
       return res.status(404).send('Batelada não encontrada.');
+    }
+
+    if (batch.status === 'active') {
+      return res.redirect('/admin/secador');
     }
 
     const readings = await listDryerMoistureReadings(batch.id);
