@@ -162,9 +162,13 @@ function calculateDischargeForecast({ batch, readings, now = new Date(), curveSe
   }
 
   if (batch.discharge_started_at) {
+    const dischargeStartedAt = new Date(batch.discharge_started_at);
+
     return {
       status: 'started',
-      dischargeStartedAt: new Date(batch.discharge_started_at),
+      dischargeStartedAt,
+      estimatedEndAt: new Date(dischargeStartedAt.getTime() + DISCHARGE_FORECAST_LOOKBACK_MINUTES * MILLISECONDS_PER_MINUTE),
+      batchStartedAt: new Date(batch.started_at),
     };
   }
 
@@ -237,6 +241,7 @@ module.exports = {
   calculateAverageMoisture,
   calculateDischargeForecast,
   calculateMinutesRemainingFromAverageMoisture,
+  DISCHARGE_FORECAST_LOOKBACK_MINUTES,
   DEFAULT_DISCHARGE_FORECAST_CURVE,
   normalizeDischargeForecastCurve,
 };

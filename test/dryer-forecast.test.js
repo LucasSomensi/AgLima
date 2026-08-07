@@ -25,6 +25,20 @@ test('calcula previsão antes da primeira medição usando umidade inicial e in�
   assert.equal(forecast.forecastAt.toISOString(), '2026-06-21T20:37:36.870Z');
 });
 
+test('estima o fim da descarga iniciada usando a janela fixa de 105 minutos', () => {
+  const forecast = calculateDischargeForecast({
+    batch: {
+      started_at: '2026-08-06T20:00:00.000Z',
+      discharge_started_at: '2026-08-06T23:54:00.000Z',
+    },
+    readings: [],
+  });
+
+  assert.equal(forecast.status, 'started');
+  assert.equal(forecast.batchStartedAt.toISOString(), '2026-08-06T20:00:00.000Z');
+  assert.equal(forecast.estimatedEndAt.toISOString(), '2026-08-07T01:39:00.000Z');
+});
+
 
 test('marca descarga imediata quando o horário atual é igual à previsão', () => {
   const forecast = calculateDischargeForecast({

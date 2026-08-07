@@ -130,7 +130,8 @@ function formatDischargeForecast(dischargeForecast, { includeForecastPrefix = fa
   }
 
   if (dischargeForecast.status === 'started') {
-    return `Iniciada em ${formatDateTime(dischargeForecast.dischargeStartedAt)}`;
+    const duration = formatEstimatedDuration(dischargeForecast.batchStartedAt, dischargeForecast.estimatedEndAt);
+    return `Iniciada em ${formatDateTime(dischargeForecast.dischargeStartedAt)}\nFim estimado ${formatDateTime(dischargeForecast.estimatedEndAt)}\nDuração estimada ${duration}`;
   }
 
   if (dischargeForecast.status === 'immediate') {
@@ -139,6 +140,18 @@ function formatDischargeForecast(dischargeForecast, { includeForecastPrefix = fa
 
   const forecastAt = formatDateTime(dischargeForecast.forecastAt);
   return includeForecastPrefix ? `Prevista para ${forecastAt}` : forecastAt;
+}
+
+function formatEstimatedDuration(start, end) {
+  const durationMinutes = Math.round((new Date(end).getTime() - new Date(start).getTime()) / 60000);
+
+  if (!Number.isFinite(durationMinutes) || durationMinutes < 0) {
+    return '-';
+  }
+
+  const hours = Math.floor(durationMinutes / 60);
+  const minutes = durationMinutes % 60;
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
 }
 
 function buildPersistedForecast(reading) {

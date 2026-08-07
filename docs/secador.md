@@ -183,7 +183,7 @@ hora_prevista_para_inicio_da_descarga = horario_base + minutos_restantes
 
 A previsão considera a umidade alvo copiada para a batelada no momento em que ela foi iniciada. Uma umidade alvo maior antecipa a descarga: por exemplo, `14,5%` aplica uma correção de `-30` minutos em relação à referência de `14%`. O parâmetro atual da média móvel é fixo no código: janela de `105` minutos.
 
-Se o horário atual do servidor for igual ou posterior ao horário previsto, o painel mostra “Iniciar descarga imediatamente” para orientar a ação operacional sem deixar a previsão parecer futura. Depois que o operador clica em “Iniciar descarga”, toda essa lógica deixa de ser recalculada para a batelada ativa e o painel passa a mostrar o horário em que a descarga realmente começou. As previsões já persistidas nas leituras continuam representando o snapshot histórico calculado no momento de cada medição.
+Se o horário atual do servidor for igual ou posterior ao horário previsto, o painel mostra “Iniciar descarga imediatamente” para orientar a ação operacional sem deixar a previsão parecer futura. Depois que o operador clica em “Iniciar descarga”, toda essa lógica deixa de ser recalculada para a batelada ativa e o painel passa a mostrar o horário em que a descarga realmente começou, o fim estimado (início da descarga mais `105` minutos, reutilizando `DISCHARGE_FORECAST_LOOKBACK_MINUTES`) e a duração estimada entre o início da batelada e esse fim, no formato `hh:mm`. As previsões já persistidas nas leituras continuam representando o snapshot histórico calculado no momento de cada medição.
 
 ### 6. Iniciar descarga
 
