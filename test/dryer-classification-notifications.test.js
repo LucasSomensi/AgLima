@@ -170,6 +170,8 @@ test('dryer panel uses configured forecast curve before the first moisture readi
       target_moisture: '14',
       discharge_forecast_quadratic_coefficient: 0,
       discharge_forecast_linear_coefficient: 10,
+      discharge_forecast_initial_moisture_quadratic_coefficient: 0,
+      discharge_forecast_initial_moisture_linear_coefficient: 0,
       discharge_forecast_constant_coefficient: -100,
     },
     message: '',

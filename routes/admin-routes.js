@@ -526,13 +526,15 @@ router.post('/admin/umidade-alvo', canAccessAdminPanel, async (req, res) => {
   const targetMoisture = parseMoisturePercent(req.body.target_moisture);
   const quadraticCoefficient = parseForecastCurveCoefficient(req.body.discharge_forecast_quadratic_coefficient);
   const linearCoefficient = parseForecastCurveCoefficient(req.body.discharge_forecast_linear_coefficient);
+  const initialMoistureQuadraticCoefficient = parseForecastCurveCoefficient(req.body.discharge_forecast_initial_moisture_quadratic_coefficient);
+  const initialMoistureLinearCoefficient = parseForecastCurveCoefficient(req.body.discharge_forecast_initial_moisture_linear_coefficient);
   const constantCoefficient = parseForecastCurveCoefficient(req.body.discharge_forecast_constant_coefficient);
 
   if (targetMoisture === null) {
     return res.redirect(buildAdminDryerConfigRedirect({ error: 'Informe uma umidade alvo entre 7,0% e 40,0%, com no máximo uma casa decimal.' }));
   }
 
-  if (quadraticCoefficient === null || linearCoefficient === null || constantCoefficient === null) {
+  if (quadraticCoefficient === null || linearCoefficient === null || initialMoistureQuadraticCoefficient === null || initialMoistureLinearCoefficient === null || constantCoefficient === null) {
     return res.redirect(buildAdminDryerConfigRedirect({ error: 'Informe números válidos para todos os parâmetros da curva de previsão.' }));
   }
 
@@ -541,6 +543,8 @@ router.post('/admin/umidade-alvo', canAccessAdminPanel, async (req, res) => {
       targetMoisture,
       quadraticCoefficient,
       linearCoefficient,
+      initialMoistureQuadraticCoefficient,
+      initialMoistureLinearCoefficient,
       constantCoefficient,
       user: req.sessionUser,
     });
