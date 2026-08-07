@@ -1,10 +1,8 @@
 const DISCHARGE_FORECAST_LOOKBACK_MINUTES = 105;
 const DEFAULT_DISCHARGE_FORECAST_CURVE = {
-  quadraticCoefficient: -1.6161,
-  linearCoefficient: 109.2740,
-  initialMoistureQuadraticCoefficient: -0.5309,
-  initialMoistureLinearCoefficient: 30.5990,
-  constantCoefficient: -1745.5815,
+  quadraticCoefficient: -1.6813,
+  linearCoefficient: 111.7391,
+  constantCoefficient: -1344.3482,
 };
 const TARGET_MOISTURE_REFERENCE = 14;
 const MILLISECONDS_PER_MINUTE = 60 * 1000;
@@ -100,25 +98,18 @@ function normalizeDischargeForecastCurve(settings = {}) {
   return {
     quadraticCoefficient: toFiniteNumber(settings.discharge_forecast_quadratic_coefficient) ?? DEFAULT_DISCHARGE_FORECAST_CURVE.quadraticCoefficient,
     linearCoefficient: toFiniteNumber(settings.discharge_forecast_linear_coefficient) ?? DEFAULT_DISCHARGE_FORECAST_CURVE.linearCoefficient,
-    initialMoistureQuadraticCoefficient: toFiniteNumber(settings.discharge_forecast_initial_moisture_quadratic_coefficient) ?? DEFAULT_DISCHARGE_FORECAST_CURVE.initialMoistureQuadraticCoefficient,
-    initialMoistureLinearCoefficient: toFiniteNumber(settings.discharge_forecast_initial_moisture_linear_coefficient) ?? DEFAULT_DISCHARGE_FORECAST_CURVE.initialMoistureLinearCoefficient,
     constantCoefficient: toFiniteNumber(settings.discharge_forecast_constant_coefficient) ?? DEFAULT_DISCHARGE_FORECAST_CURVE.constantCoefficient,
   };
 }
 
-function calculateForecastCurveMinutes(moisture, initialMoisture, curveSettings) {
-  const {
-    quadraticCoefficient,
-    linearCoefficient,
-    initialMoistureQuadraticCoefficient,
-    initialMoistureLinearCoefficient,
-    constantCoefficient,
-  } = normalizeDischargeForecastCurve(curveSettings);
+function calculateForecastCurveMinutes(moisture, curveSettings) {
+  const { quadraticCoefficient, linearCoefficient, constantCoefficient } = normalizeDischargeForecastCurve(curveSettings);
+  const moistureForCurve = quadraticCoefficient < 0
+    ? Math.min(moisture, -linearCoefficient / (2 * quadraticCoefficient))
+    : moisture;
 
-  return (quadraticCoefficient * (moisture ** 2))
-    + (linearCoefficient * moisture)
-    + (initialMoistureQuadraticCoefficient * (initialMoisture ** 2))
-    + (initialMoistureLinearCoefficient * initialMoisture)
+  return (quadraticCoefficient * (moistureForCurve ** 2))
+    + (linearCoefficient * moistureForCurve)
     + constantCoefficient;
 }
 
@@ -132,15 +123,14 @@ function calculateTargetMoistureCorrection(targetMoisture) {
   return (TARGET_MOISTURE_REFERENCE - target) * 60;
 }
 
-function calculateMinutesRemainingFromAverageMoisture(averageMoisture, targetMoisture, initialMoisture, curveSettings) {
+function calculateMinutesRemainingFromAverageMoisture(averageMoisture, targetMoisture, curveSettings) {
   const moisture = toFiniteNumber(averageMoisture);
-  const batchInitialMoisture = toFiniteNumber(initialMoisture);
 
-  if (moisture === null || batchInitialMoisture === null) {
+  if (moisture === null) {
     return null;
   }
 
-  const curveMinutes = calculateForecastCurveMinutes(moisture, batchInitialMoisture, curveSettings);
+  const curveMinutes = calculateForecastCurveMinutes(moisture, curveSettings);
   const correctedMinutes = curveMinutes + calculateTargetMoistureCorrection(targetMoisture);
 
   return Math.max(0, correctedMinutes);
@@ -206,7 +196,7 @@ function calculateDischargeForecast({ batch, readings, now = new Date(), curveSe
     return { status: 'unavailable' };
   }
 
-  const minutesRemaining = calculateMinutesRemainingFromAverageMoisture(averageMoisture, batch.target_moisture, initialMoisture, curveSettings);
+  const minutesRemaining = calculateMinutesRemainingFromAverageMoisture(averageMoisture, batch.target_moisture, curveSettings);
 
   if (!Number.isFinite(minutesRemaining)) {
     return { status: 'unavailable', averageMoisture };
