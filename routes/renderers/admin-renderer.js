@@ -17,7 +17,13 @@ const {
   toDateOnlyInputValue,
   toDateTimeLocalValue,
 } = require('../utils');
-const { buildAlertHtml, buildPaginationHtml, renderEmptyRow, renderTemplate } = require('./template-utils');
+const {
+  buildAlertHtml,
+  buildPaginationHtml,
+  escapeHtmlWithLineBreaks,
+  renderEmptyRow,
+  renderTemplate,
+} = require('./template-utils');
 const { buildScaleInputRows, buildScaleOutputRows } = require('./weighbridge-renderer');
 
 function renderAdminUsersPage(res, { users, message, error }) {
@@ -685,7 +691,7 @@ function formatSacks(value, maximumFractionDigits = 0) {
 }
 
 function renderAdminMetric(label, value) {
-  return renderAdminMetricHtml(label, escapeHtml(value));
+  return renderAdminMetricHtml(label, escapeHtmlWithLineBreaks(value));
 }
 
 function renderAdminMetricHtml(label, valueHtml) {
@@ -859,7 +865,7 @@ function renderAdminDashboardPage(res, { batch, readings, settings, message, err
     .replace('{{BATCH_INITIAL_MOISTURE}}', escapeHtml(batchInitialMoisture))
     .replace('{{BATCH_STATUS}}', escapeHtml(statusLabel))
     .replace('{{BATCH_STARTED_AT}}', escapeHtml(batch ? formatDateTime(batch.started_at) : 'Nenhuma batelada ativa'))
-    .replace('{{BATCH_DISCHARGE_STARTED_AT}}', escapeHtml(formatDischargeForecast(dischargeForecast, {
+    .replace('{{BATCH_DISCHARGE_STARTED_AT}}', escapeHtmlWithLineBreaks(formatDischargeForecast(dischargeForecast, {
       includeForecastPrefix: true,
       immediateLabel: 'Iniciar descarga imediatamente',
     })))

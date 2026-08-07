@@ -53,7 +53,7 @@ test('dryer panel shows discharge start, estimated end and total estimated durat
     unclassifiedInputs: [],
   });
 
-  assert.match(html, /Iniciada em 06\/08\/2026, 20:54\nFim estimado 06\/08\/2026, 22:39\nDuração estimada 05:39/);
+  assert.match(html, /Iniciada em 06\/08\/2026, 20:54<br>Fim estimado 06\/08\/2026, 22:39<br>Duração estimada 05:39/);
 });
 
 test('dryer panel renders one classification notification per pending input', () => {
