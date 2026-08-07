@@ -11,6 +11,10 @@ function buildAlertHtml(message, type = 'success') {
   return `<p class="${cssClass}" role="alert">${escapeHtml(message)}</p>`;
 }
 
+function escapeHtmlWithLineBreaks(value) {
+  return escapeHtml(value).replace(/\r?\n/g, '<br>');
+}
+
 function readTemplate(templateName) {
   return fs.readFileSync(path.join(__dirname, '../../views', templateName), 'utf8');
 }
@@ -46,6 +50,7 @@ function buildPaginationHtml({ page, totalPages, basePath, ariaLabel }) {
 module.exports = {
   buildAlertHtml,
   buildPaginationHtml,
+  escapeHtmlWithLineBreaks,
   readTemplate,
   renderEmptyRow,
   renderTemplate,

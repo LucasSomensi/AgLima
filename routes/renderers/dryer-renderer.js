@@ -6,7 +6,7 @@ const {
   formatPlainDecimal,
   formatTime,
 } = require('../utils');
-const { buildAlertHtml, renderTemplate } = require('./template-utils');
+const { buildAlertHtml, escapeHtmlWithLineBreaks, renderTemplate } = require('./template-utils');
 
 function formatDurationBetween(start, end) {
   if (!start || !end) {
@@ -330,7 +330,7 @@ function renderDryerPanelPage(res, { batch, readings, settings, message, error, 
     DRYER_NOTIFICATIONS: renderUnclassifiedInputNotifications(unclassifiedInputs),
     BATCH_STATUS: batchStatusHtml,
     BATCH_STARTED_AT: escapeHtml(startedAt),
-    DISCHARGE_STARTED_AT: escapeHtml(dischargeStartedAt),
+    DISCHARGE_STARTED_AT: escapeHtmlWithLineBreaks(dischargeStartedAt),
     INITIAL_MOISTURE: escapeHtml(initialMoisture),
     LAST_COMPLETED_BATCH_SUMMARY: renderLastCompletedBatchSummary(lastCompletedBatch),
     BATCH_ACTION_URL: escapeHtml(batchAction.action),
