@@ -710,6 +710,11 @@ body {
   text-transform: uppercase;
 }
 
+.dryer-status-card > strong,
+.admin-home-metric strong {
+  white-space: pre-line;
+}
+
 .status-pill {
   display: inline-flex;
   align-items: center;

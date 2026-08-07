@@ -27,6 +27,26 @@ test('admin home links full weighbridge lists directly to weighbridge routes', (
   assert.doesNotMatch(html, /\/admin\/entradas-e-saidas/);
 });
 
+test('admin home shows discharge start, estimated end and total estimated duration', () => {
+  const html = renderPage(renderAdminHomePage, {
+    notifications: [],
+    contractsSummary: {},
+    dryerBatch: {
+      started_at: '2026-08-06T20:00:00.000Z',
+      discharge_started_at: '2026-08-06T23:54:00.000Z',
+    },
+    dryerReadings: [],
+    dryerSettings: {},
+    storageSummary: [],
+    scaleInputs: [],
+    scaleOutputs: [],
+    message: '',
+    error: '',
+  });
+
+  assert.match(html, /Iniciada em 06\/08\/2026, 20:54\nFim estimado 06\/08\/2026, 22:39\nDuração estimada 05:39/);
+});
+
 
 test('admin home combines next receipt date and contract link in one metric', () => {
   const html = renderPage(renderAdminHomePage, {

@@ -38,6 +38,24 @@ test('dryer panel hides classification notifications when there are no pending i
   assert.doesNotMatch(html, /dryer-notifications/);
 });
 
+test('dryer panel shows discharge start, estimated end and total estimated duration', () => {
+  const html = renderPage(renderDryerPanelPage, {
+    batch: {
+      started_at: '2026-08-06T20:00:00.000Z',
+      discharge_started_at: '2026-08-06T23:54:00.000Z',
+      umidade_inicial: '20',
+      target_moisture: '14',
+    },
+    readings: [],
+    settings: { target_moisture: '14' },
+    message: '',
+    error: '',
+    unclassifiedInputs: [],
+  });
+
+  assert.match(html, /Iniciada em 06\/08\/2026, 20:54\nFim estimado 06\/08\/2026, 22:39\nDuração estimada 05:39/);
+});
+
 test('dryer panel renders one classification notification per pending input', () => {
   const html = renderPage(renderDryerPanelPage, {
     batch: null,
