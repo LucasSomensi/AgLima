@@ -907,12 +907,13 @@ function renderAdminBatchesPage(res, { batches, pagination = { page: 1, totalPag
     .map((batch) => {
       const { timelineEnd, dryingEnd, dischargeEnd } = getBatchTimelineDates(batch, now);
       const finalMoisture = batch.status === 'active' ? null : batch.final_moisture;
+      const batchHref = batch.status === 'active' ? '/admin/secador' : `/admin/bateladas/${batch.id}`;
 
       return `
         <tr>
           <td>${escapeHtml(formatBatchStatusLabel(batch))}</td>
           <td>${escapeHtml(formatOptionalMoisture(batch.umidade_inicial))}</td>
-          <td><a class="admin-table-link" href="/admin/bateladas/${escapeHtml(batch.id)}">${escapeHtml(formatDateTime(batch.started_at))}</a></td>
+          <td><a class="admin-table-link" href="${escapeHtml(batchHref)}">${escapeHtml(formatDateTime(batch.started_at))}</a></td>
           <td>${escapeHtml(batch.discharge_started_at ? formatDateTime(batch.discharge_started_at) : '-')}</td>
           <td>${escapeHtml(batch.completed_at ? formatDateTime(batch.completed_at) : '-')}</td>
           <td>${escapeHtml(formatDurationBetween(batch.started_at, dryingEnd))}</td>
