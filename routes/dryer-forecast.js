@@ -167,7 +167,7 @@ function calculateDischargeForecast({ batch, readings, now = new Date(), curveSe
     return {
       status: 'started',
       dischargeStartedAt,
-      estimatedEndAt: new Date(dischargeStartedAt.getTime() + DISCHARGE_FORECAST_LOOKBACK_MINUTES * MILLISECONDS_PER_MINUTE),
+      estimatedEndAt: new Date(dischargeStartedAt.getTime() + (DISCHARGE_FORECAST_LOOKBACK_MINUTES - 5) * MILLISECONDS_PER_MINUTE),
       batchStartedAt: new Date(batch.started_at),
     };
   }
