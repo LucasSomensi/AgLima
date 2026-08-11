@@ -114,7 +114,7 @@
       window.addEventListener('offline', updateConnectionStatus);
 
       document.querySelector('[data-refresh-page]')?.addEventListener('click', () => {
-        window.location.reload();
+        window.location.replace('/secador');
       });
 
       document.querySelectorAll('[data-double-click-logout]').forEach((form) => {
