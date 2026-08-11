@@ -38,6 +38,21 @@ test('dryer panel hides classification notifications when there are no pending i
   assert.doesNotMatch(html, /dryer-notifications/);
 });
 
+test('dryer panel refresh button clears transient messages from the URL', () => {
+  const html = renderPage(renderDryerPanelPage, {
+    batch: null,
+    readings: [],
+    settings: { target_moisture: '14.5' },
+    message: 'Medição de umidade registrada com sucesso.',
+    error: '',
+    unclassifiedInputs: [],
+  });
+
+  assert.match(html, /Medição de umidade registrada com sucesso\./);
+  assert.match(html, /window\.location\.replace\('\/secador'\)/);
+  assert.doesNotMatch(html, /window\.location\.reload\(\)/);
+});
+
 test('dryer panel shows discharge start, estimated end and total estimated duration', () => {
   const html = renderPage(renderDryerPanelPage, {
     batch: {
