@@ -461,7 +461,7 @@ Armazena usuários autenticados do sistema.
 
 ## `dryer_settings`
 
-Armazena a configuração global do secador. A tabela funciona como singleton: o código usa `id = true` e há uma constraint `dryer_settings_singleton`. Além da umidade alvo para novas bateladas, guarda os coeficientes configuráveis da equação usada na previsão de descarga.
+Armazena a configuração global do secador. A tabela funciona como singleton: o código usa `id = true` e há uma constraint `dryer_settings_singleton`. Além da umidade alvo para novas bateladas, guarda os coeficientes configuráveis da curva quadrática usada na previsão de descarga.
 
 ### Colunas
 
@@ -471,8 +471,6 @@ Armazena a configuração global do secador. A tabela funciona como singleton: o
 | `target_moisture` | `numeric` | Não | `14.5` | Umidade alvo padrão usada ao iniciar novas bateladas. |
 | `discharge_forecast_quadratic_coefficient` | `numeric` | Sim | — | Coeficiente quadrático da curva de previsão de descarga. Quando `NULL`, o código usa o coeficiente padrão atual. |
 | `discharge_forecast_linear_coefficient` | `numeric` | Sim | — | Coeficiente linear da curva de previsão de descarga. Quando `NULL`, o código usa o coeficiente padrão atual. |
-| `discharge_forecast_initial_moisture_quadratic_coefficient` | `numeric` | Sim | `-0.5309` | Coeficiente do termo quadrático da umidade inicial da batelada. |
-| `discharge_forecast_initial_moisture_linear_coefficient` | `numeric` | Sim | `30.5990` | Coeficiente do termo linear da umidade inicial da batelada. |
 | `discharge_forecast_constant_coefficient` | `numeric` | Sim | — | Coeficiente constante da curva de previsão de descarga. Quando `NULL`, o código usa o coeficiente padrão atual. |
 | `updated_at` | `timestamp with time zone` | Não | `now()` | Data/hora da última alteração. |
 | `updated_by_user_id` | `uuid` | Sim | — | Usuário que alterou a configuração. FK para `users.id`. |

@@ -835,15 +835,16 @@ function formatForecastPreviewDuration(minutes) {
 function renderDischargeForecastPreviewRows(settings) {
   return DISCHARGE_FORECAST_PREVIEW_MOISTURES
     .map((moisture) => {
-      const forecastForInitialMoisture = (initialMoisture) => calculateMinutesRemainingFromAverageMoisture(
-        moisture, settings?.target_moisture, initialMoisture, settings,
+      const minutesRemaining = calculateMinutesRemainingFromAverageMoisture(
+        moisture,
+        settings?.target_moisture,
+        settings,
       );
 
       return `
         <tr>
           <td>${escapeHtml(formatMoisture(moisture))}%</td>
-          <td>${escapeHtml(formatForecastPreviewDuration(forecastForInitialMoisture(28)))}</td>
-          <td>${escapeHtml(formatForecastPreviewDuration(forecastForInitialMoisture(20)))}</td>
+          <td>${escapeHtml(formatForecastPreviewDuration(minutesRemaining))}</td>
         </tr>
       `;
     })
@@ -883,8 +884,6 @@ function renderAdminDryerConfigPage(res, { settings, message, error }) {
     TARGET_MOISTURE_VALUE: escapeHtml(formatMoisture(settings?.target_moisture).replace(',', '.')),
     DISCHARGE_FORECAST_QUADRATIC_COEFFICIENT_VALUE: escapeHtml(formatForecastCurveInputValue(settings?.discharge_forecast_quadratic_coefficient, DEFAULT_DISCHARGE_FORECAST_CURVE.quadraticCoefficient)),
     DISCHARGE_FORECAST_LINEAR_COEFFICIENT_VALUE: escapeHtml(formatForecastCurveInputValue(settings?.discharge_forecast_linear_coefficient, DEFAULT_DISCHARGE_FORECAST_CURVE.linearCoefficient)),
-    DISCHARGE_FORECAST_INITIAL_MOISTURE_QUADRATIC_COEFFICIENT_VALUE: escapeHtml(formatForecastCurveInputValue(settings?.discharge_forecast_initial_moisture_quadratic_coefficient, DEFAULT_DISCHARGE_FORECAST_CURVE.initialMoistureQuadraticCoefficient)),
-    DISCHARGE_FORECAST_INITIAL_MOISTURE_LINEAR_COEFFICIENT_VALUE: escapeHtml(formatForecastCurveInputValue(settings?.discharge_forecast_initial_moisture_linear_coefficient, DEFAULT_DISCHARGE_FORECAST_CURVE.initialMoistureLinearCoefficient)),
     DISCHARGE_FORECAST_CONSTANT_COEFFICIENT_VALUE: escapeHtml(formatForecastCurveInputValue(settings?.discharge_forecast_constant_coefficient, DEFAULT_DISCHARGE_FORECAST_CURVE.constantCoefficient)),
     DISCHARGE_FORECAST_PREVIEW_ROWS: renderDischargeForecastPreviewRows(settings),
   });

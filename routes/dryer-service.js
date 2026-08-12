@@ -9,8 +9,6 @@ async function getDryerSettings() {
       SELECT target_moisture,
              discharge_forecast_quadratic_coefficient,
              discharge_forecast_linear_coefficient,
-             discharge_forecast_initial_moisture_quadratic_coefficient,
-             discharge_forecast_initial_moisture_linear_coefficient,
              discharge_forecast_constant_coefficient
       FROM dryer_settings
       WHERE id = true
@@ -22,13 +20,11 @@ async function getDryerSettings() {
     target_moisture: '14.5',
     discharge_forecast_quadratic_coefficient: DEFAULT_DISCHARGE_FORECAST_CURVE.quadraticCoefficient,
     discharge_forecast_linear_coefficient: DEFAULT_DISCHARGE_FORECAST_CURVE.linearCoefficient,
-    discharge_forecast_initial_moisture_quadratic_coefficient: DEFAULT_DISCHARGE_FORECAST_CURVE.initialMoistureQuadraticCoefficient,
-    discharge_forecast_initial_moisture_linear_coefficient: DEFAULT_DISCHARGE_FORECAST_CURVE.initialMoistureLinearCoefficient,
     discharge_forecast_constant_coefficient: DEFAULT_DISCHARGE_FORECAST_CURVE.constantCoefficient,
   };
 }
 
-async function updateDryerSettings({ targetMoisture, quadraticCoefficient, linearCoefficient, initialMoistureQuadraticCoefficient, initialMoistureLinearCoefficient, constantCoefficient, user }) {
+async function updateDryerSettings({ targetMoisture, quadraticCoefficient, linearCoefficient, constantCoefficient, user }) {
   ensureDatabaseConfigured();
 
   const result = await pool.query(
@@ -38,30 +34,24 @@ async function updateDryerSettings({ targetMoisture, quadraticCoefficient, linea
         target_moisture,
         discharge_forecast_quadratic_coefficient,
         discharge_forecast_linear_coefficient,
-        discharge_forecast_initial_moisture_quadratic_coefficient,
-        discharge_forecast_initial_moisture_linear_coefficient,
         discharge_forecast_constant_coefficient,
         updated_at,
         updated_by_user_id
       )
-      VALUES (true, $1, $2, $3, $4, $5, $6, now(), $7)
+      VALUES (true, $1, $2, $3, $4, now(), $5)
       ON CONFLICT (id)
       DO UPDATE SET target_moisture = EXCLUDED.target_moisture,
                     discharge_forecast_quadratic_coefficient = EXCLUDED.discharge_forecast_quadratic_coefficient,
                     discharge_forecast_linear_coefficient = EXCLUDED.discharge_forecast_linear_coefficient,
-                    discharge_forecast_initial_moisture_quadratic_coefficient = EXCLUDED.discharge_forecast_initial_moisture_quadratic_coefficient,
-                    discharge_forecast_initial_moisture_linear_coefficient = EXCLUDED.discharge_forecast_initial_moisture_linear_coefficient,
                     discharge_forecast_constant_coefficient = EXCLUDED.discharge_forecast_constant_coefficient,
                     updated_at = now(),
                     updated_by_user_id = EXCLUDED.updated_by_user_id
       RETURNING target_moisture,
                 discharge_forecast_quadratic_coefficient,
                 discharge_forecast_linear_coefficient,
-                discharge_forecast_initial_moisture_quadratic_coefficient,
-                discharge_forecast_initial_moisture_linear_coefficient,
                 discharge_forecast_constant_coefficient
     `,
-    [targetMoisture, quadraticCoefficient, linearCoefficient, initialMoistureQuadraticCoefficient, initialMoistureLinearCoefficient, constantCoefficient, user.userId]
+    [targetMoisture, quadraticCoefficient, linearCoefficient, constantCoefficient, user.userId]
   );
 
   return result.rows[0];

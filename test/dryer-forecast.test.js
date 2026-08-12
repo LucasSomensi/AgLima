@@ -22,7 +22,7 @@ test('calcula previsão antes da primeira medição usando umidade inicial e in�
   assert.equal(forecast.status, 'forecast');
   assert.equal(forecast.averageMoisture, 28);
   assert.equal(forecast.lastMeasuredAt, null);
-  assert.equal(forecast.forecastAt.toISOString(), '2026-06-21T20:37:36.870Z');
+  assert.equal(forecast.forecastAt.toISOString(), '2026-06-21T20:16:12.444Z');
 });
 
 test('estima o fim da descarga iniciada cinco minutos antes do fim da janela fixa', () => {
@@ -52,8 +52,6 @@ test('marca descarga imediata quando o horário atual é igual à previsão', ()
     curveSettings: {
       discharge_forecast_quadratic_coefficient: 0,
       discharge_forecast_linear_coefficient: 10,
-      discharge_forecast_initial_moisture_quadratic_coefficient: 0,
-      discharge_forecast_initial_moisture_linear_coefficient: 0,
       discharge_forecast_constant_coefficient: -100,
     },
   });
@@ -84,7 +82,7 @@ test('mantém a umidade inicial antes da primeira medição ao calcular a média
 
   assert.equal(forecast.status, 'forecast');
   assert.ok(Math.abs(forecast.averageMoisture - expectedAverage) < 0.0000001);
-  assert.equal(forecast.forecastAt.toISOString(), '2026-06-21T20:41:21.582Z');
+  assert.equal(forecast.forecastAt.toISOString(), '2026-06-21T20:20:36.545Z');
 });
 
 test('calcula previsão pela curva quadrática de umidade média', () => {
@@ -120,14 +118,17 @@ test('calcula previsão pela curva quadrática de umidade média', () => {
   assert.equal(forecast.status, 'forecast');
   assert.ok(Math.abs(forecast.averageMoisture - 16.452721088435375) < 0.0000001);
   assert.equal(forecast.lastMeasuredAt.toISOString(), '2026-07-09T10:20:00.000Z');
-  assert.equal(forecast.forecastAt.toISOString(), '2026-07-09T10:43:57.279Z');
+  assert.equal(forecast.forecastAt.toISOString(), '2026-07-09T10:28:56.972Z');
 });
 
 
-test('aplica a equação diretamente à umidade média e à umidade inicial', () => {
-  assert.ok(Math.abs(calculateMinutesRemainingFromAverageMoisture(29.5, 14, 28) - 512.136875) < 0.000001);
-  assert.ok(Math.abs(calculateMinutesRemainingFromAverageMoisture(35, 14, 28) - 539.8324) < 0.000001);
-  assert.ok(Math.abs(calculateMinutesRemainingFromAverageMoisture(40, 14, 28) - 480.1649) < 0.000001);
+test('limita a curva ao máximo calculado quando a umidade média passa do vértice', () => {
+  assert.ok(Math.abs(calculateMinutesRemainingFromAverageMoisture(29.5) - 488.803925) < 0.000001);
+  assert.ok(Math.abs(calculateMinutesRemainingFromAverageMoisture(35) - 512.1953182314278) < 0.000001);
+  assert.equal(
+    calculateMinutesRemainingFromAverageMoisture(40),
+    calculateMinutesRemainingFromAverageMoisture(35),
+  );
 });
 
 test('aplica correção de umidade alvo aos minutos restantes da curva', () => {
@@ -154,12 +155,12 @@ test('aplica correção de umidade alvo aos minutos restantes da curva', () => {
     now: '2026-07-09T01:00:00.000Z',
   });
 
-  assert.ok(Math.abs(calculateMinutesRemainingFromAverageMoisture(24.55, 14, 25) - 396.23018975) < 0.0000001);
-  assert.equal(calculateMinutesRemainingFromAverageMoisture(15.2, 14, 25), 0);
+  assert.ok(Math.abs(calculateMinutesRemainingFromAverageMoisture(24.55) - 385.52299175) < 0.0000001);
+  assert.equal(calculateMinutesRemainingFromAverageMoisture(15.2), 0);
   assert.equal(forecastWithLowerTarget.status, 'forecast');
   assert.equal(forecastWithHigherTarget.status, 'forecast');
-  assert.equal(forecastWithLowerTarget.forecastAt.toISOString(), '2026-07-09T09:19:22.110Z');
-  assert.equal(forecastWithHigherTarget.forecastAt.toISOString(), '2026-07-09T03:19:22.110Z');
+  assert.equal(forecastWithLowerTarget.forecastAt.toISOString(), '2026-07-09T09:08:19.008Z');
+  assert.equal(forecastWithHigherTarget.forecastAt.toISOString(), '2026-07-09T03:08:19.008Z');
 });
 
 test('calcula umidade média por integral com interpolação no período informado', () => {
@@ -189,11 +190,9 @@ test('calcula umidade média por integral com interpolação no período informa
 
 test('usa parâmetros customizados da curva de previsão quando informados', () => {
   assert.equal(
-    calculateMinutesRemainingFromAverageMoisture(20, 14, 20, {
+    calculateMinutesRemainingFromAverageMoisture(20, 14, {
       discharge_forecast_quadratic_coefficient: 0,
       discharge_forecast_linear_coefficient: 10,
-      discharge_forecast_initial_moisture_quadratic_coefficient: 0,
-      discharge_forecast_initial_moisture_linear_coefficient: 0,
       discharge_forecast_constant_coefficient: -100,
     }),
     100,
@@ -202,11 +201,11 @@ test('usa parâmetros customizados da curva de previsão quando informados', () 
 
 test('mantém coeficientes padrão como fallback quando parâmetros da curva são nulos', () => {
   assert.equal(
-    calculateMinutesRemainingFromAverageMoisture(35, undefined, 28, {
+    calculateMinutesRemainingFromAverageMoisture(35, undefined, {
       discharge_forecast_quadratic_coefficient: null,
       discharge_forecast_linear_coefficient: null,
       discharge_forecast_constant_coefficient: null,
     }),
-    calculateMinutesRemainingFromAverageMoisture(35, 14, 28),
+    calculateMinutesRemainingFromAverageMoisture(35),
   );
 });

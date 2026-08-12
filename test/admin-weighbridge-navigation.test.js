@@ -105,8 +105,6 @@ test('admin home uses configured forecast curve before the first moisture readin
       target_moisture: '14',
       discharge_forecast_quadratic_coefficient: 0,
       discharge_forecast_linear_coefficient: 10,
-      discharge_forecast_initial_moisture_quadratic_coefficient: 0,
-      discharge_forecast_initial_moisture_linear_coefficient: 0,
       discharge_forecast_constant_coefficient: -100,
     },
     storageSummary: [],
@@ -223,8 +221,6 @@ test('admin dryer dashboard uses configured forecast curve before the first mois
       target_moisture: '14',
       discharge_forecast_quadratic_coefficient: 0,
       discharge_forecast_linear_coefficient: 10,
-      discharge_forecast_initial_moisture_quadratic_coefficient: 0,
-      discharge_forecast_initial_moisture_linear_coefficient: 0,
       discharge_forecast_constant_coefficient: -100,
     },
     message: '',
@@ -241,8 +237,6 @@ test('admin dryer config page shows forecast preview table for configured moistu
       target_moisture: 14,
       discharge_forecast_quadratic_coefficient: 0,
       discharge_forecast_linear_coefficient: 10,
-      discharge_forecast_initial_moisture_quadratic_coefficient: 0,
-      discharge_forecast_initial_moisture_linear_coefficient: 0,
       discharge_forecast_constant_coefficient: -100,
     },
     message: '',
@@ -251,10 +245,6 @@ test('admin dryer config page shows forecast preview table for configured moistu
 
   assert.match(html, /action="\/admin\/umidade-alvo"/);
   assert.match(html, /Previsão por umidade/);
-  assert.match(html, /Previsão \(inicial 28%\)/);
-  assert.match(html, /Previsão \(inicial 20%\)/);
-  assert.match(html, /name="discharge_forecast_initial_moisture_quadratic_coefficient"/);
-  assert.match(html, /name="discharge_forecast_initial_moisture_linear_coefficient"/);
-  assert.match(html, /<td>16,0%<\/td>\s*<td>1h 0m<\/td>\s*<td>1h 0m<\/td>/);
-  assert.match(html, /<td>30,0%<\/td>\s*<td>3h 20m<\/td>\s*<td>3h 20m<\/td>/);
+  assert.match(html, /<td>16,0%<\/td>\s*<td>1h 0m<\/td>/);
+  assert.match(html, /<td>30,0%<\/td>\s*<td>3h 20m<\/td>/);
 });
