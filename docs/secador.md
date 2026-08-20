@@ -20,6 +20,7 @@ Campos centrais:
 
 - `id`: chave booleana fixa para manter um único registro de configuração.
 - `target_moisture`: umidade alvo padrão usada ao iniciar novas bateladas.
+- `discharge_silo_count`: quantidade configurável de silos disponíveis para descarga, inicialmente `4`.
 - `discharge_forecast_quadratic_coefficient`: coeficiente quadrático da curva de previsão de descarga. Quando `NULL`, o código usa o coeficiente padrão atual.
 - `discharge_forecast_linear_coefficient`: coeficiente linear da curva de previsão de descarga. Quando `NULL`, o código usa o coeficiente padrão atual.
 - `discharge_forecast_initial_moisture_quadratic_coefficient`: coeficiente do termo quadrático da umidade inicial. Quando `NULL`, o código usa `-0,5309`.
@@ -27,6 +28,8 @@ Campos centrais:
 - `discharge_forecast_constant_coefficient`: coeficiente constante da curva de previsão de descarga. Quando `NULL`, o código usa o coeficiente padrão atual.
 - `updated_at`: data/hora da última alteração da configuração.
 - `updated_by_user_id`: usuário que alterou a configuração.
+
+A migration dos silos evita comandos `SELECT`, inclusive dentro de blocos procedurais, para poder ser executada integralmente no editor de consultas do Railway sem que o editor acrescente um `LIMIT` inválido ao final do script.
 
 ### `dryer_batches`
 
@@ -40,6 +43,7 @@ Campos centrais:
 - `status`: status persistido da batelada. O código usa `active` para a batelada em andamento e `completed` para bateladas encerradas.
 - `started_at`: data/hora em que a batelada foi iniciada.
 - `discharge_started_at`: data/hora em que o operador iniciou a descarga para os silos.
+- `discharge_silo_number`: silo de destino da descarga, limitado pela configuração vigente quando a descarga é iniciada. O campo é nulo em registros históricos que não possuíam essa informação.
 - `completed_at`: data/hora em que a batelada foi encerrada, seja por início de nova batelada depois da descarga, seja por parada manual.
 - `started_by_user_id`: usuário que iniciou a batelada.
 - `completed_by_user_id`: usuário que concluiu/parou a batelada.
@@ -87,7 +91,8 @@ Campos centrais:
 - `POST /secador/entradas/:id/classificacao`: valida e grava `umidade_percent`, `impureza_percent`, `graos_avariados_percent`, `classificado_por_user_id` e `classificado_em` para a entrada, usando as mesmas regras do fluxo da balança.
 - `GET /secador/bateladas/nova`: mostra a etapa de confirmação para iniciar nova batelada, com o campo editável de umidade inicial preenchido pela média das 5 últimas entradas classificadas da balança ou por `28%` quando não houver 5 entradas com umidade disponível.
 - `POST /secador/bateladas`: inicia uma nova batelada usando a umidade inicial confirmada. Se já houver batelada ativa sem descarga iniciada, rejeita a ação.
-- `POST /secador/bateladas/descarga`: registra o início da descarga da batelada ativa.
+- `GET /secador/bateladas/descarga/confirmar`: confirma o último silo usado ou permite escolher outro silo de destino.
+- `POST /secador/bateladas/descarga`: registra o início e o silo de destino da descarga da batelada ativa.
 - `POST /secador/bateladas/parar`: para o secador e conclui imediatamente a batelada ativa.
 - `POST /secador/umidades`: registra uma medição de umidade na batelada ativa.
 
@@ -187,7 +192,7 @@ Se o horário atual do servidor for igual ou posterior ao horário previsto, o p
 
 ### 6. Iniciar descarga
 
-Enquanto a batelada está secando, a ação principal é “Iniciar descarga”. Ao confirmar, o backend grava `discharge_started_at` com o horário atual do servidor. O status visual muda de **Secando** para **Descarregando**.
+Enquanto a batelada está secando, a ação principal é “Iniciar descarga”. A página seguinte sugere o último silo registrado, quando ele ainda estiver dentro da quantidade configurada, e apresenta, nesta ordem, “Confirmar”, “Escolher outro silo” e “Cancelar”. Se não houver histórico válido, o operador precisa escolher um dos silos configurados. Ao confirmar, o backend grava `discharge_started_at` com o horário atual do servidor e `discharge_silo_number` com o destino escolhido. O status visual muda de **Secando** para **Descarregando**.
 
 A descarga só pode ser iniciada se houver batelada ativa e se ela ainda não tiver descarga registrada. Tentativas duplicadas retornam mensagem amigável para o operador.
 

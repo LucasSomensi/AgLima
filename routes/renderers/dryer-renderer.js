@@ -71,6 +71,10 @@ function renderCompletedBatchSummaryCard(completedBatch, { title = 'Última bate
                 <dd>${escapeHtml(formatDateTime(completedBatch.discharge_started_at))}</dd>
               </div>
               <div>
+                <dt>Silo de descarga</dt>
+                <dd>${escapeHtml(completedBatch.discharge_silo_number ? `Silo ${completedBatch.discharge_silo_number}` : '-')}</dd>
+              </div>
+              <div>
                 <dt>Fim descarga</dt>
                 <dd>${escapeHtml(formatDateTime(completedBatch.completed_at))}</dd>
               </div>
@@ -289,6 +293,35 @@ function renderDryerStartBatchPage(res, { defaultInitialMoisture, error }) {
   res.send(dryerHtml);
 }
 
+function renderDryerDischargeConfirmationPage(res, { lastSiloNumber = null, dischargeSiloCount = 4 }) {
+  const numericLastSilo = Number(lastSiloNumber);
+  const numericSiloCount = Number(dischargeSiloCount);
+  const siloCount = Number.isInteger(numericSiloCount) && numericSiloCount > 0 ? numericSiloCount : 4;
+  const hasLastSilo = lastSiloNumber !== null
+    && lastSiloNumber !== undefined
+    && Number.isInteger(numericLastSilo)
+    && numericLastSilo >= 1
+    && numericLastSilo <= siloCount;
+  const siloNumber = hasLastSilo ? numericLastSilo : '';
+  const html = renderTemplate('dryer-discharge-confirmation.html', {
+    DISCHARGE_PROMPT: hasLastSilo
+      ? `Deseja iniciar a descarga para o silo ${escapeHtml(siloNumber)}?`
+      : 'Escolha o silo para iniciar a descarga.',
+    LAST_SILO_INPUT: hasLastSilo
+      ? `<input type="hidden" name="discharge_silo_number" value="${escapeHtml(siloNumber)}" data-silo-input>`
+      : '<input type="hidden" name="discharge_silo_number" value="" data-silo-input>',
+    CONFIRM_LABEL: hasLastSilo ? `Confirmar silo ${escapeHtml(siloNumber)}` : 'Confirmar',
+    CHOOSER_HIDDEN: hasLastSilo ? 'hidden' : '',
+    CHOOSE_OTHER_HIDDEN: hasLastSilo ? '' : 'hidden',
+    SILO_OPTIONS: Array.from({ length: siloCount }, (_, index) => {
+      const option = index + 1;
+      return `<button class="btn-secondary-action" type="button" data-silo-number="${option}">Silo ${option}</button>`;
+    }).join(''),
+  });
+
+  res.send(html);
+}
+
 function renderDryerPanelPage(res, { batch, readings, settings, message, error, unclassifiedInputs = [], lastCompletedBatch = null }) {
   const dischargeForecast = batch?.discharge_started_at
     ? calculateDischargeForecast({ batch, readings, curveSettings: settings })
@@ -304,10 +337,11 @@ function renderDryerPanelPage(res, { batch, readings, settings, message, error, 
   const moistureFormDisabled = batch ? '' : 'disabled';
   const batchAction = batch && !batch.discharge_started_at
     ? {
-        action: '/secador/bateladas/descarga',
+        action: '/secador/bateladas/descarga/confirmar',
+        method: 'get',
         label: 'Iniciar descarga',
         cssClass: 'btn-primary-action',
-        confirm: 'Registrar início da descarga para os silos?',
+        confirm: '',
       }
     : {
         action: '/secador/bateladas/nova',
@@ -331,6 +365,7 @@ function renderDryerPanelPage(res, { batch, readings, settings, message, error, 
     BATCH_STATUS: batchStatusHtml,
     BATCH_STARTED_AT: escapeHtml(startedAt),
     DISCHARGE_STARTED_AT: escapeHtmlWithLineBreaks(dischargeStartedAt),
+    DISCHARGE_SILO: escapeHtml(batch?.discharge_silo_number ? `Silo ${batch.discharge_silo_number}` : '-'),
     INITIAL_MOISTURE: escapeHtml(initialMoisture),
     LAST_COMPLETED_BATCH_SUMMARY: renderLastCompletedBatchSummary(lastCompletedBatch),
     BATCH_ACTION_URL: escapeHtml(batchAction.action),
@@ -352,6 +387,7 @@ function renderDryerPanelPage(res, { batch, readings, settings, message, error, 
 module.exports = {
   renderCompletedBatchHistoryPage,
   renderDryerInputClassificationPage,
+  renderDryerDischargeConfirmationPage,
   renderDryerPanelPage,
   renderDryerStartBatchPage,
 };

@@ -881,6 +881,7 @@ function renderAdminDryerConfigPage(res, { settings, message, error }) {
     ADMIN_PANEL_MESSAGE: buildAlertHtml(message),
     ADMIN_PANEL_ERROR: buildAlertHtml(error, 'error'),
     TARGET_MOISTURE_VALUE: escapeHtml(formatMoisture(settings?.target_moisture).replace(',', '.')),
+    DISCHARGE_SILO_COUNT_VALUE: escapeHtml(settings?.discharge_silo_count ?? 4),
     DISCHARGE_FORECAST_QUADRATIC_COEFFICIENT_VALUE: escapeHtml(formatForecastCurveInputValue(settings?.discharge_forecast_quadratic_coefficient, DEFAULT_DISCHARGE_FORECAST_CURVE.quadraticCoefficient)),
     DISCHARGE_FORECAST_LINEAR_COEFFICIENT_VALUE: escapeHtml(formatForecastCurveInputValue(settings?.discharge_forecast_linear_coefficient, DEFAULT_DISCHARGE_FORECAST_CURVE.linearCoefficient)),
     DISCHARGE_FORECAST_INITIAL_MOISTURE_QUADRATIC_COEFFICIENT_VALUE: escapeHtml(formatForecastCurveInputValue(settings?.discharge_forecast_initial_moisture_quadratic_coefficient, DEFAULT_DISCHARGE_FORECAST_CURVE.initialMoistureQuadraticCoefficient)),
@@ -915,6 +916,7 @@ function renderAdminBatchesPage(res, { batches, pagination = { page: 1, totalPag
           <td>${escapeHtml(formatOptionalMoisture(batch.umidade_inicial))}</td>
           <td><a class="admin-table-link" href="${escapeHtml(batchHref)}">${escapeHtml(formatDateTime(batch.started_at))}</a></td>
           <td>${escapeHtml(batch.discharge_started_at ? formatDateTime(batch.discharge_started_at) : '-')}</td>
+          <td>${escapeHtml(batch.discharge_silo_number ? `Silo ${batch.discharge_silo_number}` : '-')}</td>
           <td>${escapeHtml(batch.completed_at ? formatDateTime(batch.completed_at) : '-')}</td>
           <td>${escapeHtml(formatDurationBetween(batch.started_at, dryingEnd))}</td>
           <td>${escapeHtml(formatDurationBetween(batch.discharge_started_at, dischargeEnd))}</td>
@@ -925,7 +927,7 @@ function renderAdminBatchesPage(res, { batches, pagination = { page: 1, totalPag
       `;
     })
     .join('');
-  const emptyState = '<tr><td colspan="10">Nenhuma batelada encontrada.</td></tr>';
+  const emptyState = '<tr><td colspan="11">Nenhuma batelada encontrada.</td></tr>';
   const batchesHtml = fs
     .readFileSync(batchesPath, 'utf8')
     .replace('{{BATCHES_ROWS}}', rowsHtml || emptyState)
@@ -947,6 +949,7 @@ function renderAdminBatchDetailPage(res, { batch, readings }) {
     .replace('{{BATCH_STATUS}}', escapeHtml(formatBatchStatusLabel(batch)))
     .replace('{{BATCH_STARTED_AT}}', escapeHtml(formatDateTime(batch.started_at)))
     .replace('{{BATCH_DISCHARGE_STARTED_AT}}', escapeHtml(batch.discharge_started_at ? formatDateTime(batch.discharge_started_at) : '-'))
+    .replace('{{BATCH_DISCHARGE_SILO}}', escapeHtml(batch.discharge_silo_number ? `Silo ${batch.discharge_silo_number}` : '-'))
     .replace('{{BATCH_COMPLETED_AT}}', escapeHtml(batch.completed_at ? formatDateTime(batch.completed_at) : '-'))
     .replace('{{BATCH_TARGET_MOISTURE}}', escapeHtml(formatMoisture(batch.target_moisture)))
     .replace('{{BATCH_PRODUCT}}', escapeHtml(getGrainLabel(batch.grain_type)))
