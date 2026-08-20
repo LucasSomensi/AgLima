@@ -5,6 +5,7 @@ const {
   addDryerMoistureReading,
   getActiveDryerBatch,
   getDryerSettings,
+  getLastDischargeSiloNumber,
   getLastCompletedDryerBatchSummary,
   listRecentCompletedDryerBatchSummaries,
   getDefaultInitialMoisture,
@@ -23,6 +24,7 @@ const {
   renderCompletedBatchHistoryPage,
   renderDryerInputClassificationPage,
   renderDryerPanelPage,
+  renderDryerDischargeConfirmationPage,
   renderDryerStartBatchPage,
 } = require('./renderers/dryer-renderer');
 const { buildRedirect, parseInitialMoisturePercent, parseMoisturePercent } = require('./utils');
@@ -172,14 +174,43 @@ router.post('/secador/bateladas', canAccessDryer, async (req, res) => {
   }
 });
 
+router.get('/secador/bateladas/descarga/confirmar', canAccessDryer, async (req, res) => {
+  try {
+    const [batch, lastSiloNumber, settings] = await Promise.all([
+      getActiveDryerBatch(),
+      getLastDischargeSiloNumber(),
+      getDryerSettings(),
+    ]);
+
+    if (!batch) {
+      return res.redirect(buildDryerRedirect({ error: 'Não há batelada ativa para iniciar descarga.' }));
+    }
+
+    if (batch.discharge_started_at) {
+      return res.redirect(buildDryerRedirect({ error: 'A descarga da batelada atual já foi iniciada.' }));
+    }
+
+    return renderDryerDischargeConfirmationPage(res, {
+      lastSiloNumber,
+      dischargeSiloCount: Number(settings.discharge_silo_count || 4),
+    });
+  } catch (error) {
+    console.error('Error loading dryer discharge confirmation:', error.message);
+    return res.redirect(buildDryerRedirect({ error: 'Não foi possível carregar a confirmação da descarga agora.' }));
+  }
+});
+
 router.post('/secador/bateladas/descarga', canAccessDryer, async (req, res) => {
   const dischargeStartedAt = new Date();
+  const dischargeSiloNumber = /^\d+$/.test(String(req.body.discharge_silo_number || ''))
+    ? Number(req.body.discharge_silo_number)
+    : null;
 
   try {
-    await startDryerBatchDischarge({ dischargeStartedAt });
+    await startDryerBatchDischarge({ dischargeStartedAt, dischargeSiloNumber });
     return res.redirect(buildDryerRedirect({ discharge: '1' }));
   } catch (error) {
-    if (error.code === 'NO_ACTIVE_BATCH' || error.code === 'DISCHARGE_ALREADY_STARTED') {
+    if (error.code === 'NO_ACTIVE_BATCH' || error.code === 'DISCHARGE_ALREADY_STARTED' || error.code === 'INVALID_DISCHARGE_SILO') {
       return res.redirect(buildDryerRedirect({ error: error.message }));
     }
 

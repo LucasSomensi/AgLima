@@ -469,6 +469,7 @@ Armazena a configuração global do secador. A tabela funciona como singleton: o
 | --- | --- | --- | --- | --- |
 | `id` | `boolean` | Não | `true` | Chave primária booleana usada para manter apenas um registro de configuração. |
 | `target_moisture` | `numeric` | Não | `14.5` | Umidade alvo padrão usada ao iniciar novas bateladas. |
+| `discharge_silo_count` | `integer` | Não | `4` | Quantidade configurável de silos disponíveis como destino da descarga. |
 | `discharge_forecast_quadratic_coefficient` | `numeric` | Sim | — | Coeficiente quadrático da curva de previsão de descarga. Quando `NULL`, o código usa o coeficiente padrão atual. |
 | `discharge_forecast_linear_coefficient` | `numeric` | Sim | — | Coeficiente linear da curva de previsão de descarga. Quando `NULL`, o código usa o coeficiente padrão atual. |
 | `discharge_forecast_initial_moisture_quadratic_coefficient` | `numeric` | Sim | `-0.5309` | Coeficiente do termo quadrático da umidade inicial da batelada. |
@@ -485,6 +486,7 @@ Armazena a configuração global do secador. A tabela funciona como singleton: o
 | Foreign key | `dryer_settings_updated_by_user_id_fkey` | `updated_by_user_id` → `users.id` |
 | Check | `dryer_settings_singleton` | `id` |
 | Check | `dryer_settings_target_moisture_check` | `target_moisture` |
+| Check | `dryer_settings_discharge_silo_count_check` | `discharge_silo_count` entre 1 e 100 |
 | Check / not null | constraints `dryer_settings_*_not_null` | `id`, `target_moisture`, `updated_at` |
 
 ---
@@ -511,6 +513,7 @@ Armazena as bateladas do secador.
 | `created_at` | `timestamp with time zone` | Não | `now()` | Data/hora de criação do registro. |
 | `updated_at` | `timestamp with time zone` | Não | `now()` | Data/hora da última atualização. |
 | `discharge_started_at` | `timestamp with time zone` | Sim | — | Data/hora em que a descarga da batelada foi iniciada. |
+| `discharge_silo_number` | `integer` | Sim | — | Silo de destino da descarga, validado contra a quantidade configurada no momento da operação. Bateladas anteriores à implantação permanecem com valor nulo. |
 | `final_moisture` | `numeric` | Sim | — | Umidade final média da batelada durante o período de descarga, calculada pela mesma regra de média ponderada usada no secador. |
 
 ### Restrições
@@ -527,6 +530,7 @@ Armazena as bateladas do secador.
 | Check | `dryer_batches_target_moisture_check` | `target_moisture` |
 | Check | `dryer_batches_umidade_inicial_check` | `umidade_inicial` |
 | Check | `dryer_batches_n_check` | `n` |
+| Check | `dryer_batches_discharge_silo_number_positive_check` | `discharge_silo_number` positivo quando preenchido |
 | Check / not null | constraints `dryer_batches_*_not_null` | `id`, `n`, `grain_type`, `status`, `started_at`, `target_moisture`, `umidade_inicial`, `created_at`, `updated_at` |
 
 ---

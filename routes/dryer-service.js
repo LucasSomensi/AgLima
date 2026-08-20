@@ -7,6 +7,7 @@ async function getDryerSettings() {
   const result = await pool.query(
     `
       SELECT target_moisture,
+             discharge_silo_count,
              discharge_forecast_quadratic_coefficient,
              discharge_forecast_linear_coefficient,
              discharge_forecast_initial_moisture_quadratic_coefficient,
@@ -20,6 +21,7 @@ async function getDryerSettings() {
 
   return result.rows[0] || {
     target_moisture: '14.5',
+    discharge_silo_count: 4,
     discharge_forecast_quadratic_coefficient: DEFAULT_DISCHARGE_FORECAST_CURVE.quadraticCoefficient,
     discharge_forecast_linear_coefficient: DEFAULT_DISCHARGE_FORECAST_CURVE.linearCoefficient,
     discharge_forecast_initial_moisture_quadratic_coefficient: DEFAULT_DISCHARGE_FORECAST_CURVE.initialMoistureQuadraticCoefficient,
@@ -28,7 +30,7 @@ async function getDryerSettings() {
   };
 }
 
-async function updateDryerSettings({ targetMoisture, quadraticCoefficient, linearCoefficient, initialMoistureQuadraticCoefficient, initialMoistureLinearCoefficient, constantCoefficient, user }) {
+async function updateDryerSettings({ targetMoisture, dischargeSiloCount, quadraticCoefficient, linearCoefficient, initialMoistureQuadraticCoefficient, initialMoistureLinearCoefficient, constantCoefficient, user }) {
   ensureDatabaseConfigured();
 
   const result = await pool.query(
@@ -36,6 +38,7 @@ async function updateDryerSettings({ targetMoisture, quadraticCoefficient, linea
       INSERT INTO dryer_settings (
         id,
         target_moisture,
+        discharge_silo_count,
         discharge_forecast_quadratic_coefficient,
         discharge_forecast_linear_coefficient,
         discharge_forecast_initial_moisture_quadratic_coefficient,
@@ -44,9 +47,10 @@ async function updateDryerSettings({ targetMoisture, quadraticCoefficient, linea
         updated_at,
         updated_by_user_id
       )
-      VALUES (true, $1, $2, $3, $4, $5, $6, now(), $7)
+      VALUES (true, $1, $2, $3, $4, $5, $6, $7, now(), $8)
       ON CONFLICT (id)
       DO UPDATE SET target_moisture = EXCLUDED.target_moisture,
+                    discharge_silo_count = EXCLUDED.discharge_silo_count,
                     discharge_forecast_quadratic_coefficient = EXCLUDED.discharge_forecast_quadratic_coefficient,
                     discharge_forecast_linear_coefficient = EXCLUDED.discharge_forecast_linear_coefficient,
                     discharge_forecast_initial_moisture_quadratic_coefficient = EXCLUDED.discharge_forecast_initial_moisture_quadratic_coefficient,
@@ -55,13 +59,14 @@ async function updateDryerSettings({ targetMoisture, quadraticCoefficient, linea
                     updated_at = now(),
                     updated_by_user_id = EXCLUDED.updated_by_user_id
       RETURNING target_moisture,
+                discharge_silo_count,
                 discharge_forecast_quadratic_coefficient,
                 discharge_forecast_linear_coefficient,
                 discharge_forecast_initial_moisture_quadratic_coefficient,
                 discharge_forecast_initial_moisture_linear_coefficient,
                 discharge_forecast_constant_coefficient
     `,
-    [targetMoisture, quadraticCoefficient, linearCoefficient, initialMoistureQuadraticCoefficient, initialMoistureLinearCoefficient, constantCoefficient, user.userId]
+    [targetMoisture, dischargeSiloCount, quadraticCoefficient, linearCoefficient, initialMoistureQuadraticCoefficient, initialMoistureLinearCoefficient, constantCoefficient, user.userId]
   );
 
   return result.rows[0];
@@ -72,7 +77,7 @@ async function getActiveDryerBatch() {
 
   const result = await pool.query(
     `
-      SELECT id, n, grain_type, status, started_at, discharge_started_at, completed_at, target_moisture, umidade_inicial, final_moisture, created_at
+      SELECT id, n, grain_type, status, started_at, discharge_started_at, discharge_silo_number, completed_at, target_moisture, umidade_inicial, final_moisture, created_at
       FROM dryer_batches
       WHERE status = 'active'
       ORDER BY started_at DESC
@@ -88,7 +93,7 @@ async function getDryerBatchById(batchId) {
 
   const result = await pool.query(
     `
-      SELECT id, n, grain_type, status, started_at, discharge_started_at, completed_at, target_moisture, umidade_inicial, final_moisture, created_at
+      SELECT id, n, grain_type, status, started_at, discharge_started_at, discharge_silo_number, completed_at, target_moisture, umidade_inicial, final_moisture, created_at
       FROM dryer_batches
       WHERE id = $1
       LIMIT 1
@@ -104,7 +109,7 @@ async function listAdminDryerBatches() {
 
   const result = await pool.query(
     `
-      SELECT id, n, grain_type, status, started_at, discharge_started_at, completed_at, target_moisture, umidade_inicial, final_moisture, created_at
+      SELECT id, n, grain_type, status, started_at, discharge_started_at, discharge_silo_number, completed_at, target_moisture, umidade_inicial, final_moisture, created_at
       FROM dryer_batches
       ORDER BY started_at DESC, created_at DESC
     `
@@ -138,7 +143,7 @@ async function listRecentCompletedDryerBatchSummaries(limit = 10) {
 
   const result = await pool.query(
     `
-      SELECT id, n, started_at, discharge_started_at, completed_at, umidade_inicial, final_moisture, created_at
+      SELECT id, n, started_at, discharge_started_at, discharge_silo_number, completed_at, umidade_inicial, final_moisture, created_at
       FROM dryer_batches
       WHERE status <> 'active'
       ORDER BY started_at DESC, created_at DESC
@@ -158,7 +163,7 @@ async function getLastCompletedDryerBatchSummary() {
 
   const batchResult = await pool.query(
     `
-      SELECT id, n, started_at, discharge_started_at, completed_at, umidade_inicial, final_moisture, created_at
+      SELECT id, n, started_at, discharge_started_at, discharge_silo_number, completed_at, umidade_inicial, final_moisture, created_at
       FROM dryer_batches
       WHERE status <> 'active'
       ORDER BY started_at DESC, created_at DESC
@@ -195,6 +200,22 @@ async function listDryerMoistureReadings(batchId) {
   );
 
   return result.rows;
+}
+
+async function getLastDischargeSiloNumber() {
+  ensureDatabaseConfigured();
+
+  const result = await pool.query(
+    `
+      SELECT discharge_silo_number
+      FROM dryer_batches
+      WHERE discharge_silo_number IS NOT NULL
+      ORDER BY discharge_started_at DESC, created_at DESC
+      LIMIT 1
+    `
+  );
+
+  return result.rows[0]?.discharge_silo_number ?? null;
 }
 
 async function getDefaultInitialMoisture() {
@@ -368,7 +389,13 @@ async function startDryerBatch({ startedAt, grainType, initialMoisture, user }) 
   }
 }
 
-async function startDryerBatchDischarge({ dischargeStartedAt }) {
+async function startDryerBatchDischarge({ dischargeStartedAt, dischargeSiloNumber }) {
+  if (!Number.isInteger(dischargeSiloNumber) || dischargeSiloNumber < 1) {
+    const error = new Error('Escolha um silo válido para iniciar a descarga.');
+    error.code = 'INVALID_DISCHARGE_SILO';
+    throw error;
+  }
+
   ensureDatabaseConfigured();
 
   const client = await pool.connect();
@@ -376,6 +403,17 @@ async function startDryerBatchDischarge({ dischargeStartedAt }) {
   try {
     await client.query('BEGIN');
     await client.query('SELECT pg_advisory_xact_lock(20260530)');
+
+    const settingsResult = await client.query(
+      'SELECT discharge_silo_count FROM dryer_settings WHERE id = true LIMIT 1'
+    );
+    const dischargeSiloCount = Number(settingsResult.rows[0]?.discharge_silo_count || 4);
+
+    if (dischargeSiloNumber > dischargeSiloCount) {
+      const error = new Error(`Escolha um silo de 1 a ${dischargeSiloCount} para iniciar a descarga.`);
+      error.code = 'INVALID_DISCHARGE_SILO';
+      throw error;
+    }
 
     const activeBatchResult = await client.query(
       `
@@ -404,11 +442,12 @@ async function startDryerBatchDischarge({ dischargeStartedAt }) {
       `
         UPDATE dryer_batches
         SET discharge_started_at = $1,
+            discharge_silo_number = $2,
             updated_at = now()
-        WHERE id = $2
-        RETURNING id, discharge_started_at
+        WHERE id = $3
+        RETURNING id, discharge_started_at, discharge_silo_number
       `,
-      [dischargeStartedAt, activeBatch.id]
+      [dischargeStartedAt, dischargeSiloNumber, activeBatch.id]
     );
 
     await client.query('COMMIT');
@@ -534,6 +573,7 @@ module.exports = {
   addDryerMoistureReading,
   getActiveDryerBatch,
   getDryerBatchById,
+  getLastDischargeSiloNumber,
   getDefaultInitialMoisture,
   getDryerSettings,
   getLastCompletedDryerBatchSummary,

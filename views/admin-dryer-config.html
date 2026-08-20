@@ -37,6 +37,8 @@
               <input type="hidden" name="_csrf" value="{{CSRF_TOKEN}}">
               <label for="target_moisture">Umidade alvo (%)</label>
               <input class="form-control" id="target_moisture" name="target_moisture" type="number" min="7" max="40" step="0.1" value="{{TARGET_MOISTURE_VALUE}}" inputmode="decimal" required>
+              <label for="discharge_silo_count">Quantidade de silos de descarga</label>
+              <input class="form-control" id="discharge_silo_count" name="discharge_silo_count" type="number" min="1" max="100" step="1" value="{{DISCHARGE_SILO_COUNT_VALUE}}" inputmode="numeric" required>
               <label for="discharge_forecast_quadratic_coefficient">Coeficiente quadrático da curva</label>
               <input class="form-control" id="discharge_forecast_quadratic_coefficient" name="discharge_forecast_quadratic_coefficient" type="number" step="any" value="{{DISCHARGE_FORECAST_QUADRATIC_COEFFICIENT_VALUE}}" inputmode="decimal" required>
               <label for="discharge_forecast_linear_coefficient">Coeficiente linear da curva</label>

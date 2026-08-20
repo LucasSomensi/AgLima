@@ -101,6 +101,76 @@ test('dryer panel omits the last batch summary when there is no completed batch'
   assert.doesNotMatch(html, /Última batelada/);
 });
 
+test('dryer panel opens the silo confirmation step before starting discharge', () => {
+  const html = renderPage({
+    batch: {
+      id: 9,
+      status: 'active',
+      started_at: '2026-08-19T10:00:00.000Z',
+      discharge_started_at: null,
+      umidade_inicial: '28',
+      target_moisture: '14.5',
+    },
+    readings: [],
+    settings: { target_moisture: '14.5' },
+    message: '',
+    error: '',
+  });
+
+  assert.match(html, /action="\/secador\/bateladas\/descarga\/confirmar" method="get"/);
+  assert.doesNotMatch(html, /Registrar início da descarga para os silos/);
+});
+
+test('discharge confirmation prioritizes confirm, choose another silo, and cancel', () => {
+  const { renderDryerDischargeConfirmationPage } = require('../routes/renderers');
+  let html = '';
+
+  renderDryerDischargeConfirmationPage({ send: (value) => { html = value; } }, { lastSiloNumber: 3 });
+
+  assert.match(html, /Deseja iniciar a descarga para o silo 3\?/);
+  assert.match(html, /name="discharge_silo_number" value="3"/);
+  assert.match(html, /Confirmar silo 3[\s\S]*Escolher outro silo[\s\S]*Cancelar/);
+});
+
+test('discharge confirmation requires a silo choice when there is no history', () => {
+  const { renderDryerDischargeConfirmationPage } = require('../routes/renderers');
+  let html = '';
+
+  renderDryerDischargeConfirmationPage({ send: (value) => { html = value; } }, {});
+
+  assert.match(html, /Escolha o silo para iniciar a descarga\./);
+  assert.match(html, /Silo 1[\s\S]*Silo 2[\s\S]*Silo 3[\s\S]*Silo 4/);
+  assert.match(html, /name="discharge_silo_number" value=""/);
+});
+
+test('discharge confirmation renders the configured number of silos', () => {
+  const { renderDryerDischargeConfirmationPage } = require('../routes/renderers');
+  let html = '';
+
+  renderDryerDischargeConfirmationPage({ send: (value) => { html = value; } }, {
+    lastSiloNumber: 6,
+    dischargeSiloCount: 6,
+  });
+
+  assert.match(html, /Deseja iniciar a descarga para o silo 6\?/);
+  assert.match(html, /Silo 4[\s\S]*Silo 5[\s\S]*Silo 6/);
+  assert.doesNotMatch(html, /data-silo-number="7"/);
+});
+
+test('discharge confirmation ignores a previous silo outside the current configuration', () => {
+  const { renderDryerDischargeConfirmationPage } = require('../routes/renderers');
+  let html = '';
+
+  renderDryerDischargeConfirmationPage({ send: (value) => { html = value; } }, {
+    lastSiloNumber: 6,
+    dischargeSiloCount: 4,
+  });
+
+  assert.match(html, /Escolha o silo para iniciar a descarga\./);
+  assert.match(html, /data-silo-chooser >/);
+  assert.doesNotMatch(html, /Confirmar silo 6/);
+});
+
 test('admin batch detail renders the saved batch summary in one dryer-style card', () => {
   const { renderAdminBatchDetailPage } = require('../routes/renderers');
   let html = '';

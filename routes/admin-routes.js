@@ -66,6 +66,17 @@ function parseForecastCurveCoefficient(rawValue) {
 
   return Number.isFinite(value) ? value : null;
 }
+
+function parseDischargeSiloCount(rawValue) {
+  const normalizedValue = String(rawValue || '').trim();
+
+  if (!/^\d+$/.test(normalizedValue)) {
+    return null;
+  }
+
+  const value = Number(normalizedValue);
+  return Number.isInteger(value) && value >= 1 && value <= 100 ? value : null;
+}
 const {
   buildStorageRecalibrationPayload,
   countStorageIgnoredInputs,
@@ -132,7 +143,7 @@ router.get('/admin/secador', canAccessAdminPanel, async (req, res) => {
       batch,
       readings,
       settings,
-      message: req.query.target ? 'Umidade alvo atualizada com sucesso.' : '',
+      message: req.query.target ? 'Configurações do secador atualizadas com sucesso.' : '',
       error: req.query.error || '',
     });
   } catch (error) {
@@ -148,7 +159,7 @@ router.get('/admin/secador/config', canAccessAdminPanel, async (req, res) => {
 
     return renderAdminDryerConfigPage(res, {
       settings,
-      message: req.query.target ? 'Umidade alvo atualizada com sucesso.' : '',
+      message: req.query.target ? 'Configurações do secador atualizadas com sucesso.' : '',
       error: req.query.error || '',
     });
   } catch (error) {
@@ -524,6 +535,7 @@ router.post('/admin/contratos/contratos/:id', canAccessAdminPanel, async (req, r
 
 router.post('/admin/umidade-alvo', canAccessAdminPanel, async (req, res) => {
   const targetMoisture = parseMoisturePercent(req.body.target_moisture);
+  const dischargeSiloCount = parseDischargeSiloCount(req.body.discharge_silo_count);
   const quadraticCoefficient = parseForecastCurveCoefficient(req.body.discharge_forecast_quadratic_coefficient);
   const linearCoefficient = parseForecastCurveCoefficient(req.body.discharge_forecast_linear_coefficient);
   const initialMoistureQuadraticCoefficient = parseForecastCurveCoefficient(req.body.discharge_forecast_initial_moisture_quadratic_coefficient);
@@ -534,6 +546,10 @@ router.post('/admin/umidade-alvo', canAccessAdminPanel, async (req, res) => {
     return res.redirect(buildAdminDryerConfigRedirect({ error: 'Informe uma umidade alvo entre 7,0% e 40,0%, com no máximo uma casa decimal.' }));
   }
 
+  if (dischargeSiloCount === null) {
+    return res.redirect(buildAdminDryerConfigRedirect({ error: 'Informe uma quantidade de silos entre 1 e 100.' }));
+  }
+
   if (quadraticCoefficient === null || linearCoefficient === null || initialMoistureQuadraticCoefficient === null || initialMoistureLinearCoefficient === null || constantCoefficient === null) {
     return res.redirect(buildAdminDryerConfigRedirect({ error: 'Informe números válidos para todos os parâmetros da curva de previsão.' }));
   }
@@ -541,6 +557,7 @@ router.post('/admin/umidade-alvo', canAccessAdminPanel, async (req, res) => {
   try {
     await updateDryerSettings({
       targetMoisture,
+      dischargeSiloCount,
       quadraticCoefficient,
       linearCoefficient,
       initialMoistureQuadraticCoefficient,

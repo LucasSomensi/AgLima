@@ -1698,6 +1698,18 @@ button:disabled,
   align-items: center;
 }
 
+.dryer-silo-chooser {
+  border: 0;
+  margin: 0 0 1.25rem;
+  padding: 0;
+}
+
+.dryer-silo-options {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .deletion-reason-form {
   display: grid;
   gap: 10px;

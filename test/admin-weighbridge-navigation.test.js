@@ -166,6 +166,7 @@ test('admin batches page links the active batch to the dryer dashboard', () => {
         status: 'active',
         started_at: '2026-07-15T13:00:00.000Z',
         discharge_started_at: '2026-07-15T14:15:00.000Z',
+        discharge_silo_number: 3,
         completed_at: null,
         target_moisture: '14.0',
         umidade_inicial: '27.5',
@@ -174,8 +175,8 @@ test('admin batches page links the active batch to the dryer dashboard', () => {
     ],
   });
 
-  assert.match(html, /<th>Status<\/th>\s*<th>Umidade inicial<\/th>\s*<th>Início<\/th>\s*<th>Descarga<\/th>\s*<th>Conclusão<\/th>\s*<th>Duração secagem<\/th>\s*<th>Duração descarga<\/th>\s*<th>Duração total<\/th>\s*<th>Umidade final<\/th>\s*<th>Umidade alvo<\/th>/);
-  assert.match(html, /<td>Descarregando<\/td>\s*<td>27,5%<\/td>\s*<td><a class="admin-table-link" href="\/admin\/secador">15\/07\/2026, 10:00<\/a><\/td>\s*<td>15\/07\/2026, 11:15<\/td>\s*<td>-<\/td>\s*<td>1h 15min<\/td>\s*<td>1h 15min<\/td>\s*<td>2h 30min<\/td>\s*<td>-<\/td>\s*<td>14,0%<\/td>/);
+  assert.match(html, /<th>Status<\/th>\s*<th>Umidade inicial<\/th>\s*<th>Início<\/th>\s*<th>Descarga<\/th>\s*<th>Silo<\/th>\s*<th>Conclusão<\/th>\s*<th>Duração secagem<\/th>\s*<th>Duração descarga<\/th>\s*<th>Duração total<\/th>\s*<th>Umidade final<\/th>\s*<th>Umidade alvo<\/th>/);
+  assert.match(html, /<td>Descarregando<\/td>\s*<td>27,5%<\/td>\s*<td><a class="admin-table-link" href="\/admin\/secador">15\/07\/2026, 10:00<\/a><\/td>\s*<td>15\/07\/2026, 11:15<\/td>\s*<td>Silo 3<\/td>\s*<td>-<\/td>\s*<td>1h 15min<\/td>\s*<td>1h 15min<\/td>\s*<td>2h 30min<\/td>\s*<td>-<\/td>\s*<td>14,0%<\/td>/);
 });
 
 test('admin batches page keeps completed batches linked to their details', () => {
@@ -239,6 +240,7 @@ test('admin dryer config page shows forecast preview table for configured moistu
   const html = renderPage(renderAdminDryerConfigPage, {
     settings: {
       target_moisture: 14,
+      discharge_silo_count: 6,
       discharge_forecast_quadratic_coefficient: 0,
       discharge_forecast_linear_coefficient: 10,
       discharge_forecast_initial_moisture_quadratic_coefficient: 0,
@@ -248,6 +250,8 @@ test('admin dryer config page shows forecast preview table for configured moistu
     message: '',
     error: '',
   });
+
+  assert.match(html, /name="discharge_silo_count"[^>]*value="6"/);
 
   assert.match(html, /action="\/admin\/umidade-alvo"/);
   assert.match(html, /Previsão por umidade/);
