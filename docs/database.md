@@ -13,6 +13,7 @@ Este documento descreve o schema `public` do banco PostgreSQL usado pela aplica�
   - [`vendedores`](#vendedores)
   - [`contratos`](#contratos)
   - [`armazenamento_recalibracoes`](#armazenamento_recalibracoes)
+  - [`balancas_pesos_atuais`](#balancas_pesos_atuais)
   - [`entradas_balanca`](#entradas_balanca)
   - [`saidas_balanca`](#saidas_balanca)
   - [`auditoria_acoes`](#auditoria_acoes)
@@ -45,6 +46,36 @@ Este documento descreve o schema `public` do banco PostgreSQL usado pela aplica�
 | `dryer_moisture_readings` | `batch_id` | `dryer_batches` | `id` | Vincula medições de umidade a uma batelada. |
 | `dryer_moisture_readings` | `measured_by_user_id` | `users` | `id` | Registra o usuário que lançou a medição. |
 | `dryer_settings` | `updated_by_user_id` | `users` | `id` | Registra o usuário que atualizou a configuração do secador. |
+
+---
+
+## `balancas_pesos_atuais`
+
+Armazena somente a leitura estável mais recente enviada por cada balança integrada. A balança física atualmente configurada usa `balanca_id = 1`. O registro é atualizado pela API, sem criar histórico de todas as leituras intermediárias, e é consultado sob demanda pelos formulários da balança.
+
+### Colunas
+
+| Coluna | Tipo | Nulo? | Default | Descrição |
+| --- | --- | --- | --- | --- |
+| `balanca_id` | `integer` | Não | — | Identificador da balança. É a chave primária; atualmente a aplicação usa o valor `1`. |
+| `peso_kg` | `integer` | Não | — | Último peso estável recebido, em quilogramas inteiros. Aceita zero e não aceita valores negativos. |
+| `atualizado_em` | `timestamp with time zone` | Não | `now()` | Data/hora do servidor PostgreSQL em que o peso foi inserido ou substituído. |
+
+### Restrições
+
+| Tipo | Nome | Coluna(s) / regra |
+| --- | --- | --- |
+| Primary key | `balancas_pesos_atuais_pkey` | `balanca_id` |
+| Check | `balancas_pesos_atuais_balanca_id_positivo_check` | `balanca_id > 0` |
+| Check | `balancas_pesos_atuais_peso_nao_negativo_check` | `peso_kg >= 0` |
+
+### Uso pela aplicação
+
+- `POST /api/balancas/1/peso` faz um *upsert*: cria a linha da balança 1 no primeiro envio e, nos seguintes, substitui `peso_kg` e define `atualizado_em = now()`.
+- `GET /balanca/balancas/1/peso-atual` consulta essa linha para um operador autenticado, sem consumir nem apagar o valor.
+- Os botões dos formulários de peso bruto e tara só fazem a consulta quando clicados. O operador ainda pode digitar ou editar o peso manualmente.
+- A tabela representa estado atual, não um histórico nem um lançamento de entrada. Os pesos confirmados continuam armazenados em `entradas_balanca`.
+- A estrutura é criada por `migrations/20260908_add_current_scale_weights.sql`.
 
 ---
 

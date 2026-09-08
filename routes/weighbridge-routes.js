@@ -58,6 +58,7 @@ const {
 const { buildRedirect, paginateItems } = require('./utils');
 const { buildScaleInputsCsv, buildScaleOutputsCsv } = require('./weighbridge-csv');
 const { buildScaleOutputTicketPdf } = require('./weighbridge-ticket-pdf');
+const { getCurrentScaleWeight, SCALE_ONE_ID } = require('./scale-reading-service');
 
 const router = express.Router();
 const canAccessWeighbridge = requireRole(ROLES.WEIGHBRIDGE_OPERATOR, ROLES.ADMIN);
@@ -146,6 +147,27 @@ router.get('/balanca/entradas/tara-anterior', canAccessWeighbridge, async (req, 
   } catch (error) {
     console.error('Error loading previous tare:', error.message);
     return res.status(500).json({});
+  }
+});
+
+router.get('/balanca/balancas/1/peso-atual', canAccessWeighbridge, async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+
+  try {
+    const reading = await getCurrentScaleWeight(SCALE_ONE_ID);
+
+    if (!reading) {
+      return res.status(404).json({ error: 'A balança 1 ainda não enviou nenhum peso.' });
+    }
+
+    return res.json({
+      balanca_id: reading.balanca_id,
+      peso_kg: reading.peso_kg,
+      atualizado_em: reading.atualizado_em,
+    });
+  } catch (error) {
+    console.error('Error loading current scale weight:', error.message);
+    return res.status(500).json({ error: 'Não foi possível consultar o peso da balança.' });
   }
 });
 
