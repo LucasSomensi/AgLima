@@ -45,7 +45,13 @@
               </div>
             </label>
             <label>Peso bruto (kg)
-              <input class="form-control" name="peso_bruto_kg" type="number" min="0.001" max="79999.999" step="0.001" value="{{PESO_BRUTO_KG}}" inputmode="decimal" required>
+              <span class="weighbridge-weight-input-group">
+                <input class="form-control" id="peso_bruto_kg" name="peso_bruto_kg" type="number" min="0.001" max="79999.999" step="0.001" value="{{PESO_BRUTO_KG}}" inputmode="decimal" required>
+                <button class="weighbridge-weight-fetch" type="button" data-scale-weight-target="peso_bruto_kg" aria-label="Preencher peso bruto com o peso da balança 1" title="Usar peso da balança 1">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20h14M7 20l1-10h8l1 10M9 10a3 3 0 0 1 6 0M12 10l2-2"/></svg>
+                </button>
+              </span>
+              <span class="weighbridge-weight-feedback" aria-live="polite"></span>
             </label>
           </div>
 
@@ -187,5 +193,6 @@
         fetchPreviousTare().catch(function () {});
       }());
     </script>
+    <script src="/js/weighbridge-scale-weight.js"></script>
   </body>
 </html>

@@ -6,12 +6,14 @@ const authRoutes = require('./auth-routes');
 const dryerRoutes = require('./dryer-routes');
 const internalRoutes = require('./internal-routes');
 const publicRoutes = require('./public-routes');
+const { router: scaleApiRoutes } = require('./scale-api-routes');
 const weighbridgeRoutes = require('./weighbridge-routes');
 
 const router = express.Router();
 
 router.use(attachSession);
 router.use(csrfProtection);
+router.use(scaleApiRoutes);
 router.use(publicRoutes);
 router.use(authRoutes);
 router.use(internalRoutes);
