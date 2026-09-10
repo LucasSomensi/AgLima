@@ -477,6 +477,12 @@ function renderScaleInputDetailPage(res, { input, formValues = {}, message, erro
     .replace(/{{GRAOS_AVARIADOS_PERCENT}}/g, escapeHtml(formatDecimalInput(formValues.graos_avariados_percent ?? input.graos_avariados_percent ?? '')))
     .replace('{{PESO_TARA_KG}}', escapeHtml(input.peso_tara_kg === null || input.peso_tara_kg === undefined ? 'Pendente' : formatRoundedKg(input.peso_tara_kg)))
     .replace('{{PESO_LIQUIDO_KG}}', escapeHtml(input.peso_liquido_kg === null || input.peso_liquido_kg === undefined ? '-' : formatRoundedKg(input.peso_liquido_kg)))
+    .replace('{{INPUT_TICKET_ACTION}}', input.peso_tara_kg !== null
+      && input.peso_tara_kg !== undefined
+      && input.peso_liquido_kg !== null
+      && input.peso_liquido_kg !== undefined
+      ? `<a class="btn-secondary-action" href="/balanca/entradas/${escapeHtml(input.id)}/ticket.pdf" target="_blank" rel="noopener">Imprimir ticket</a>`
+      : '<button class="btn-secondary-action" type="button" disabled>Imprimir ticket</button>')
     .replace('{{LIQUIDO_REAL_KG}}', escapeHtml(formatRoundedKg(input.liquido_real_kg)))
     .replace('{{ORIGEM}}', input.origem ? escapeHtml(input.origem) : 'Pendente')
     .replace('{{CLASSIFICACAO}}', isInputClassified(input)

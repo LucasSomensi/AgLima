@@ -23,6 +23,7 @@ const {
   getContractDetailForWeighbridge,
   getPreviousTareForPlate,
   getScaleInputById,
+  getScaleInputDetailInfo,
   getScaleOutputById,
   getScaleOutputDetailInfo,
   listEligibleBuyersForOutput,
@@ -57,7 +58,7 @@ const {
 } = require('./renderers/weighbridge-renderer');
 const { buildRedirect, paginateItems } = require('./utils');
 const { buildScaleInputsCsv, buildScaleOutputsCsv } = require('./weighbridge-csv');
-const { buildScaleOutputTicketPdf } = require('./weighbridge-ticket-pdf');
+const { buildScaleInputTicketPdf, buildScaleOutputTicketPdf } = require('./weighbridge-ticket-pdf');
 const { getCurrentScaleWeight, SCALE_ONE_ID } = require('./scale-reading-service');
 
 const router = express.Router();
@@ -240,6 +241,38 @@ router.post('/balanca/entradas', canAccessWeighbridge, async (req, res) => {
         : 'Não foi possível adicionar a entrada agora.',
       navigation: getWeighbridgeNavigation(req),
     });
+  }
+});
+
+router.get('/balanca/entradas/:id/ticket.pdf', canAccessWeighbridge, async (req, res) => {
+  try {
+    const inputInfo = await getScaleInputDetailInfo(req.params.id);
+
+    if (!inputInfo) {
+      return res.redirect(buildWeighbridgeRedirect({ error: 'Entrada não encontrada.' }));
+    }
+
+    const ticketUnavailable = inputInfo.peso_tara_kg === null
+      || inputInfo.peso_tara_kg === undefined
+      || inputInfo.peso_liquido_kg === null
+      || inputInfo.peso_liquido_kg === undefined;
+
+    if (ticketUnavailable) {
+      return res.redirect(buildRedirect(`/balanca/entradas/${req.params.id}`, {
+        error: 'O ticket só fica disponível após adicionar a tara e calcular o peso líquido.',
+      }));
+    }
+
+    const pdfBuffer = await buildScaleInputTicketPdf(inputInfo);
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="ticket-entrada-${inputInfo.entrada_id}.pdf"`);
+    return res.send(pdfBuffer);
+  } catch (error) {
+    console.error('Error generating scale input ticket PDF:', error.message);
+    return res.redirect(buildRedirect(`/balanca/entradas/${req.params.id}`, {
+      error: 'Não foi possível gerar o ticket de pesagem agora.',
+    }));
   }
 });
 
