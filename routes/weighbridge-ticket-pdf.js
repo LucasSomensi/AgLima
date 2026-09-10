@@ -42,7 +42,15 @@ function formatTicketWeight(value) {
   return `${Math.round(Number(value))} kg`;
 }
 
-function buildTicketLines(outputInfo) {
+function formatTicketPercent(value) {
+  if (value === null || value === undefined || value === '') {
+    return '-';
+  }
+
+  return `${Number(value).toLocaleString('pt-BR', { maximumFractionDigits: 3 })}%`;
+}
+
+function buildScaleOutputTicketLines(outputInfo) {
   return [
     '------------------------------',
     'Fazenda São José',
@@ -70,7 +78,39 @@ function buildTicketLines(outputInfo) {
   ];
 }
 
-function buildScaleOutputTicketPdf(outputInfo) {
+function buildScaleInputTicketLines(inputInfo) {
+  const tareLabel = inputInfo.tara_usada_de_entrada_id ? 'Tara anterior' : 'Tara';
+  const tareDate = inputInfo.tara_usada_de_entrada_id
+    ? inputInfo.tara_origem_data
+    : inputInfo.tara_adicionada_em;
+
+  return [
+    '------------------------------',
+    'Fazenda São José',
+    ' ',
+    `Entrada: ${inputInfo.entrada_id || '-'}`,
+    `Operador: ${inputInfo.operador_login || '-'}`,
+    `Placa: ${inputInfo.placa_caminhao || '-'}`,
+    `Produto: ${formatProductLabel(inputInfo.produto)}`,
+    `Origem: ${inputInfo.origem || '-'}`,
+    ' ',
+    `Bruto: ${formatTicketWeight(inputInfo.peso_bruto_kg)} ${formatTicketDateTime(inputInfo.data_entrada)}`,
+    `${tareLabel}: ${formatTicketWeight(inputInfo.peso_tara_kg)} ${formatTicketDateTime(tareDate)}`,
+    `PLiq: ${formatTicketWeight(inputInfo.peso_liquido_kg)}`,
+    ' ',
+    `Umid: ${formatTicketPercent(inputInfo.umidade_percent)}`,
+    `Impur: ${formatTicketPercent(inputInfo.impureza_percent)}`,
+    `Avar: ${formatTicketPercent(inputInfo.graos_avariados_percent)}`,
+    ' ',
+    'Ass Motorista: __________________',
+    ' ',
+    ' ',
+    'Ass Operador: ___________________',
+    '---------------------------------',
+  ];
+}
+
+function buildThermalTicketPdf(lines) {
   const PDFDocument = require('pdfkit');
   const document = new PDFDocument({
     size: [THERMAL_80MM_WIDTH_POINTS, TICKET_HEIGHT_POINTS],
@@ -93,7 +133,7 @@ function buildScaleOutputTicketPdf(outputInfo) {
 
     document.font('Courier').fontSize(9);
 
-    buildTicketLines(outputInfo).forEach((line, index) => {
+    lines.forEach((line, index) => {
       const options = index === 1
         ? { align: 'center' }
         : { align: 'left' };
@@ -112,7 +152,18 @@ function buildScaleOutputTicketPdf(outputInfo) {
   });
 }
 
+function buildScaleOutputTicketPdf(outputInfo) {
+  return buildThermalTicketPdf(buildScaleOutputTicketLines(outputInfo));
+}
+
+function buildScaleInputTicketPdf(inputInfo) {
+  return buildThermalTicketPdf(buildScaleInputTicketLines(inputInfo));
+}
+
 module.exports = {
+  buildScaleInputTicketLines,
+  buildScaleInputTicketPdf,
   buildScaleOutputTicketPdf,
-  buildTicketLines,
+  buildScaleOutputTicketLines,
+  buildTicketLines: buildScaleOutputTicketLines,
 };

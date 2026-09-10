@@ -573,6 +573,38 @@ async function getScaleInputById(inputId) {
   return result.rows[0] || null;
 }
 
+async function getScaleInputDetailInfo(inputId) {
+  ensureDatabaseConfigured();
+
+  const result = await pool.query(
+    `
+      SELECT e.id AS entrada_id,
+             e.data_entrada,
+             e.placa_caminhao,
+             e.produto,
+             e.peso_bruto_kg,
+             e.peso_tara_kg,
+             e.peso_liquido_kg,
+             e.tara_usada_de_entrada_id,
+             e.tara_adicionada_em,
+             e.origem,
+             e.umidade_percent,
+             e.impureza_percent,
+             e.graos_avariados_percent,
+             u.login AS operador_login,
+             COALESCE(tara_origem.tara_adicionada_em, tara_origem.data_entrada) AS tara_origem_data
+      FROM entradas_balanca e
+      LEFT JOIN users u ON u.id = e.criado_por_user_id
+      LEFT JOIN entradas_balanca tara_origem ON tara_origem.id = e.tara_usada_de_entrada_id
+      WHERE e.id = $1
+      LIMIT 1
+    `,
+    [inputId]
+  );
+
+  return result.rows[0] || null;
+}
+
 async function updateScaleInput(inputId, payload, user) {
   ensureDatabaseConfigured();
 
@@ -1542,6 +1574,7 @@ module.exports = {
   getContractDetailForWeighbridge,
   getPreviousTareForPlate,
   getScaleInputById,
+  getScaleInputDetailInfo,
   getScaleOutputById,
   getScaleOutputDetailInfo,
   listEligibleBuyersForOutput,

@@ -47,6 +47,7 @@ Campos centrais:
 - `GET /balanca/entradas/placas?q=...`: retorna até 5 placas recentes para autocomplete.
 - `GET /balanca/entradas/tara-anterior?placa=...`: retorna a tara anterior da placa, se existir.
 - `GET /balanca/entradas/:id`: mostra detalhes da entrada e formulário de edição.
+- `GET /balanca/entradas/:id/ticket.pdf`: gera o ticket térmico quando a entrada possui tara e peso líquido.
 - `POST /balanca/entradas/:id`: atualiza data/hora, placa, produto e peso bruto da entrada.
 - `POST /balanca/entradas/:id/deletar`: exclui a entrada.
 - `GET /balanca/entradas/:id/tara`: abre formulário de tara manual.
@@ -93,6 +94,12 @@ Ao confirmar com essa opção marcada, o backend busca novamente a tara anterior
 ### Tara manual
 
 A ação “Adicionar tara” aparece na coluna Tara apenas quando `peso_tara_kg` está nulo. O `UPDATE` só grava se a entrada ainda estiver sem tara e se `peso_bruto_kg > peso_tara_kg`.
+
+### Ticket de pesagem
+
+Na tela de detalhes, “Imprimir ticket” fica habilitado quando tara e peso líquido estão preenchidos. Origem e classificação não são obrigatórias; quando pendentes, aparecem como `-`. O PDF é aberto inline em `/balanca/entradas/:id/ticket.pdf`, com nome `ticket-entrada-:id.pdf`, e usa o mesmo formato térmico de 80 mm do ticket de saída.
+
+O ticket identifica entrada, operador, placa, produto e origem; mostra bruto, tara e líquido, além da classificação. Para tara manual, usa `tara_adicionada_em`; para tara anterior, identifica a reutilização e usa a data da medição original quando disponível. O rodapé possui linhas de assinatura para motorista e operador.
 
 ### Classificação
 

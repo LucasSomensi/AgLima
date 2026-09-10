@@ -12,6 +12,7 @@ const {
   buildScaleInputEditPayload,
   buildScaleInputPayload,
 } = require('../routes/weighbridge-service');
+const { buildScaleInputTicketLines } = require('../routes/weighbridge-ticket-pdf');
 
 function renderPage(renderFn, params) {
   let html = '';
@@ -37,6 +38,61 @@ const baseInput = {
   graos_avariados_percent: null,
   cliente_user_id: null,
 };
+
+test('input detail enables ticket printing only after tare and net weight', () => {
+  const pendingHtml = renderPage(renderScaleInputDetailPage, {
+    input: baseInput,
+    message: '',
+    error: '',
+  });
+  const completeHtml = renderPage(renderScaleInputDetailPage, {
+    input: {
+      ...baseInput,
+      peso_tara_kg: '10000',
+      peso_liquido_kg: '20000',
+    },
+    message: '',
+    error: '',
+  });
+
+  assert.match(pendingHtml, /<button class="btn-secondary-action" type="button" disabled>Imprimir ticket<\/button>/);
+  assert.doesNotMatch(pendingHtml, /href="\/balanca\/entradas\/11\/ticket\.pdf"/);
+  assert.match(completeHtml, /href="\/balanca\/entradas\/11\/ticket\.pdf"[^>]*target="_blank"[^>]*>Imprimir ticket/);
+  assert.doesNotMatch(completeHtml, /type="button" disabled>Imprimir ticket/);
+});
+
+test('input ticket lines include weighing, classification, and reused tare details', () => {
+  const lines = buildScaleInputTicketLines({
+    entrada_id: 11,
+    operador_login: 'operador-balanca',
+    placa_caminhao: 'ABC1D23',
+    produto: 'milho',
+    origem: 'Fazenda Boa Vista',
+    data_entrada: '2026-06-11T12:30:00.000Z',
+    peso_bruto_kg: '42000',
+    peso_tara_kg: '10000',
+    peso_liquido_kg: '32000',
+    tara_usada_de_entrada_id: 3,
+    tara_origem_data: '2026-06-10T17:45:00.000Z',
+    umidade_percent: '14.25',
+    impureza_percent: '1',
+    graos_avariados_percent: '0',
+  });
+
+  assert.deepEqual(lines.slice(3, 8), [
+    'Entrada: 11',
+    'Operador: operador-balanca',
+    'Placa: ABC1D23',
+    'Produto: Milho',
+    'Origem: Fazenda Boa Vista',
+  ]);
+  assert.match(lines[9], /^Bruto: 42000 kg /);
+  assert.match(lines[10], /^Tara anterior: 10000 kg /);
+  assert.equal(lines[11], 'PLiq: 32000 kg');
+  assert.deepEqual(lines.slice(13, 16), ['Umid: 14,25%', 'Impur: 1%', 'Avar: 0%']);
+  assert.equal(lines[17], 'Ass Motorista: __________________');
+  assert.equal(lines[20], 'Ass Operador: ___________________');
+});
 
 test('weighbridge home renders pending input actions', () => {
   const html = renderPage(renderWeighbridgeHomePage, {
