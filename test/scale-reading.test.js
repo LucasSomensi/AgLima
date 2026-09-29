@@ -10,7 +10,12 @@ const {
   saveCurrentScaleWeight,
 } = require('../routes/scale-reading-service');
 const { requireScaleApiKey } = require('../routes/scale-api-routes');
-const { renderScaleInputFormPage, renderScaleInputTareFormPage } = require('../routes/renderers');
+const {
+  renderScaleInputFormPage,
+  renderScaleInputTareFormPage,
+  renderScaleOutputFormPage,
+  renderScaleOutputGrossFormPage,
+} = require('../routes/renderers');
 
 function renderPage(renderFn, params) {
   let html = '';
@@ -88,4 +93,23 @@ test('input and tare forms include a scale fetch button without disabling manual
   assert.match(tareHtml, /id="peso_tara_kg"[^>]+required/);
   assert.doesNotMatch(inputHtml, /id="peso_bruto_kg"[^>]+readonly/);
   assert.doesNotMatch(tareHtml, /id="peso_tara_kg"[^>]+readonly/);
+});
+
+test('output tare and gross forms include a scale fetch button without disabling manual input', () => {
+  const outputHtml = renderPage(renderScaleOutputFormPage, {
+    formValues: {},
+    error: '',
+  });
+  const grossHtml = renderPage(renderScaleOutputGrossFormPage, {
+    output: { id: 9, data_saida: new Date(), placa_caminhao: 'ABC1D23', peso_tara_kg: 12000 },
+    formValues: {},
+    error: '',
+  });
+
+  assert.match(outputHtml, /data-scale-weight-target="peso_tara_kg"/);
+  assert.match(outputHtml, /id="peso_tara_kg"[^>]+required/);
+  assert.match(grossHtml, /data-scale-weight-target="peso_bruto_kg"/);
+  assert.match(grossHtml, /id="peso_bruto_kg"[^>]+required/);
+  assert.doesNotMatch(outputHtml, /id="peso_tara_kg"[^>]+readonly/);
+  assert.doesNotMatch(grossHtml, /id="peso_bruto_kg"[^>]+readonly/);
 });
