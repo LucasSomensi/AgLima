@@ -396,7 +396,7 @@ async function listAdminContractNotifications() {
       FROM saldos
       WHERE (contrato_embarcado IS NOT TRUE AND saldo_kg <= 0)
          OR (contrato_recebido IS NOT TRUE AND data_recebimento IS NOT NULL AND dias_desde_vencimento >= 0)
-         OR (corretagem_paga IS NOT TRUE AND data_recebimento IS NOT NULL AND dias_desde_vencimento >= 7)
+         OR (corretagem_paga IS NOT TRUE AND contrato_recebido IS TRUE)
       ORDER BY data_recebimento ASC NULLS LAST, id ASC
     `
   );
@@ -414,7 +414,7 @@ async function listAdminContractNotifications() {
       notifications.push(buildContractNotification('receipt_due', contract));
     }
 
-    if (!contract.corretagem_paga && contract.data_recebimento && daysSinceDueDate >= 7) {
+    if (!contract.corretagem_paga && contract.contrato_recebido) {
       notifications.push(buildContractNotification('brokerage_due', contract));
     }
   });
@@ -632,8 +632,7 @@ async function markContractBrokerageAsPaid(id) {
           atualizado_em = now()
       WHERE id = $1
         AND corretagem_paga IS NOT TRUE
-        AND data_recebimento IS NOT NULL
-        AND (now() AT TIME ZONE 'America/Sao_Paulo')::date - data_recebimento >= 7
+        AND contrato_recebido IS TRUE
     `,
     [id]
   );

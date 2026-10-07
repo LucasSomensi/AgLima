@@ -53,3 +53,9 @@ Ao salvar com sucesso, o administrador volta para `/admin/contratos` com uma men
 ## Regras de contrato em aberto
 
 Um contrato é considerado em aberto quando ainda existe alguma pendência operacional ou financeira, como embarque não marcado, recebimento não marcado ou corretagem não paga. Esses contratos aparecem no filtro padrão **Em aberto** da lista principal.
+
+## Notificações administrativas
+
+- Quando o saldo chega a zero ou fica negativo, o painel avisa que o contrato está com embarque concluído e permite marcá-lo como embarcado.
+- O aviso de recebimento aparece a partir da data de recebimento prevista, enquanto o contrato não estiver marcado como recebido.
+- O aviso de corretagem pendente aparece assim que o contrato é marcado como recebido, independentemente da data prevista. Ele permanece até a corretagem ser marcada como paga.

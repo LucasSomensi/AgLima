@@ -593,7 +593,7 @@ function buildAdminNotificationTitle(notification) {
   const contractLabel = `Contrato #${notification.contractId}`;
 
   if (notification.type === 'shipment_due') {
-    return `${contractLabel} pronto para embarque`;
+    return `${contractLabel} com embarque concluído`;
   }
 
   if (notification.type === 'receipt_due') {
@@ -601,8 +601,7 @@ function buildAdminNotificationTitle(notification) {
   }
 
   if (notification.type === 'brokerage_due') {
-    const daysLabel = notification.daysOverdue === 1 ? 'venceu há 1 dia' : `venceu há ${notification.daysOverdue} dias`;
-    return `${contractLabel} com corretagem pendente` + (notification.receiptDate ? ` · ${daysLabel}` : '');
+    return `${contractLabel} com corretagem pendente`;
   }
 
   return `${contractLabel} precisa de atenção`;
@@ -656,7 +655,7 @@ function renderAdminNotificationsPanel(notifications) {
             <div class="admin-notification-copy">
               <strong>${escapeHtml(buildAdminNotificationTitle(notification))}</strong>
               <span>${escapeHtml(buildAdminNotificationDetails(notification))}</span>
-              ${notification.receiptDate ? `<span>Vencimento em ${escapeHtml(formatDate(notification.receiptDate))}</span>` : ''}
+              ${notification.receiptDate && notification.type !== 'brokerage_due' ? `<span>Vencimento em ${escapeHtml(formatDate(notification.receiptDate))}</span>` : ''}
             </div>
             <form class="admin-notification-action" action="${escapeHtml(notification.actionPath)}" method="post">
                 <input type="hidden" name="_csrf" value="{{CSRF_TOKEN}}">
