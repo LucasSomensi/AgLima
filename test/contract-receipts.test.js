@@ -1,11 +1,13 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
 process.env.DATABASE_URL = 'postgres://example.invalid/agrolima';
-const { buildReceiptPayload, createContractReceipt, listRecentContractReceipts } = require('../routes/receipt-service');
+const { buildReceiptPayload, createContractReceipt, listContractReceipts, listRecentContractReceipts } = require('../routes/receipt-service');
 const { netValueSql } = require('../routes/contract-finance');
 const { createContract, updateContract } = require('../routes/contract-service');
 const { pool } = require('../routes/database');
-const { renderAdminContractReceiptsPage, renderAdminNewReceiptPage } = require('../routes/renderers/admin-renderer');
+const { renderAdminHomePage, renderAdminReceiptsPage, renderAdminContractsPage } = require('../routes/renderers/admin-renderer');
+const { renderScaleContractDetailPage } = require('../routes/renderers/weighbridge-renderer');
+const { paginateItems } = require('../routes/utils');
 
 test('receipt payload validates money, date and notes', () => {
   assert.deepEqual(buildReceiptPayload({ valor: '42,5', data_recebimento: '2026-10-09' }).payload,
@@ -55,20 +57,74 @@ test('recent receipts are ordered by registration time and capped at ten', async
   assert.deepEqual(await listRecentContractReceipts(), [{ id: 1 }]);
 });
 
-test('new receipt chooser and contract detail keep manual received action available', () => {
-  let chooser = '';
-  let detail = '';
-  renderAdminNewReceiptPage({ send: (html) => { chooser = html; } }, {
+test('complete receipts history keeps registration order and comments', async (t) => {
+  const originalQuery = pool.query;
+  t.after(() => { pool.query = originalQuery; });
+  pool.query = async (sql) => {
+    assert.match(sql, /r\.observacao/);
+    assert.match(sql, /ORDER BY r\.criado_em DESC, r\.id DESC/);
+    assert.doesNotMatch(sql, /LIMIT/);
+    return { rows: [{ id: 1, observacao: 'Parcela' }] };
+  };
+  assert.deepEqual(await listContractReceipts(), [{ id: 1, observacao: 'Parcela' }]);
+});
+
+test('admin home links its last ten receipts to the complete list', () => {
+  let html = '';
+  renderAdminHomePage({ send: (value) => { html = value; } }, {});
+  assert.match(html, /Últimos 10 recebimentos/);
+  assert.match(html, /href="\/admin\/recebimentos">Ver todos os recebimentos/);
+  assert.doesNotMatch(html, /\/admin\/recebimentos\/novo/);
+});
+
+test('admin contracts list has no receipts action', () => {
+  let html = '';
+  renderAdminContractsPage({ send: (value) => { html = value; } }, {
+    buyers: [], sellers: [], contracts: [{ id: 7, data_contrato: '2026-10-09', comprador_nome: 'Comprador', produto: 'soja', preco_por_saca: '60', quantidade_kg: '600', saldo_receber: '10' }],
+  });
+  assert.match(html, /Editar<\/a>/);
+  assert.doesNotMatch(html, /Recebimentos<\/a>/);
+});
+
+test('receipts page combines entry form and paginated history', () => {
+  let html = '';
+  const receipts = Array.from({ length: 31 }, (_, index) => ({
+    id: index + 1, contrato_id: 7, data_recebimento: '2026-10-09', valor: '1.00',
+    observacao: `Comentário ${index + 1}`, comprador_nome: 'Comprador', usuario_login: 'admin', criado_em: '2026-10-09T12:00:00Z',
+  }));
+  renderAdminReceiptsPage({ send: (value) => { html = value; } }, {
     contracts: [{ id: 7, data_contrato: '2026-10-09', comprador_nome: 'Comprador', saldo_receber: '0.02' }],
+    receipts: paginateItems(receipts, '2'),
   });
-  renderAdminContractReceiptsPage({ send: (html) => { detail = html; } }, {
-    contract: { id: 7, data_contrato: '2026-10-09', comprador_nome: 'Comprador', produto: 'soja', valor_bruto: '100.00', desconto_senar: '0.20', desconta_senar: true, valor_contrato: '99.80', valor_recebido: '99.78', saldo_receber: '0.02', contrato_recebido: false },
-    receipts: [],
-  });
-  assert.match(chooser, /Contrato #7/);
-  assert.match(chooser, /saldo R\$\s*0,02/);
-  assert.match(detail, /Marcar contrato como recebido/);
-  assert.match(detail, /retorno" value="recebimentos"/);
+  assert.match(html, /action="\/admin\/recebimentos" method="post"/);
+  assert.match(html, /name="contrato_id"/);
+  assert.match(html, /saldo R\$\s*0,02/);
+  assert.match(html, /Comentário 31/);
+  assert.doesNotMatch(html, /Comentário 1<\/td>/);
+  assert.match(html, /Página 2 de 2/);
+  assert.match(html, /\/admin\/recebimentos\?pagina=1/);
+  assert.match(html, /\/balanca\/contratos\/7/);
+});
+
+test('contract receipts appear in weighbridge detail only with admin data', () => {
+  const contract = {
+    contrato_id: 7, data_contrato: '2026-10-09', produto: 'soja', quantidade_kg: '600',
+    quantidade_embarcada_kg: '300', saldo_kg: '300', vendedor_nome_completo: 'Vendedor',
+    comprador_nome_completo: 'Comprador', preco_por_saca: '60',
+  };
+  const receiptInfo = {
+    contract: { id: 7, valor_bruto: '100.00', desconto_senar: '0.20', desconta_senar: true, valor_contrato: '99.80', valor_recebido: '99.78', saldo_receber: '0.02', contrato_recebido: false },
+    receipts: [{ data_recebimento: '2026-10-09', valor: '99.78', usuario_login: 'admin', observacao: 'Parcela inicial' }],
+  };
+  let operatorHtml = '';
+  let adminHtml = '';
+  renderScaleContractDetailPage({ send: (value) => { operatorHtml = value; } }, { contract, outputs: [] });
+  renderScaleContractDetailPage({ send: (value) => { adminHtml = value; } }, { contract, outputs: [], receiptInfo });
+  assert.doesNotMatch(operatorHtml, /Recebimentos|Parcela inicial|Marcar contrato como recebido/);
+  assert.match(adminHtml, /Recebimentos/);
+  assert.match(adminHtml, /Parcela inicial/);
+  assert.match(adminHtml, /Marcar contrato como recebido/);
+  assert.match(adminHtml, /name="retorno" value="balanca"/);
 });
 
 test('receipt service rejects overpayment and rolls back', async (t) => {

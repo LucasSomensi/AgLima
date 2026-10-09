@@ -60,6 +60,7 @@ const { buildRedirect, paginateItems } = require('./utils');
 const { buildScaleInputsCsv, buildScaleOutputsCsv } = require('./weighbridge-csv');
 const { buildScaleInputTicketPdf, buildScaleOutputTicketPdf } = require('./weighbridge-ticket-pdf');
 const { getCurrentScaleWeight, SCALE_ONE_ID } = require('./scale-reading-service');
+const { getContractReceipts } = require('./receipt-service');
 
 const router = express.Router();
 const canAccessWeighbridge = requireRole(ROLES.WEIGHBRIDGE_OPERATOR, ROLES.ADMIN);
@@ -563,7 +564,14 @@ router.get('/balanca/contratos/:id', canAccessWeighbridge, async (req, res) => {
       return res.redirect(buildWeighbridgeRedirect({ error: 'Contrato não encontrado.' }));
     }
 
-    return renderScaleContractDetailPage(res, contractInfo);
+    const isAdmin = req.sessionUser.role === ROLES.ADMIN;
+    const receiptInfo = isAdmin ? await getContractReceipts(req.params.id) : null;
+    return renderScaleContractDetailPage(res, {
+      ...contractInfo,
+      receiptInfo,
+      message: req.query.recebido ? 'Contrato marcado como recebido com sucesso.' : '',
+      error: req.query.error || '',
+    });
   } catch (error) {
     console.error('Error loading weighbridge contract:', error.message);
     return res.redirect(buildWeighbridgeRedirect({ error: 'Não foi possível carregar os dados do contrato agora.' }));

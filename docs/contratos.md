@@ -45,7 +45,7 @@ Ao salvar com sucesso, o administrador volta para `/admin/contratos` com uma men
 - Criação: `/admin/contratos/contratos/novo`.
 - Edição: `/admin/contratos/contratos/:id/editar`.
 - Campos principais: data do contrato, produto, preço por saca, comprador, vendedor, quantidade em kg, data prevista de recebimento, desconto de SENAR, corretor e percentual de corretagem.
-- Marcadores: contrato embarcado e corretagem paga. O estado de recebido é marcado manualmente na notificação administrativa ou na página de recebimentos.
+- Marcadores: contrato embarcado e corretagem paga. O estado de recebido é marcado manualmente na notificação administrativa ou no detalhe `/balanca/contratos/:id`, quando acessado por um administrador.
 - Campos avançados: inscrição estadual do vendedor, natureza da operação, CFOP, dados da transportadora, e-mail, informações de interesse do contribuinte e observações.
 
 Ao salvar com sucesso, o administrador volta para `/admin/contratos` com uma mensagem de confirmação. Em caso de erro, o formulário é reaberto para correção.
