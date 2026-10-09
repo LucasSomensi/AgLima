@@ -8,7 +8,7 @@ A tela principal exibe apenas informações resumidas para manter a navegação 
 
 - **Compradores:** mostra o nome de cada comprador e o botão **Editar**.
 - **Vendedores:** mostra o nome de cada vendedor e o botão **Editar**.
-- **Contratos:** mostra data, comprador, produto, preço por saca, quantidade em kg e o botão **Editar**.
+- **Contratos:** mostra data, comprador, produto, preço por saca, quantidade em kg, saldo a receber e acessos para **Recebimentos** e **Editar**.
 
 Na apresentação de pesos, valores em kg são arredondados para o inteiro mais próximo. Valores em sacas também são inteiros nos demais módulos, mas, no contexto de acompanhamento do cumprimento dos contratos (quantidade, quantidade embarcada e saldo), podem ser exibidos com até duas casas decimais.
 
@@ -44,8 +44,8 @@ Ao salvar com sucesso, o administrador volta para `/admin/contratos` com uma men
 
 - Criação: `/admin/contratos/contratos/novo`.
 - Edição: `/admin/contratos/contratos/:id/editar`.
-- Campos principais: data do contrato, produto, preço por saca, comprador, vendedor, quantidade em kg, data de recebimento, corretor e percentual de corretagem.
-- Marcadores: contrato embarcado, contrato recebido e corretagem paga.
+- Campos principais: data do contrato, produto, preço por saca, comprador, vendedor, quantidade em kg, data prevista de recebimento, desconto de SENAR, corretor e percentual de corretagem.
+- Marcadores: contrato embarcado e corretagem paga. O estado de recebido acompanha o saldo dos lançamentos.
 - Campos avançados: inscrição estadual do vendedor, natureza da operação, CFOP, dados da transportadora, e-mail, informações de interesse do contribuinte e observações.
 
 Ao salvar com sucesso, o administrador volta para `/admin/contratos` com uma mensagem de confirmação. Em caso de erro, o formulário é reaberto para correção.
@@ -54,8 +54,10 @@ Ao salvar com sucesso, o administrador volta para `/admin/contratos` com uma men
 
 Um contrato é considerado em aberto quando ainda existe alguma pendência operacional ou financeira, como embarque não marcado, recebimento não marcado ou corretagem não paga. Esses contratos aparecem no filtro padrão **Em aberto** da lista principal.
 
+O controle financeiro, incluindo a regra de SENAR, está descrito em [recebimentos.md](recebimentos.md).
+
 ## Notificações administrativas
 
 - Quando o saldo chega a zero ou fica negativo, o painel avisa que o contrato está com embarque concluído e permite marcá-lo como embarcado.
-- O aviso de recebimento aparece a partir da data de recebimento prevista, enquanto o contrato não estiver marcado como recebido.
+- O aviso de recebimento aparece a partir da data prevista enquanto houver saldo a receber.
 - O aviso de corretagem pendente aparece assim que o contrato é marcado como recebido, independentemente da data prevista. Ele permanece até a corretagem ser marcada como paga.

@@ -144,6 +144,8 @@ Armazena os vendedores usados no cadastro de contratos.
 
 Armazena contratos comerciais de compra/venda de grãos. A tabela também guarda campos opcionais usados como apoio ao preenchimento da nota fiscal; esses campos aceitam `NULL` e registros antigos permanecem nulos até edição manual.
 
+A migration `migrations/20261009_add_contract_receipts.sql` cria `contrato_recebimentos` e adiciona `contratos.desconta_senar boolean NOT NULL DEFAULT true` em uma transação. Os recebimentos guardam `contrato_id`, `data_recebimento`, `valor numeric(14,2)`, `observacao`, `usuario_id` e `criado_em`. O saldo é calculado pela soma dos lançamentos, sem coluna duplicada em `contratos`. O valor esperado a receber é o valor bruto menos 0,2% de SENAR, quando a coluna for verdadeira. Veja [recebimentos.md](recebimentos.md).
+
 ### Colunas
 
 | Coluna | Tipo | Nulo? | Default | Descrição |
@@ -157,7 +159,8 @@ Armazena contratos comerciais de compra/venda de grãos. A tabela também guarda
 | `quantidade_kg` | `numeric` | Não | — | Quantidade do contrato em quilogramas. |
 | `contrato_embarcado` | `boolean` | Não | `false` | Indica se o contrato foi embarcado. |
 | `data_recebimento` | `date` | Sim | — | Data de recebimento, quando aplicável. |
-| `contrato_recebido` | `boolean` | Não | `false` | Indica se o contrato foi recebido. |
+| `contrato_recebido` | `boolean` | Não | `false` | Indica se os lançamentos completaram o valor esperado a receber. |
+| `desconta_senar` | `boolean` | Não | `true` | Indica se o comprador desconta 0,2% de SENAR do valor bruto. |
 | `corretor` | `character varying` | Sim | — | Nome do corretor, quando houver. |
 | `valor_corretagem_percentual` | `numeric` | Sim | — | Percentual/valor de corretagem informado no contrato. |
 | `corretagem_paga` | `boolean` | Não | `false` | Indica se a corretagem foi paga. |
@@ -181,7 +184,7 @@ Armazena contratos comerciais de compra/venda de grãos. A tabela também guarda
 | Primary key | `contratos_pkey` | `id` |
 | Foreign key | `contratos_comprador_id_fk` | `comprador_id` → `compradores.id` |
 | Foreign key | `contratos_vendedor_id_fk` | `vendedor_id` → `vendedores.id` |
-| Check / not null | constraints `contratos_*_not_null` | `id`, `data_contrato`, `produto`, `preco_por_saca`, `comprador_id`, `vendedor_id`, `quantidade_kg`, `contrato_embarcado`, `contrato_recebido`, `corretagem_paga`, `criado_em`, `atualizado_em` |
+| Check / not null | constraints `contratos_*_not_null` | `id`, `data_contrato`, `produto`, `preco_por_saca`, `comprador_id`, `vendedor_id`, `quantidade_kg`, `contrato_embarcado`, `contrato_recebido`, `desconta_senar`, `corretagem_paga`, `criado_em`, `atualizado_em` |
 
 
 

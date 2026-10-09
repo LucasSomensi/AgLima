@@ -1,6 +1,6 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
-const { buildBuyerPayload } = require('../routes/contract-service');
+const { buildBuyerPayload, buildContractPayload } = require('../routes/contract-service');
 const { renderAdminBuyerFormPage, renderAdminContractFormPage, renderAdminSellerFormPage } = require('../routes/renderers/admin-renderer');
 
 function renderWith(renderer, args) {
@@ -128,6 +128,7 @@ test('contract form keeps submitted values when rendering validation errors', ()
       contrato_embarcado: true,
       data_recebimento: '2026-07-01',
       contrato_recebido: true,
+      desconta_senar: false,
       corretor: 'Corretor A',
       valor_corretagem_percentual: '1,25',
       corretagem_paga: true,
@@ -153,7 +154,8 @@ test('contract form keeps submitted values when rendering validation errors', ()
   assert.match(html, /name="quantidade_kg"[^>]+value="1000\.5"/);
   assert.match(html, /name="contrato_embarcado" type="checkbox" checked/);
   assert.match(html, /name="data_recebimento" type="date" value="2026-07-01"/);
-  assert.match(html, /name="contrato_recebido" type="checkbox" checked/);
+  assert.doesNotMatch(html, /name="contrato_recebido"/);
+  assert.match(html, /<option value="false" selected>Não<\/option>/);
   assert.match(html, /name="corretor" type="text" value="Corretor A"/);
   assert.match(html, /name="valor_corretagem_percentual"[^>]+value="1\.25"/);
   assert.match(html, /name="corretagem_paga" type="checkbox" checked/);
@@ -168,4 +170,11 @@ test('contract form keeps submitted values when rendering validation errors', ()
   assert.match(html, />Info fiscal<\/textarea>/);
   assert.match(html, />Observação<\/textarea>/);
   assert.match(html, /Informe um preço por saca válido\./);
+});
+
+test('new contracts deduct SENAR by default and may opt out', () => {
+  const body = { data_contrato: '2026-10-09', produto: 'soja', preco_por_saca: '60', comprador_id: '1', vendedor_id: '2', quantidade_kg: '600' };
+  assert.equal(buildContractPayload(body).payload.descontaSenar, true);
+  assert.equal(buildContractPayload({ ...body, desconta_senar: 'false' }).payload.descontaSenar, false);
+  assert.match(buildContractPayload({ ...body, desconta_senar: 'invalid' }).error, /SENAR/);
 });

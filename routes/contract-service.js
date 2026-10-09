@@ -1,4 +1,5 @@
 const { ensureDatabaseConfigured, pool } = require('./database');
+const { contractNetValueSql, netValueSql } = require('./contract-finance');
 
 const PRODUCT_VALUES = ['milho', 'soja'];
 
@@ -138,6 +139,10 @@ function buildContractPayload(body) {
     return { error: 'Informe um valor de corretagem válido.' };
   }
 
+  if (body.desconta_senar !== undefined && !['true', 'false'].includes(body.desconta_senar)) {
+    return { error: 'Selecione se o contrato desconta SENAR.' };
+  }
+
   return {
     payload: {
       dataContrato,
@@ -148,7 +153,8 @@ function buildContractPayload(body) {
       quantidadeKg,
       contratoEmbarcado: normalizeBoolean(body.contrato_embarcado),
       dataRecebimento,
-      contratoRecebido: normalizeBoolean(body.contrato_recebido),
+      contratoRecebido: false,
+      descontaSenar: body.desconta_senar !== 'false',
       corretor: normalizeText(body.corretor) || null,
       valorCorretagemPercentual,
       corretagemPaga: normalizeBoolean(body.corretagem_paga),
@@ -290,7 +296,7 @@ async function listContracts(options = {}) {
 
   const listOnlyOpen = options.status !== 'todos';
   const openContractsWhereClause = listOnlyOpen
-    ? 'WHERE (c.contrato_embarcado IS NOT TRUE OR c.contrato_recebido IS NOT TRUE OR c.corretagem_paga IS NOT TRUE)'
+    ? `WHERE (c.contrato_embarcado IS NOT TRUE OR ${contractNetValueSql('c')} > COALESCE(receipts.total, 0) OR c.corretagem_paga IS NOT TRUE)`
     : '';
 
   const result = await pool.query(
@@ -305,6 +311,7 @@ async function listContracts(options = {}) {
              c.contrato_embarcado,
              c.data_recebimento,
              c.contrato_recebido,
+             c.desconta_senar,
              c.corretor,
              c.valor_corretagem_percentual,
              c.corretagem_paga,
@@ -319,10 +326,14 @@ async function listContracts(options = {}) {
              c.uf_transportadora,
              c.email,
              comp.nome AS comprador_nome,
-             vend.nome AS vendedor_nome
+             vend.nome AS vendedor_nome,
+             ${contractNetValueSql('c')} AS valor_contrato,
+             COALESCE(receipts.total, 0) AS valor_recebido,
+             GREATEST(${contractNetValueSql('c')} - COALESCE(receipts.total, 0), 0) AS saldo_receber
       FROM contratos c
       JOIN compradores comp ON comp.id = c.comprador_id
       JOIN vendedores vend ON vend.id = c.vendedor_id
+      LEFT JOIN (SELECT contrato_id, SUM(valor) AS total FROM contrato_recebimentos GROUP BY contrato_id) receipts ON receipts.contrato_id = c.id
       ${openContractsWhereClause}
       ORDER BY c.data_contrato ASC, c.id ASC
     `
@@ -335,7 +346,7 @@ async function listContracts(options = {}) {
 function buildContractNotification(type, contract) {
   const actionPathByType = {
     shipment_due: `/admin/contratos/${contract.id}/marcar-embarcado`,
-    receipt_due: `/admin/contratos/${contract.id}/marcar-recebido`,
+    receipt_due: `/admin/contratos/contratos/${contract.id}/recebimentos`,
     brokerage_due: `/admin/contratos/${contract.id}/marcar-corretagem-paga`,
   };
 
@@ -345,6 +356,7 @@ function buildContractNotification(type, contract) {
     buyerName: contract.comprador_nome,
     balanceKg: contract.saldo_kg,
     contractValue: contract.valor_contrato,
+    balanceValue: contract.saldo_receber,
     brokerageValue: contract.valor_corretagem,
     receiptDate: contract.data_recebimento,
     daysOverdue: Number(contract.dias_desde_vencimento || 0),
@@ -367,7 +379,8 @@ async function listAdminContractNotifications() {
                c.contrato_recebido,
                c.corretagem_paga,
                comp.nome AS comprador_nome,
-               c.quantidade_kg * c.preco_por_saca / 60 AS valor_contrato,
+               ${contractNetValueSql('c')} AS valor_contrato,
+               GREATEST(${contractNetValueSql('c')} - COALESCE(receipts.total, 0), 0) AS saldo_receber,
                CASE
                  WHEN c.valor_corretagem_percentual IS NULL THEN NULL
                  ELSE c.quantidade_kg * c.preco_por_saca / 60 * c.valor_corretagem_percentual / 100
@@ -381,13 +394,15 @@ async function listAdminContractNotifications() {
         JOIN compradores comp ON comp.id = c.comprador_id
         CROSS JOIN hoje
         LEFT JOIN saidas_balanca s ON s.contrato_id = c.id
-        GROUP BY c.id, c.data_recebimento, c.quantidade_kg, c.preco_por_saca, c.valor_corretagem_percentual, c.contrato_embarcado, c.contrato_recebido, c.corretagem_paga, comp.nome, hoje.data_atual
+        LEFT JOIN (SELECT contrato_id, SUM(valor) AS total FROM contrato_recebimentos GROUP BY contrato_id) receipts ON receipts.contrato_id = c.id
+        GROUP BY c.id, c.data_recebimento, c.quantidade_kg, c.preco_por_saca, c.valor_corretagem_percentual, c.contrato_embarcado, c.contrato_recebido, c.corretagem_paga, comp.nome, hoje.data_atual, receipts.total
       )
       SELECT id,
              data_recebimento,
              comprador_nome,
              saldo_kg,
              valor_contrato,
+             saldo_receber,
              valor_corretagem,
              dias_desde_vencimento,
              contrato_embarcado,
@@ -395,7 +410,7 @@ async function listAdminContractNotifications() {
              corretagem_paga
       FROM saldos
       WHERE (contrato_embarcado IS NOT TRUE AND saldo_kg <= 0)
-         OR (contrato_recebido IS NOT TRUE AND data_recebimento IS NOT NULL AND dias_desde_vencimento >= 0)
+         OR (saldo_receber > 0 AND data_recebimento IS NOT NULL AND dias_desde_vencimento >= 0)
          OR (corretagem_paga IS NOT TRUE AND contrato_recebido IS TRUE)
       ORDER BY data_recebimento ASC NULLS LAST, id ASC
     `
@@ -410,7 +425,7 @@ async function listAdminContractNotifications() {
       notifications.push(buildContractNotification('shipment_due', contract));
     }
 
-    if (!contract.contrato_recebido && contract.data_recebimento && daysSinceDueDate >= 0) {
+    if (Number(contract.saldo_receber) > 0 && contract.data_recebimento && daysSinceDueDate >= 0) {
       notifications.push(buildContractNotification('receipt_due', contract));
     }
 
@@ -451,23 +466,25 @@ async function getAdminContractsSummary() {
                c.contrato_recebido,
                comp.nome AS comprador_nome,
                c.quantidade_kg - COALESCE(SUM(s.peso_liquido_kg), 0) AS saldo_kg,
-               c.quantidade_kg * c.preco_por_saca / 60 AS valor_contrato
+               ${contractNetValueSql('c')} AS valor_contrato,
+               GREATEST(${contractNetValueSql('c')} - COALESCE(receipts.total, 0), 0) AS saldo_receber
         FROM contratos c
         JOIN compradores comp ON comp.id = c.comprador_id
         LEFT JOIN saidas_balanca s ON s.contrato_id = c.id
-        GROUP BY c.id, comp.nome
+        LEFT JOIN (SELECT contrato_id, SUM(valor) AS total FROM contrato_recebimentos GROUP BY contrato_id) receipts ON receipts.contrato_id = c.id
+        GROUP BY c.id, comp.nome, receipts.total
       ), proximos_recebimentos AS (
         SELECT id, comprador_nome, data_recebimento
         FROM contratos_calculados
-        WHERE contrato_recebido IS NOT TRUE
+        WHERE saldo_receber > 0
           AND data_recebimento IS NOT NULL
         ORDER BY data_recebimento ASC, id ASC
         LIMIT 1
       )
-      SELECT COUNT(*) FILTER (WHERE contrato_embarcado IS NOT TRUE OR contrato_recebido IS NOT TRUE)::integer AS contratos_ativos,
+      SELECT COUNT(*) FILTER (WHERE contrato_embarcado IS NOT TRUE OR saldo_receber > 0)::integer AS contratos_ativos,
              COALESCE(SUM(GREATEST(saldo_kg, 0)) FILTER (WHERE produto = 'soja' AND contrato_embarcado IS NOT TRUE), 0) AS soja_a_embarcar_kg,
              COALESCE(SUM(GREATEST(saldo_kg, 0)) FILTER (WHERE produto = 'milho' AND contrato_embarcado IS NOT TRUE), 0) AS milho_a_embarcar_kg,
-             COALESCE(SUM(valor_contrato) FILTER (WHERE contrato_recebido IS NOT TRUE), 0) AS valor_total_a_receber,
+             COALESCE(SUM(saldo_receber), 0) AS valor_total_a_receber,
              (SELECT data_recebimento FROM proximos_recebimentos) AS proximo_recebimento_data,
              (SELECT id FROM proximos_recebimentos) AS proximo_recebimento_contrato_id,
              (SELECT comprador_nome FROM proximos_recebimentos) AS proximo_recebimento_comprador
@@ -493,6 +510,7 @@ async function getContractById(id) {
              contrato_embarcado,
              data_recebimento,
              contrato_recebido,
+             desconta_senar,
              corretor,
              valor_corretagem_percentual,
              corretagem_paga,
@@ -543,9 +561,10 @@ async function createContract(payload) {
         cnpj_transportadora,
         inscricao_estadual_transportadora,
         uf_transportadora,
-        email
+        email,
+        desconta_senar
       )
-      VALUES ($1::date, $2, $3, $4, $5, $6, $7, $8::date, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
+      VALUES ($1::date, $2, $3, $4, $5, $6, $7, $8::date, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23)
     `,
     [
       payload.dataContrato,
@@ -570,6 +589,7 @@ async function createContract(payload) {
       payload.inscricaoEstadualTransportadora,
       payload.ufTransportadora,
       payload.email,
+      payload.descontaSenar,
     ]
   );
 }
@@ -583,6 +603,8 @@ async function markContractAsShipped(id) {
       UPDATE contratos c
       SET contrato_embarcado = TRUE,
           quantidade_kg = embarque.quantidade_embarcada_kg,
+          contrato_recebido = (COALESCE((SELECT SUM(valor) FROM contrato_recebimentos WHERE contrato_id = c.id), 0) > 0
+            AND COALESCE((SELECT SUM(valor) FROM contrato_recebimentos WHERE contrato_id = c.id), 0) = ${netValueSql('embarque.quantidade_embarcada_kg', 'c.preco_por_saca', 'c.desconta_senar')}),
           atualizado_em = now()
       FROM (
         SELECT c2.id,
@@ -596,25 +618,7 @@ async function markContractAsShipped(id) {
       WHERE c.id = embarque.id
         AND c.contrato_embarcado IS NOT TRUE
         AND embarque.saldo_kg <= 0
-    `,
-    [id]
-  );
-
-  return result.rowCount;
-}
-
-async function markContractAsReceived(id) {
-  ensureDatabaseConfigured();
-
-  const result = await pool.query(
-    `
-      UPDATE contratos
-      SET contrato_recebido = TRUE,
-          atualizado_em = now()
-      WHERE id = $1
-        AND contrato_recebido IS NOT TRUE
-        AND data_recebimento IS NOT NULL
-        AND data_recebimento <= (now() AT TIME ZONE 'America/Sao_Paulo')::date
+        AND ${netValueSql('embarque.quantidade_embarcada_kg', 'c.preco_por_saca', 'c.desconta_senar')} >= COALESCE((SELECT SUM(valor) FROM contrato_recebimentos WHERE contrato_id = c.id), 0)
     `,
     [id]
   );
@@ -642,8 +646,11 @@ async function markContractBrokerageAsPaid(id) {
 
 async function updateContract(id, payload) {
   ensureDatabaseConfigured();
-
-  await pool.query(
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query('SELECT id FROM contratos WHERE id = $1 FOR UPDATE', [id]);
+    const result = await client.query(
     `
       UPDATE contratos
       SET data_contrato = $1::date,
@@ -654,7 +661,9 @@ async function updateContract(id, payload) {
           quantidade_kg = $6,
           contrato_embarcado = $7,
           data_recebimento = $8::date,
-          contrato_recebido = $9,
+          contrato_recebido = (COALESCE((SELECT SUM(valor) FROM contrato_recebimentos WHERE contrato_id = $23), 0) > 0
+            AND COALESCE((SELECT SUM(valor) FROM contrato_recebimentos WHERE contrato_id = $23), 0) = ${netValueSql('$6::numeric', '$3::numeric', '$24::boolean')}),
+          desconta_senar = $24,
           corretor = $10,
           valor_corretagem_percentual = $11,
           corretagem_paga = $12,
@@ -670,6 +679,7 @@ async function updateContract(id, payload) {
           email = $22,
           atualizado_em = now()
       WHERE id = $23
+        AND ${netValueSql('$6::numeric', '$3::numeric', '$24::boolean')} >= COALESCE((SELECT SUM(valor) FROM contrato_recebimentos WHERE contrato_id = $23), 0)
     `,
     [
       payload.dataContrato,
@@ -695,8 +705,19 @@ async function updateContract(id, payload) {
       payload.ufTransportadora,
       payload.email,
       id,
+      payload.descontaSenar,
     ]
   );
+    if (!result.rowCount) {
+      throw new Error('O contrato não foi encontrado ou seu novo valor é menor que o total já recebido.');
+    }
+    await client.query('COMMIT');
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
 }
 
 module.exports = {
@@ -714,7 +735,6 @@ module.exports = {
   listBuyers,
   listContracts,
   listSellers,
-  markContractAsReceived,
   markContractAsShipped,
   markContractBrokerageAsPaid,
   updateBuyer,

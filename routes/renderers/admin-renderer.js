@@ -613,7 +613,7 @@ function buildAdminNotificationDetails(notification) {
   }
 
   if (notification.type === 'receipt_due') {
-    return `${notification.buyerName} · ${formatMoney(notification.contractValue)}`;
+    return `${notification.buyerName} · Falta receber: ${formatMoney(notification.balanceValue ?? notification.contractValue)}`;
   }
 
   if (notification.type === 'brokerage_due') {
@@ -626,7 +626,7 @@ function buildAdminNotificationDetails(notification) {
 function getAdminNotificationActionLabel(type) {
   const labels = {
     shipment_due: 'Marcar como embarcado',
-    receipt_due: 'Marcar como recebido',
+    receipt_due: 'Registrar recebimento',
     brokerage_due: 'Marcar corretagem como paga',
   };
 
@@ -657,10 +657,10 @@ function renderAdminNotificationsPanel(notifications) {
               <span>${escapeHtml(buildAdminNotificationDetails(notification))}</span>
               ${notification.receiptDate && notification.type !== 'brokerage_due' ? `<span>Vencimento em ${escapeHtml(formatDate(notification.receiptDate))}</span>` : ''}
             </div>
-            <form class="admin-notification-action" action="${escapeHtml(notification.actionPath)}" method="post">
+            ${notification.type === 'receipt_due' ? `<a class="btn-primary-action admin-notification-button" href="${escapeHtml(notification.actionPath)}">${escapeHtml(getAdminNotificationActionLabel(notification.type))}</a>` : `<form class="admin-notification-action" action="${escapeHtml(notification.actionPath)}" method="post">
                 <input type="hidden" name="_csrf" value="{{CSRF_TOKEN}}">
               <button class="btn-primary-action admin-notification-button" type="submit">${escapeHtml(getAdminNotificationActionLabel(notification.type))}</button>
-            </form>
+            </form>`}
           </li>
         `)
     .join('');
@@ -1044,7 +1044,7 @@ function renderAdminContractFormPage(res, { buyers, sellers, contract, contractS
   const statusInput = contractStatusFilter === 'todos' ? '<input name="status" type="hidden" value="todos">' : '';
   return renderContractFormPage(res, { pageTitle: contract ? 'Editar contrato' : 'Novo contrato', formTitle: contract ? 'Editar contrato' : 'Novo contrato', formDescription: 'Preencha os dados comerciais, fiscais e logísticos do contrato.', error,
     formHtml: `<form class="contact-form contracts-form" action="${action}" method="post">
-                <input type="hidden" name="_csrf" value="{{CSRF_TOKEN}}">${statusInput}<div class="contracts-form-grid"><label>Data do contrato<input class="form-control" name="data_contrato" type="date" value="${escapeHtml(toDateOnlyInputValue(contract?.data_contrato))}" required></label><label>Produto<select class="form-control" name="produto" required><option value="">Selecione</option><option value="milho"${contract?.produto === 'milho' ? ' selected' : ''}>Milho</option><option value="soja"${contract?.produto === 'soja' ? ' selected' : ''}>Soja</option></select></label><label>Preço por saca<input class="form-control" name="preco_por_saca" type="number" min="0" step="0.01" inputmode="decimal" value="${escapeHtml(formatDecimalInput(contract?.preco_por_saca))}" required></label><label>Comprador<select class="form-control" name="comprador_id" required><option value="">Selecione</option>${buyerOptions}</select></label><label>Vendedor<select class="form-control" name="vendedor_id" required><option value="">Selecione</option>${sellerOptions}</select></label><label>Quantidade em kg<input class="form-control" name="quantidade_kg" type="number" min="0" step="0.01" inputmode="decimal" value="${escapeHtml(formatDecimalInput(contract?.quantidade_kg))}" required></label><label>Data de recebimento<input class="form-control" name="data_recebimento" type="date" value="${escapeHtml(toDateOnlyInputValue(contract?.data_recebimento))}"></label><label>Corretor<input class="form-control" name="corretor" type="text" value="${escapeHtml(contract?.corretor || '')}"></label><label>Valor da corretagem (%)<input class="form-control" name="valor_corretagem_percentual" type="number" min="0" step="0.01" inputmode="decimal" value="${escapeHtml(formatDecimalInput(contract?.valor_corretagem_percentual))}"></label></div><div class="contracts-check-grid"><label class="contracts-checkbox"><input name="contrato_embarcado" type="checkbox"${contract?.contrato_embarcado ? ' checked' : ''}> Contrato embarcado</label><label class="contracts-checkbox"><input name="contrato_recebido" type="checkbox"${contract?.contrato_recebido ? ' checked' : ''}> Contrato recebido</label><label class="contracts-checkbox"><input name="corretagem_paga" type="checkbox"${contract?.corretagem_paga ? ' checked' : ''}> Corretagem paga</label></div><details class="contracts-advanced-fields"><summary class="btn-secondary-action contracts-advanced-toggle">avançado</summary><div class="contracts-form-grid"><label>Inscrição estadual do vendedor<input class="form-control" name="inscricao_estadual_vendedor" type="text" value="${escapeHtml(contract?.inscricao_estadual_vendedor || '')}"></label><label>Natureza da Operação<input class="form-control" name="natureza_operacao" type="text" value="${escapeHtml(contract?.natureza_operacao || '')}"></label><label>CFOP<input class="form-control" name="cfop" type="text" value="${escapeHtml(contract?.cfop || '')}"></label><label>Razão social da transportadora<input class="form-control" name="razao_social_transportadora" type="text" value="${escapeHtml(contract?.razao_social_transportadora || '')}"></label><label>CNPJ da transportadora<input class="form-control" name="cnpj_transportadora" type="text" value="${escapeHtml(contract?.cnpj_transportadora || '')}"></label><label>Inscrição Estadual da Transportadora<input class="form-control" name="inscricao_estadual_transportadora" type="text" value="${escapeHtml(contract?.inscricao_estadual_transportadora || '')}"></label><label>UF da transportadora<input class="form-control" name="uf_transportadora" type="text" maxlength="2" value="${escapeHtml(contract?.uf_transportadora || '')}"></label><label>E-mail<input class="form-control" name="email" type="text" value="${escapeHtml(contract?.email || '')}"></label></div><label>Informações de interesse do contribuinte<textarea class="form-control" name="informacoes_interesse_contribuinte" rows="3">${escapeHtml(contract?.informacoes_interesse_contribuinte || '')}</textarea></label><label>Observações<textarea class="form-control" name="observacoes" rows="3">${escapeHtml(contract?.observacoes || '')}</textarea></label><p class="form-helper-text">Campos avançados em branco serão salvos como nulos.</p></details><div class="contracts-form-actions"><button class="btn-primary-action" type="submit">Salvar contrato</button><a class="btn-secondary-action" href="/admin/contratos#contratos">Cancelar</a></div></form>` });
+                <input type="hidden" name="_csrf" value="{{CSRF_TOKEN}}">${statusInput}<div class="contracts-form-grid"><label>Data do contrato<input class="form-control" name="data_contrato" type="date" value="${escapeHtml(toDateOnlyInputValue(contract?.data_contrato))}" required></label><label>Produto<select class="form-control" name="produto" required><option value="">Selecione</option><option value="milho"${contract?.produto === 'milho' ? ' selected' : ''}>Milho</option><option value="soja"${contract?.produto === 'soja' ? ' selected' : ''}>Soja</option></select></label><label>Preço por saca<input class="form-control" name="preco_por_saca" type="number" min="0" step="0.01" inputmode="decimal" value="${escapeHtml(formatDecimalInput(contract?.preco_por_saca))}" required></label><label>Comprador<select class="form-control" name="comprador_id" required><option value="">Selecione</option>${buyerOptions}</select></label><label>Vendedor<select class="form-control" name="vendedor_id" required><option value="">Selecione</option>${sellerOptions}</select></label><label>Quantidade em kg<input class="form-control" name="quantidade_kg" type="number" min="0" step="0.01" inputmode="decimal" value="${escapeHtml(formatDecimalInput(contract?.quantidade_kg))}" required></label><label>Data prevista de recebimento<input class="form-control" name="data_recebimento" type="date" value="${escapeHtml(toDateOnlyInputValue(contract?.data_recebimento))}"></label><label>Desconto de SENAR (0,2%)<select class="form-control" name="desconta_senar"><option value="true"${contract?.desconta_senar !== false ? ' selected' : ''}>Sim</option><option value="false"${contract?.desconta_senar === false ? ' selected' : ''}>Não</option></select></label><label>Corretor<input class="form-control" name="corretor" type="text" value="${escapeHtml(contract?.corretor || '')}"></label><label>Valor da corretagem (%)<input class="form-control" name="valor_corretagem_percentual" type="number" min="0" step="0.01" inputmode="decimal" value="${escapeHtml(formatDecimalInput(contract?.valor_corretagem_percentual))}"></label></div><div class="contracts-check-grid"><label class="contracts-checkbox"><input name="contrato_embarcado" type="checkbox"${contract?.contrato_embarcado ? ' checked' : ''}> Contrato embarcado</label><label class="contracts-checkbox"><input name="corretagem_paga" type="checkbox"${contract?.corretagem_paga ? ' checked' : ''}> Corretagem paga</label></div><details class="contracts-advanced-fields"><summary class="btn-secondary-action contracts-advanced-toggle">avançado</summary><div class="contracts-form-grid"><label>Inscrição estadual do vendedor<input class="form-control" name="inscricao_estadual_vendedor" type="text" value="${escapeHtml(contract?.inscricao_estadual_vendedor || '')}"></label><label>Natureza da Operação<input class="form-control" name="natureza_operacao" type="text" value="${escapeHtml(contract?.natureza_operacao || '')}"></label><label>CFOP<input class="form-control" name="cfop" type="text" value="${escapeHtml(contract?.cfop || '')}"></label><label>Razão social da transportadora<input class="form-control" name="razao_social_transportadora" type="text" value="${escapeHtml(contract?.razao_social_transportadora || '')}"></label><label>CNPJ da transportadora<input class="form-control" name="cnpj_transportadora" type="text" value="${escapeHtml(contract?.cnpj_transportadora || '')}"></label><label>Inscrição Estadual da Transportadora<input class="form-control" name="inscricao_estadual_transportadora" type="text" value="${escapeHtml(contract?.inscricao_estadual_transportadora || '')}"></label><label>UF da transportadora<input class="form-control" name="uf_transportadora" type="text" maxlength="2" value="${escapeHtml(contract?.uf_transportadora || '')}"></label><label>E-mail<input class="form-control" name="email" type="text" value="${escapeHtml(contract?.email || '')}"></label></div><label>Informações de interesse do contribuinte<textarea class="form-control" name="informacoes_interesse_contribuinte" rows="3">${escapeHtml(contract?.informacoes_interesse_contribuinte || '')}</textarea></label><label>Observações<textarea class="form-control" name="observacoes" rows="3">${escapeHtml(contract?.observacoes || '')}</textarea></label><p class="form-helper-text">Campos avançados em branco serão salvos como nulos.</p></details><div class="contracts-form-actions"><button class="btn-primary-action" type="submit">Salvar contrato</button><a class="btn-secondary-action" href="/admin/contratos#contratos">Cancelar</a></div></form>` });
 }
 
 function renderAdminContractsPage(res, { buyers, sellers, contracts, selectedBuyer, selectedSeller, selectedContract, contractStatusFilter = 'abertos', message, error }) {
@@ -1089,10 +1089,11 @@ function renderAdminContractsPage(res, { buyers, sellers, contracts, selectedBuy
           <td>${escapeHtml(contract.produto)}</td>
           <td>${escapeHtml(formatMoney(contract.preco_por_saca))}</td>
           <td>${escapeHtml(formatKg(contract.quantidade_kg))}</td>
-          <td><a class="admin-table-link" href="${escapeHtml(buildContractsPageHref({ ...contractEditStatusParam })).replace('/admin/contratos', `/admin/contratos/contratos/${escapeHtml(contract.id)}/editar`)}">Editar</a></td>
+          <td>${escapeHtml(formatMoney(contract.saldo_receber))}</td>
+          <td><a class="admin-table-link" href="/admin/contratos/contratos/${escapeHtml(contract.id)}/recebimentos">Recebimentos</a> · <a class="admin-table-link" href="${escapeHtml(buildContractsPageHref({ ...contractEditStatusParam })).replace('/admin/contratos', `/admin/contratos/contratos/${escapeHtml(contract.id)}/editar`)}">Editar</a></td>
         </tr>
       `)
-    .join('') || '<tr><td colspan="7">Nenhum contrato cadastrado.</td></tr>';
+    .join('') || '<tr><td colspan="8">Nenhum contrato cadastrado.</td></tr>';
   const contractsHtml = fs
     .readFileSync(contractsPath, 'utf8')
     .replace('{{CONTRACTS_MESSAGE}}', buildAlertHtml(message))
@@ -1104,6 +1105,20 @@ function renderAdminContractsPage(res, { buyers, sellers, contracts, selectedBuy
     .replace('{{CONTRACTS_ROWS}}', contractRows);
 
   res.send(contractsHtml);
+}
+
+function renderAdminContractReceiptsPage(res, { contract, receipts, message = '', error = '', input = {} }) {
+  const rows = receipts.map((receipt) => `<tr><td>${escapeHtml(formatDate(receipt.data_recebimento))}</td><td>${escapeHtml(formatMoney(receipt.valor))}</td><td>${escapeHtml(receipt.usuario_login)}</td><td>${escapeHtml(receipt.observacao || '-')}</td></tr>`).join('') || renderEmptyRow(4, 'Nenhum recebimento registrado.');
+  res.send(renderTemplate('admin-contract-receipts.html', {
+    CONTRACT_ID: escapeHtml(contract.id), BUYER: escapeHtml(contract.comprador_nome), PRODUCT: escapeHtml(contract.produto),
+    CONTRACT_DATE: escapeHtml(formatDate(contract.data_contrato)), GROSS: escapeHtml(formatMoney(contract.valor_bruto)),
+    SENAR: contract.desconta_senar ? escapeHtml(formatMoney(contract.desconto_senar)) : 'Não aplicado',
+    TOTAL: escapeHtml(formatMoney(contract.valor_contrato)),
+    RECEIVED: escapeHtml(formatMoney(contract.valor_recebido)), BALANCE: escapeHtml(formatMoney(contract.saldo_receber)),
+    MESSAGE: buildAlertHtml(message), ERROR: buildAlertHtml(error, 'error'), ROWS: rows,
+    INPUT_DATE: escapeHtml(input.data_recebimento || ''), INPUT_VALUE: escapeHtml(input.valor || ''),
+    INPUT_NOTE: escapeHtml(input.observacao || ''), DISABLED: Number(contract.saldo_receber) <= 0 ? 'disabled' : '',
+  }));
 }
 
 function renderConstructionPage(res, role, options = {}) {
@@ -1138,6 +1153,7 @@ module.exports = {
   renderAdminBatchDetailPage,
   renderAdminBatchesPage,
   renderAdminContractsPage,
+  renderAdminContractReceiptsPage,
   renderAdminBuyerFormPage,
   renderAdminSellerFormPage,
   renderAdminContractFormPage,

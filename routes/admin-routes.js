@@ -1,6 +1,7 @@
 const express = require('express');
 const { requireRole, requireRoot } = require('./auth');
 const { MANAGED_ROLES, ROOT_LOGIN, ROLES } = require('./constants');
+const { buildReceiptPayload, createContractReceipt, getContractReceipts } = require('./receipt-service');
 const {
   buildBuyerPayload,
   buildContractPayload,
@@ -16,7 +17,6 @@ const {
   listBuyers,
   listContracts,
   listSellers,
-  markContractAsReceived,
   markContractAsShipped,
   markContractBrokerageAsPaid,
   updateBuyer,
@@ -36,6 +36,7 @@ const {
   renderAdminBatchDetailPage,
   renderAdminBatchesPage,
   renderAdminContractsPage,
+  renderAdminContractReceiptsPage,
   renderAdminBuyerFormPage,
   renderAdminContractFormPage,
   renderAdminSellerFormPage,
@@ -240,6 +241,7 @@ function buildSubmittedContract(body, id) {
     vendedor_id: body.vendedor_id || '',
     quantidade_kg: body.quantidade_kg || '',
     data_recebimento: body.data_recebimento || '',
+    desconta_senar: body.desconta_senar !== 'false',
     corretor: body.corretor || '',
     valor_corretagem_percentual: body.valor_corretagem_percentual || '',
     contrato_embarcado: body.contrato_embarcado === 'on' || body.contrato_embarcado === 'true',
@@ -300,6 +302,41 @@ router.get('/admin/contratos', canAccessAdminPanel, async (req, res) => {
   } catch (error) {
     console.error('Error loading contracts admin panel:', error.message);
     return res.status(500).send('Não foi possível carregar o painel de contratos agora.');
+  }
+});
+
+router.get('/admin/contratos/contratos/:id/recebimentos', canAccessAdminPanel, async (req, res) => {
+  try {
+    const info = await getContractReceipts(req.params.id);
+    if (!info) return res.status(404).send('Contrato não encontrado.');
+    return renderAdminContractReceiptsPage(res, { ...info, message: req.query.registrado ? 'Recebimento registrado com sucesso.' : '' });
+  } catch (error) {
+    console.error('Error loading contract receipts:', error.message);
+    return res.status(500).send('Não foi possível carregar os recebimentos agora.');
+  }
+});
+
+router.post('/admin/contratos/contratos/:id/recebimentos', canAccessAdminPanel, async (req, res) => {
+  const { payload, error: validationError } = buildReceiptPayload(req.body);
+  if (!validationError) {
+    try {
+      await createContractReceipt(req.params.id, payload, req.sessionUser.userId);
+      return res.redirect(`/admin/contratos/contratos/${req.params.id}/recebimentos?registrado=1`);
+    } catch (error) {
+      if (!['Contrato não encontrado.', 'O valor informado excede o saldo a receber.'].includes(error.message)) {
+        console.error('Error creating contract receipt:', error.message);
+      }
+      req.receiptError = ['Contrato não encontrado.', 'O valor informado excede o saldo a receber.'].includes(error.message)
+        ? error.message : 'Não foi possível registrar o recebimento agora.';
+    }
+  }
+  try {
+    const info = await getContractReceipts(req.params.id);
+    if (!info) return res.status(404).send('Contrato não encontrado.');
+    return renderAdminContractReceiptsPage(res.status(400), { ...info, error: validationError || req.receiptError, input: req.body });
+  } catch (error) {
+    console.error('Error loading contract receipts:', error.message);
+    return res.status(500).send('Não foi possível carregar os recebimentos agora.');
   }
 });
 
@@ -479,15 +516,8 @@ router.post('/admin/contratos/:id/marcar-embarcado', canAccessAdminPanel, async 
   );
 });
 
-router.post('/admin/contratos/:id/marcar-recebido', canAccessAdminPanel, async (req, res) => {
-  return runContractQuickAction(
-    req,
-    res,
-    markContractAsReceived,
-    'Contrato marcado como recebido com sucesso.',
-    'Esse contrato já foi marcado como recebido ou não existe.',
-    'Error marking contract as received:'
-  );
+router.post('/admin/contratos/:id/marcar-recebido', canAccessAdminPanel, (req, res) => {
+  return res.redirect(`/admin/contratos/contratos/${req.params.id}/recebimentos`);
 });
 
 router.post('/admin/contratos/:id/marcar-corretagem-paga', canAccessAdminPanel, async (req, res) => {
@@ -528,6 +558,9 @@ router.post('/admin/contratos/contratos/:id', canAccessAdminPanel, async (req, r
     await updateContract(req.params.id, payload);
     return res.redirect(buildContractsRedirect({ contrato_atualizado: '1' }));
   } catch (error) {
+    if (error.message === 'O contrato não foi encontrado ou seu novo valor é menor que o total já recebido.') {
+      return renderSubmittedContractForm(req, res, 400, error.message, req.params.id);
+    }
     console.error('Error updating contract:', error.message);
     return renderSubmittedContractForm(req, res, 500, 'Não foi possível atualizar o contrato agora. Confira comprador e vendedor.', req.params.id);
   }
