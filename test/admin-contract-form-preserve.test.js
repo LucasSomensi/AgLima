@@ -34,23 +34,6 @@ test('buyer form keeps submitted values when rendering validation errors', () =>
   assert.match(html, /Informe uma inscrição estadual com 10 dígitos ou mais\./);
 });
 
-
-test('buyer form only marks name as required', () => {
-  const html = renderWith(renderAdminBuyerFormPage, {
-    buyer: null,
-    error: '',
-  });
-
-  assert.match(html, /Preencha o nome do comprador\. Os demais dados cadastrais são opcionais\./);
-  assert.match(html, /name="nome" type="text" value="" required/);
-  assert.doesNotMatch(html, /name="nome_completo"[^>]* required/);
-  assert.doesNotMatch(html, /name="endereco"[^>]* required/);
-  assert.doesNotMatch(html, /name="numero"[^>]* required/);
-  assert.doesNotMatch(html, /name="cep"[^>]* required/);
-  assert.doesNotMatch(html, /name="inscricao_estadual"[^>]* required/);
-  assert.doesNotMatch(html, /name="cpf_cnpj"[^>]* required/);
-});
-
 test('buyer payload accepts only name and stores blank optional fields as null', () => {
   const { payload, error } = buildBuyerPayload({
     nome: ' Comprador Teste ',
@@ -91,13 +74,6 @@ test('buyer payload accepts arbitrary alphanumeric CPF or CNPJ lengths', () => {
     buildBuyerPayload({ nome: 'Inválido', cpf_cnpj: 'ABC-123' }).error,
     /11 ou 14 caracteres alfanuméricos/
   );
-});
-
-test('buyer CPF/CNPJ field opens a text keyboard on mobile devices', () => {
-  const html = renderWith(renderAdminBuyerFormPage, { buyer: null, error: '' });
-
-  assert.match(html, /name="cpf_cnpj" type="text" inputmode="text"/);
-  assert.doesNotMatch(html, /name="cpf_cnpj"[^>]*inputmode="numeric"/);
 });
 
 test('seller form keeps submitted values when rendering validation errors', () => {

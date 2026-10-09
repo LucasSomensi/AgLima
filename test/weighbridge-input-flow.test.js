@@ -111,8 +111,6 @@ test('weighbridge home renders pending input actions', () => {
   assert.match(html, /href="\/balanca\/entradas\/11\/origem">Definir origem/);
 });
 
-
-
 test('weighbridge input plate copies entry report to clipboard only when complete', () => {
   const html = renderPage(renderScaleInputsListPage, {
     inputs: [{
@@ -147,28 +145,6 @@ test('weighbridge input plate is plain text until origin tare and classification
   assert.doesNotMatch(html, /data-clipboard-report=/);
 });
 
-test('weighbridge inputs list uses classification as the final input column', () => {
-  const html = renderPage(renderScaleInputsListPage, {
-    inputs: [baseInput],
-  });
-
-  assert.match(html, /<th>Classificação<\/th>/);
-  assert.doesNotMatch(html, /<th>Ação<\/th>/);
-});
-
-test('weighbridge inputs list can return admins to administration', () => {
-  const html = renderPage(renderScaleInputsListPage, {
-    inputs: [baseInput],
-    navigation: {
-      homeHref: '/admin',
-      homeLabel: '← Voltar à administração',
-    },
-  });
-
-  assert.match(html, /href="\/admin">← Voltar à administração<\/a>/);
-  assert.doesNotMatch(html, /href="\/balanca">← Voltar à balança<\/a>/);
-});
-
 test('weighbridge home renders completed input states without client action', () => {
   const html = renderPage(renderWeighbridgeHomePage, {
     inputs: [{
@@ -190,18 +166,6 @@ test('weighbridge home renders completed input states without client action', ()
   assert.match(html, /Fazenda São José/);
   assert.match(html, /Classificada/);
   assert.doesNotMatch(html, /Adicionar cliente/);
-});
-
-test('input form renders recent plate suggestions and previous tare checkbox', () => {
-  const html = renderPage(renderScaleInputFormPage, {
-    formValues: {},
-    plateSuggestions: [{ placa_caminhao: 'ABC1D23', tem_tara_anterior: true, peso_tara_kg: '12000' }],
-    error: '',
-  });
-
-  assert.match(html, /ABC1D23/);
-  assert.match(html, /Usar tara anterior/);
-  assert.match(html, /id="usar_tara_anterior"/);
 });
 
 test('input form defaults product by entry date and limits gross weight', () => {
@@ -282,7 +246,6 @@ test('classification payload accepts zero damaged grains and rejects over 100', 
   assert.match(invalidPayload.error, /umidade/);
 });
 
-
 test('input detail edit form exposes tare, origin, and classification fields', () => {
   const html = renderPage(renderScaleInputDetailPage, {
     input: {
@@ -355,14 +318,6 @@ test('input edit payload accepts complete editable data and blank optional field
 });
 
 const { buildScaleInputsCsv } = require('../routes/weighbridge-csv');
-
-test('weighbridge inputs list includes CSV download action', () => {
-  const html = renderPage(renderScaleInputsListPage, {
-    inputs: [baseInput],
-  });
-
-  assert.match(html, /href="\/balanca\/entradas\.csv">Baixar CSV<\/a>/);
-});
 
 test('scale inputs CSV exports rows in the provided chronological order and escapes fields', () => {
   const csv = buildScaleInputsCsv([

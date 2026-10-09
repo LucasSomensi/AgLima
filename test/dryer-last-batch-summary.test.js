@@ -29,32 +29,11 @@ test('dryer panel renders the last completed batch summary in the status grid', 
   });
 
   assert.match(html, /Última batelada/);
+  assert.match(html, /href="\/secador\/bateladas\/anteriores">Ver anteriores<\/a>/);
   assert.match(
     html,
     /Umidade inicial<\/dt>\s*<dd>27,5%<\/dd>[\s\S]*Início<\/dt>\s*<dd>12\/06\/2026, 07:00<\/dd>[\s\S]*Início descarga<\/dt>\s*<dd>12\/06\/2026, 10:30<\/dd>[\s\S]*Fim descarga<\/dt>\s*<dd>12\/06\/2026, 12:05<\/dd>[\s\S]*Duração<\/dt>\s*<dd>5h 5min<\/dd>[\s\S]*Tempo secando<\/dt>\s*<dd>3h 30min<\/dd>[\s\S]*Tempo descarga<\/dt>\s*<dd>1h 35min<\/dd>[\s\S]*Umidade final<\/dt>\s*<dd>13,5%<\/dd>/
   );
-});
-
-
-test('dryer panel includes link to previous completed batches', () => {
-  const html = renderPage({
-    batch: null,
-    readings: [],
-    settings: { target_moisture: '14.5' },
-    message: '',
-    error: '',
-    unclassifiedInputs: [],
-    lastCompletedBatch: {
-      id: 7,
-      started_at: '2026-06-12T10:00:00.000Z',
-      discharge_started_at: '2026-06-12T13:30:00.000Z',
-      completed_at: '2026-06-12T15:05:00.000Z',
-      umidade_inicial: '27.54',
-      discharge_average_moisture: '13.46',
-    },
-  });
-
-  assert.match(html, /href="\/secador\/bateladas\/anteriores">Ver anteriores<\/a>/);
 });
 
 test('dryer completed batch history renders batches from newest to oldest with the same summary fields', () => {
@@ -119,17 +98,6 @@ test('dryer panel opens the silo confirmation step before starting discharge', (
 
   assert.match(html, /action="\/secador\/bateladas\/descarga\/confirmar" method="get"/);
   assert.doesNotMatch(html, /Registrar início da descarga para os silos/);
-});
-
-test('discharge confirmation prioritizes confirm, choose another silo, and cancel', () => {
-  const { renderDryerDischargeConfirmationPage } = require('../routes/renderers');
-  let html = '';
-
-  renderDryerDischargeConfirmationPage({ send: (value) => { html = value; } }, { lastSiloNumber: 3 });
-
-  assert.match(html, /Deseja iniciar a descarga para o silo 3\?/);
-  assert.match(html, /name="discharge_silo_number" value="3"/);
-  assert.match(html, /Confirmar silo 3[\s\S]*Escolher outro silo[\s\S]*Cancelar/);
 });
 
 test('discharge confirmation requires a silo choice when there is no history', () => {

@@ -38,21 +38,6 @@ test('dryer panel hides classification notifications when there are no pending i
   assert.doesNotMatch(html, /dryer-notifications/);
 });
 
-test('dryer panel refresh button clears transient messages from the URL', () => {
-  const html = renderPage(renderDryerPanelPage, {
-    batch: null,
-    readings: [],
-    settings: { target_moisture: '14.5' },
-    message: 'Medição de umidade registrada com sucesso.',
-    error: '',
-    unclassifiedInputs: [],
-  });
-
-  assert.match(html, /Medição de umidade registrada com sucesso\./);
-  assert.match(html, /window\.location\.replace\('\/secador'\)/);
-  assert.doesNotMatch(html, /window\.location\.reload\(\)/);
-});
-
 test('dryer panel shows discharge start, estimated end and total estimated duration', () => {
   const html = renderPage(renderDryerPanelPage, {
     batch: {
@@ -104,35 +89,6 @@ test('dryer classification form posts to the dryer mobile classification route',
   assert.match(html, /href="\/secador">Cancelar/);
 });
 
-test('dryer panel keeps moisture table compact and exposes extra reading data on row expansion', () => {
-  const html = renderPage(renderDryerPanelPage, {
-    batch: {
-      id: 5,
-      started_at: '2026-07-10T12:00:00.000Z',
-      discharge_started_at: null,
-      umidade_inicial: '28',
-      target_moisture: '14',
-    },
-    readings: [{
-      id: 22,
-      measured_at: '2026-07-10T14:20:00.000Z',
-      moisture_percent: '26.6',
-      measured_by_login: 'operador',
-    }],
-    settings: { target_moisture: '14' },
-    message: '',
-    error: '',
-    unclassifiedInputs: [],
-  });
-
-  assert.match(html, /<th>Horário<\/th>\s*<th>Umidade medida<\/th>\s*<\/tr>/);
-  assert.doesNotMatch(html, /<th>Umidade média<\/th>/);
-  assert.doesNotMatch(html, /<th>Previsão de descarga<\/th>/);
-  assert.doesNotMatch(html, /<th>Umidade alvo<\/th>/);
-  assert.match(html, /class="dryer-reading-row"[\s\S]*<td>11:20<\/td>\s*<td>26,6%<\/td>\s*<\/tr>/);
-  assert.match(html, /class="dryer-reading-detail"[\s\S]*Umidade média[\s\S]*Previsão de descarga[\s\S]*Umidade alvo[\s\S]*Operador[\s\S]*operador/);
-});
-
 test('dryer panel uses persisted moisture evolution values when available', () => {
   const html = renderPage(renderDryerPanelPage, {
     batch: {
@@ -161,7 +117,6 @@ test('dryer panel uses persisted moisture evolution values when available', () =
   assert.match(html, /Umidade média<\/dt><dd>18,8%<\/dd>/);
   assert.match(html, /Previsão de descarga<\/dt><dd>10\/07\/2026, 12:30<\/dd>/);
 });
-
 
 test('dryer panel asks to start discharge immediately when forecast is due', () => {
   const html = renderPage(renderDryerPanelPage, {

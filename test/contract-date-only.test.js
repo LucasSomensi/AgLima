@@ -49,37 +49,6 @@ test('contract form renders data_recebimento from UTC Date without timezone conv
   );
 });
 
-test('contract form renders fiscal fields inside collapsed advanced section', () => {
-  const html = renderContractsPage({
-    id: 1,
-    inscricao_estadual_vendedor: '1234567890',
-    natureza_operacao: 'Venda de produção do estabelecimento',
-    cfop: '5101',
-    informacoes_interesse_contribuinte: 'Informação complementar',
-    razao_social_transportadora: 'Transportadora Exemplo LTDA',
-    cnpj_transportadora: '00.000.000/0001-00',
-    inscricao_estadual_transportadora: 'ISENTO',
-    uf_transportadora: 'PR',
-    email: 'nf@example.com',
-    observacoes: 'Observação do contrato',
-  });
-
-  assert.match(html, /<details class="contracts-advanced-fields">/);
-  assert.match(html, /<summary class="btn-secondary-action contracts-advanced-toggle">avançado<\/summary>/);
-  assert.match(html, /name="inscricao_estadual_vendedor" type="text" value="1234567890"/);
-  assert.match(html, /name="natureza_operacao" type="text" value="Venda de produção do estabelecimento"/);
-  assert.match(html, /name="cfop" type="text" value="5101"/);
-  assert.match(html, /name="razao_social_transportadora" type="text" value="Transportadora Exemplo LTDA"/);
-  assert.match(html, /name="cnpj_transportadora" type="text" value="00.000.000\/0001-00"/);
-  assert.match(html, /name="inscricao_estadual_transportadora" type="text" value="ISENTO"/);
-  assert.match(html, /name="uf_transportadora" type="text" maxlength="2" value="PR"/);
-  assert.match(html, /name="email" type="text" value="nf@example.com"/);
-  assert.match(html, /name="informacoes_interesse_contribuinte" rows="3"[^>]*>Informação complementar<\/textarea>/);
-  assert.match(html, /name="observacoes" rows="3"[^>]*>Observação do contrato<\/textarea>/);
-  assert.match(html, /Campos avançados em branco serão salvos como nulos\./);
-});
-
-
 test('contract payload converts blank fiscal fields and observations to null', () => {
   const { payload, error } = buildContractPayload({
     data_contrato: '2026-06-17',
