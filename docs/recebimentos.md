@@ -2,7 +2,7 @@
 
 ## Acesso e fluxo
 
-A página `/admin` mostra os últimos 10 recebimentos por ordem de registro e oferece **Registrar recebimento**. Em `/admin/recebimentos/novo`, o administrador escolhe um contrato com saldo positivo e segue para `/admin/contratos/contratos/:id/recebimentos`. A lista de contratos também liga a essa página e mostra o saldo a receber. A página detalha valor bruto, desconto de SENAR, valor esperado, total recebido, saldo e histórico. O administrador informa a data efetiva, o valor recebido e uma observação opcional. A data `contratos.data_recebimento` continua sendo a previsão, usada nas notificações. Todas essas páginas exigem administrador.
+A página `/admin` mostra os últimos 10 recebimentos por ordem de registro, exibe apenas a data do recebimento (em branco quando ausente) e oferece **Registrar recebimento**. Em `/admin/recebimentos/novo`, o administrador escolhe um contrato com saldo positivo e segue para `/admin/contratos/contratos/:id/recebimentos`. A lista de contratos também liga a essa página e mostra o saldo a receber. A página detalha valor bruto, desconto de SENAR, valor esperado, total recebido, saldo e histórico. O administrador informa a data efetiva, o valor recebido e uma observação opcional. A data `contratos.data_recebimento` continua sendo a previsão, usada nas notificações. Todas essas páginas exigem administrador.
 
 Cada lançamento em `contrato_recebimentos` guarda contrato, data efetiva, valor em reais, observação, usuário responsável e instante de registro. Não há edição de lançamentos pela interface atual. O histórico inicial de contratos já recebidos é uma linha de abertura, pois os pagamentos antigos não tinham parcelas registradas.
 
