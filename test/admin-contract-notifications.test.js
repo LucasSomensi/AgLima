@@ -15,6 +15,7 @@ test('brokerage notifications depend on receipt status, including before the due
     corretagem_paga: false,
     comprador_nome: 'Comprador',
     saldo_kg: 0,
+    saldo_receber: 0,
     valor_corretagem: 100,
   };
   pool.query = async (sql) => {
@@ -23,7 +24,7 @@ test('brokerage notifications depend on receipt status, including before the due
       { ...contract, id: 1, data_recebimento: '2026-10-06', dias_desde_vencimento: 0 },
       { ...contract, id: 2, data_recebimento: '2026-10-07', dias_desde_vencimento: -1 },
       { ...contract, id: 3, data_recebimento: null },
-      { ...contract, id: 4, contrato_recebido: false, data_recebimento: '2026-09-01', dias_desde_vencimento: 35 },
+      { ...contract, id: 4, contrato_recebido: false, saldo_receber: 50, data_recebimento: '2026-09-01', dias_desde_vencimento: 35 },
       { ...contract, id: 5, corretagem_paga: true },
     ] };
   };
