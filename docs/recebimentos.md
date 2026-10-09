@@ -21,4 +21,4 @@ O serviço aceita somente valores positivos com até duas casas decimais e datas
 
 ## Migração
 
-Aplicar `migrations/20261009_add_contract_receipts.sql`. Em uma transação, ela adiciona `desconta_senar` com padrão `true`, cria `contrato_recebimentos` e gera uma linha de abertura para cada contrato anteriormente marcado como recebido. O valor dessa linha já é o líquido esperado com SENAR. Ela não altera recebimentos lançados por usuários.
+Aplicar `migrations/20261009_add_contract_receipts.sql` em PostgreSQL 15 ou superior. Em uma transação, ela adiciona `desconta_senar` com padrão `true`, cria `contrato_recebimentos` e gera uma linha de abertura para cada contrato anteriormente marcado como recebido. O valor dessa linha já é o líquido esperado com SENAR. Ela não altera recebimentos lançados por usuários. O preenchimento usa `MERGE` para evitar que o editor SQL do Railway acrescente um `LIMIT` inválido à migração.

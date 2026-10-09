@@ -20,22 +20,24 @@ CREATE INDEX IF NOT EXISTS contrato_recebimentos_contrato_data_idx
 -- Contratos já marcados como recebidos não tinham lançamentos individuais.
 -- A linha de abertura preserva o status anterior sem inventar parcelas.
 -- Seu valor já considera o desconto de SENAR de 0,2%.
-INSERT INTO public.contrato_recebimentos (contrato_id, data_recebimento, valor, observacao)
-SELECT c.id,
-       COALESCE(c.data_recebimento, c.data_contrato),
-       ROUND(c.quantidade_kg * c.preco_por_saca / 60, 2)
-         - CASE WHEN c.desconta_senar
-             THEN ROUND(ROUND(c.quantidade_kg * c.preco_por_saca / 60, 2) * 0.002, 2)
-             ELSE 0 END,
-       'Saldo inicial de contrato marcado como recebido antes do controle de recebimentos.'
-FROM public.contratos c
-WHERE c.contrato_recebido IS TRUE
+MERGE INTO public.contrato_recebimentos AS r
+USING public.contratos AS c
+ON r.contrato_id = c.id
+WHEN NOT MATCHED
+  AND c.contrato_recebido IS TRUE
   AND ROUND(c.quantidade_kg * c.preco_por_saca / 60, 2)
         - CASE WHEN c.desconta_senar
             THEN ROUND(ROUND(c.quantidade_kg * c.preco_por_saca / 60, 2) * 0.002, 2)
             ELSE 0 END > 0
-  AND NOT EXISTS (
-    SELECT 1 FROM public.contrato_recebimentos r WHERE r.contrato_id = c.id
-  );
+THEN INSERT (contrato_id, data_recebimento, valor, observacao)
+VALUES (
+  c.id,
+  COALESCE(c.data_recebimento, c.data_contrato),
+  ROUND(c.quantidade_kg * c.preco_por_saca / 60, 2)
+    - CASE WHEN c.desconta_senar
+        THEN ROUND(ROUND(c.quantidade_kg * c.preco_por_saca / 60, 2) * 0.002, 2)
+        ELSE 0 END,
+  'Saldo inicial de contrato marcado como recebido antes do controle de recebimentos.'
+);
 
 COMMIT;
