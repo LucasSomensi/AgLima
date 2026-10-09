@@ -154,10 +154,6 @@ function toDateOnlyInputValue(value) {
   return `${year}-${month}-${day}`;
 }
 
-function toDateInputValue(value) {
-  return toDateOnlyInputValue(value);
-}
-
 function formatTime(value) {
   if (!value) {
     return '-';
@@ -285,7 +281,6 @@ module.exports = {
   parseMoisturePercent,
   parseOptionalDateTime,
   paginateItems,
-  toDateInputValue,
   toDateOnlyInputValue,
   toDateTimeLocalValue,
 };

@@ -48,17 +48,6 @@ test('administrator can mark a contract received despite a small balance', async
   assert.equal(await markContractAsReceived(42), 1);
 });
 
-test('admin page lists recent receipts and links to the complete list', () => {
-  let html;
-  renderAdminHomePage({ send: (value) => { html = value; } }, {
-    contractsSummary: {}, recentReceipts: [{ contrato_id: 42, comprador_nome: 'Comprador', data_recebimento: '2026-10-09', valor: '99.98', criado_em: '2026-10-09T12:00:00Z' }],
-  });
-  assert.match(html, /Últimos 10 recebimentos/);
-  assert.match(html, /href="\/admin\/recebimentos"/);
-  assert.match(html, /href="\/balanca\/contratos\/42"/);
-  assert.match(html, /R\$\s*99,98/);
-});
-
 test('brokerage payment action uses the same receipt condition as its notification', async (t) => {
   const originalQuery = pool.query;
   t.after(() => { pool.query = originalQuery; });

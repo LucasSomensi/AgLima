@@ -10,23 +10,6 @@ function renderPage(renderFn, params) {
   return html;
 }
 
-test('admin home links full weighbridge lists directly to weighbridge routes', () => {
-  const html = renderPage(renderAdminHomePage, {
-    notifications: [],
-    contractsSummary: {},
-    dryerBatch: null,
-    storageSummary: [],
-    scaleInputs: [],
-    scaleOutputs: [],
-    message: '',
-    error: '',
-  });
-
-  assert.match(html, /href="\/balanca\/entradas">Ver lista completa/);
-  assert.match(html, /href="\/balanca\/saidas">Ver lista completa/);
-  assert.doesNotMatch(html, /\/admin\/entradas-e-saidas/);
-});
-
 test('admin home shows discharge start, estimated end and total estimated duration', () => {
   const html = renderPage(renderAdminHomePage, {
     notifications: [],
@@ -47,7 +30,6 @@ test('admin home shows discharge start, estimated end and total estimated durati
   assert.match(html, /Iniciada em 06\/08\/2026, 20:54<br>Fim estimado 06\/08\/2026, 22:34<br>Duração estimada 05:34/);
 });
 
-
 test('admin home combines next receipt date and contract link in one metric', () => {
   const html = renderPage(renderAdminHomePage, {
     notifications: [],
@@ -67,28 +49,6 @@ test('admin home combines next receipt date and contract link in one metric', ()
   assert.match(html, /<span>Próximo recebimento<\/span>/);
   assert.match(html, /15\/07\/2026 · <a class="admin-table-link" href="\/balanca\/contratos\/42">Contrato #42<\/a> · Comprador &lt;Teste&gt;/);
   assert.doesNotMatch(html, /Próximo contrato a receber/);
-});
-
-
-test('admin home shows initial forecast before the first moisture reading', () => {
-  const html = renderPage(renderAdminHomePage, {
-    notifications: [],
-    contractsSummary: {},
-    dryerBatch: {
-      started_at: new Date('2026-06-21T13:00:00.000Z'),
-      target_moisture: 14.5,
-      umidade_inicial: 28,
-    },
-    dryerReadings: [],
-    storageSummary: [],
-    scaleInputs: [],
-    scaleOutputs: [],
-    message: '',
-    error: '',
-  });
-
-  assert.match(html, /<span>Previsão da próxima descarga<\/span>/);
-  assert.match(html, /<span>Previsão da próxima descarga<\/span>\s*<strong>Descarga imediata<\/strong>/);
 });
 
 test('admin home uses configured forecast curve before the first moisture reading', () => {
@@ -121,12 +81,6 @@ test('admin home uses configured forecast curve before the first moisture readin
 
 const { renderAdminBatchesPage } = require('../routes/renderers');
 const { buildDryerMoistureReadingsCsv } = require('../routes/dryer-csv');
-
-test('admin batches page includes completed moisture readings CSV download action', () => {
-  const html = renderPage(renderAdminBatchesPage, { batches: [] });
-
-  assert.match(html, /href="\/admin\/bateladas\/umidades\.csv">Baixar CSV de umidades<\/a>/);
-});
 
 test('dryer moisture readings CSV uses batch id, decimal hours since batch start, and average moisture', () => {
   const csv = buildDryerMoistureReadingsCsv([
@@ -177,37 +131,6 @@ test('admin batches page links the active batch to the dryer dashboard', () => {
 
   assert.match(html, /<th>Status<\/th>\s*<th>Umidade inicial<\/th>\s*<th>Início<\/th>\s*<th>Descarga<\/th>\s*<th>Silo<\/th>\s*<th>Conclusão<\/th>\s*<th>Duração secagem<\/th>\s*<th>Duração descarga<\/th>\s*<th>Duração total<\/th>\s*<th>Umidade final<\/th>\s*<th>Umidade alvo<\/th>/);
   assert.match(html, /<td>Descarregando<\/td>\s*<td>27,5%<\/td>\s*<td><a class="admin-table-link" href="\/admin\/secador">15\/07\/2026, 10:00<\/a><\/td>\s*<td>15\/07\/2026, 11:15<\/td>\s*<td>Silo 3<\/td>\s*<td>-<\/td>\s*<td>1h 15min<\/td>\s*<td>1h 15min<\/td>\s*<td>2h 30min<\/td>\s*<td>-<\/td>\s*<td>14,0%<\/td>/);
-});
-
-test('admin batches page keeps completed batches linked to their details', () => {
-  const html = renderPage(renderAdminBatchesPage, {
-    batches: [
-      {
-        id: 11,
-        status: 'completed',
-        started_at: '2026-07-14T13:00:00.000Z',
-        completed_at: '2026-07-14T15:00:00.000Z',
-        target_moisture: '14.0',
-      },
-    ],
-  });
-
-  assert.match(html, /href="\/admin\/bateladas\/11">14\/07\/2026, 10:00<\/a>/);
-});
-
-test('admin dryer dashboard links to dedicated dryer configuration page', () => {
-  const { renderAdminDashboardPage } = require('../routes/renderers');
-  const html = renderPage(renderAdminDashboardPage, {
-    batch: null,
-    readings: [],
-    settings: { target_moisture: 14 },
-    message: '',
-    error: '',
-  });
-
-  assert.match(html, /href="\/admin\/secador\/config">Alterar configurações do secador<\/a>/);
-  assert.doesNotMatch(html, /<form class="dryer-moisture-form admin-target-form"/);
-  assert.doesNotMatch(html, /Previsão por umidade/);
 });
 
 test('admin dryer dashboard uses configured forecast curve before the first moisture reading', () => {

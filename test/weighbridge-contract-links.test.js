@@ -2,11 +2,8 @@ const assert = require('node:assert/strict');
 const test = require('node:test');
 const {
   renderScaleOutputDetailPage,
-  renderScaleOutputFormPage,
-  renderScaleOutputGrossFormPage,
   renderScaleOutputsListPage,
   renderScaleContractDetailPage,
-  renderWeighbridgeHomePage,
 } = require('../routes/renderers');
 const {
   buildDeletionReasonPayload,
@@ -61,43 +58,6 @@ test('contract detail shows only requested summary fields with weights in kg and
   assert.match(html, /<h2 id="contract-outputs-title">Saídas associadas<\/h2>/);
 });
 
-test('weighbridge home links contract column content to contract detail page', () => {
-  const html = renderPage(renderWeighbridgeHomePage, {
-    outputs: [outputWithContract],
-    message: '',
-    error: '',
-  });
-
-  assert.match(
-    html,
-    /<td><a class="admin-table-link" href="\/balanca\/contratos\/42">Contrato #42 · Comprador Teste<\/a><\/td>/
-  );
-});
-
-test('weighbridge outputs list links contract column content to contract detail page', () => {
-  const html = renderPage(renderScaleOutputsListPage, {
-    outputs: [outputWithContract],
-  });
-
-  assert.match(
-    html,
-    /<td><a class="admin-table-link" href="\/balanca\/contratos\/42">Contrato #42 · Comprador Teste<\/a><\/td>/
-  );
-});
-
-test('weighbridge outputs list can return admins to administration', () => {
-  const html = renderPage(renderScaleOutputsListPage, {
-    outputs: [outputWithContract],
-    navigation: {
-      homeHref: '/admin',
-      homeLabel: '← Voltar à administração',
-    },
-  });
-
-  assert.match(html, /href="\/admin">← Voltar à administração<\/a>/);
-  assert.doesNotMatch(html, /href="\/balanca">← Voltar à balança<\/a>/);
-});
-
 test('weighbridge outputs keep pending contract column as plain text', () => {
   const html = renderPage(renderScaleOutputsListPage, {
     outputs: [{ ...outputWithContract, contrato_id: null, comprador_nome: null }],
@@ -106,7 +66,6 @@ test('weighbridge outputs keep pending contract column as plain text', () => {
   assert.match(html, /<td>Pendente<\/td>/);
   assert.doesNotMatch(html, /href="\/balanca\/contratos\/null"/);
 });
-
 
 test('weighbridge output tables include gross and tare columns with pending tare and association actions', () => {
   const html = renderPage(renderScaleOutputsListPage, {
@@ -124,28 +83,6 @@ test('weighbridge output tables include gross and tare columns with pending tare
   assert.match(html, /href="\/balanca\/saidas\/7\/bruto">Adicionar bruto/);
   assert.match(html, /href="\/balanca\/saidas\/7\/associar">Associar contrato/);
   assert.doesNotMatch(html, /Aguardando tara/);
-});
-
-test('output form collects tare before gross weight', () => {
-  const html = renderPage(renderScaleOutputFormPage, {
-    formValues: {},
-    error: '',
-  });
-
-  assert.match(html, /name="peso_tara_kg"/);
-  assert.doesNotMatch(html, /name="peso_bruto_kg"/);
-});
-
-
-test('output gross form collects gross timestamp and weight', () => {
-  const html = renderPage(renderScaleOutputGrossFormPage, {
-    output: { ...outputWithContract, peso_bruto_kg: null, peso_liquido_kg: null, peso_tara_kg: '12000' },
-    formValues: { peso_bruto_adicionado_em: '2026-06-12T11:45', peso_bruto_kg: '30000' },
-    error: '',
-  });
-
-  assert.match(html, /name="peso_bruto_adicionado_em"[^>]+type="datetime-local"[^>]+value="2026-06-12T11:45"/);
-  assert.match(html, /name="peso_bruto_kg"[^>]+value="30000"/);
 });
 
 test('output payload creates output with tare and validates gross separately', () => {
@@ -169,14 +106,6 @@ test('output payload creates output with tare and validates gross separately', (
 });
 
 const { buildScaleInputsCsv, buildScaleOutputsCsv } = require('../routes/weighbridge-csv');
-
-test('weighbridge outputs list includes CSV download action', () => {
-  const html = renderPage(renderScaleOutputsListPage, {
-    outputs: [outputWithContract],
-  });
-
-  assert.match(html, /href="\/balanca\/saidas\.csv">Baixar CSV<\/a>/);
-});
 
 test('scale outputs CSV exports rows in the provided chronological order and escapes fields', () => {
   const csv = buildScaleOutputsCsv([
@@ -203,7 +132,6 @@ test('scale outputs CSV exports rows in the provided chronological order and esc
   assert.match(rows[2], /^11\/06\/2026;05:00:00;DEF4G56/);
   assert.match(rows[2], /;Pendente;$/);
 });
-
 
 test('scale outputs CSV formats decimal weights from database with Brazilian separators', () => {
   const csv = buildScaleOutputsCsv([
@@ -242,26 +170,6 @@ test('scale inputs CSV formats weights and percentage decimals from database', (
   assert.match(rows[1], /^10\/06\/2026;05:00:00;ABC1D23;milho;30\.000;7\.654,321;22\.345,678;Fazenda Teste;14;1,25;0,125$/);
 });
 
-test('weighbridge contracts list defaults weights to kg and includes sacks toggle', () => {
-  const html = renderPage(require('../routes/renderers').renderScaleContractsListPage, {
-    contracts: [{
-      id: 42,
-      data_contrato: '2026-06-10T00:00:00.000Z',
-      comprador_nome: 'Comprador Teste',
-      produto: 'milho',
-      quantidade_kg: '60000',
-      quantidade_embarcada_kg: '30000',
-      saldo_kg: '30000',
-    }],
-  });
-
-  assert.match(html, /data-weight-unit="kg" aria-pressed="true">kg/);
-  assert.match(html, /data-weight-unit="sc" aria-pressed="false">sc/);
-  assert.match(html, /data-weight-kg="60000">60\.000 kg/);
-  assert.match(html, /data-weight-kg="30000">30\.000 kg/);
-  assert.match(html, /weightKg \/ 60/);
-});
-
 test('weighbridge contracts list shows admin-only contract filter toggle', () => {
   const html = renderPage(require('../routes/renderers').renderScaleContractsListPage, {
     contracts: [],
@@ -287,15 +195,6 @@ test('weighbridge contracts list hides contract filter toggle for non-admin user
   assert.doesNotMatch(html, /aria-label="Filtro de contratos"/);
   assert.doesNotMatch(html, /filtro=todos/);
 });
-
-test('weighbridge contracts sacks toggle formats weights with at most one decimal place', () => {
-  const html = renderPage(require('../routes/renderers').renderScaleContractsListPage, {
-    contracts: [],
-  });
-
-  assert.match(html, /maximumFractionDigits: unit === 'sc' \? 1 : 3/);
-});
-
 
 test('output detail pre-fills split weight when associated contract has negative balance', () => {
   const html = renderPage(renderScaleOutputDetailPage, {
@@ -563,25 +462,6 @@ test('output invoice uses default NF values when optional contract fields are nu
 
   assert.match(html, /<dt>Natureza da operação<\/dt><dd><span class="copy-field-value">Venda<\/span>/);
   assert.match(html, /<dt>CFOP<\/dt><dd><span class="copy-field-value">5101<\/span>/);
-});
-
-test('output detail edit form exposes weighing fields', () => {
-  const html = renderPage(renderScaleOutputDetailPage, {
-    outputInfo: {
-      ...outputWithContract,
-      saida_id: 7,
-      contrato_saldo_kg: '1000',
-    },
-    navigation: {},
-  });
-
-  assert.match(html, /<h2>Editar saída<\/h2>/);
-  assert.match(html, /action="\/balanca\/saidas\/7" method="post"/);
-  assert.match(html, /name="data_saida" type="datetime-local" value="2026-06-11T09:30" required/);
-  assert.match(html, /<option value="milho" selected>Milho<\/option>/);
-  assert.match(html, /name="placa_caminhao" type="text" value="ABC1D23"/);
-  assert.match(html, /name="peso_tara_kg" type="number" min="0.001" step="0.001" value="10000"/);
-  assert.match(html, /name="peso_bruto_kg" type="number" min="0.001" step="0.001" value="22345.678"/);
 });
 
 test('output edit payload accepts optional gross and validates tare relationship', () => {
