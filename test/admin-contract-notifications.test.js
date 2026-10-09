@@ -3,7 +3,7 @@ const test = require('node:test');
 
 process.env.DATABASE_URL = 'postgres://example.invalid/agrolima';
 const { pool } = require('../routes/database');
-const { listAdminContractNotifications, markContractBrokerageAsPaid } = require('../routes/contract-service');
+const { listAdminContractNotifications, markContractAsReceived, markContractBrokerageAsPaid } = require('../routes/contract-service');
 const { renderAdminHomePage } = require('../routes/renderers');
 
 test('brokerage notifications depend on receipt status, including before the due date or without a date', async (t) => {
@@ -20,18 +20,43 @@ test('brokerage notifications depend on receipt status, including before the due
   };
   pool.query = async (sql) => {
     assert.match(sql, /OR \(corretagem_paga IS NOT TRUE AND contrato_recebido IS TRUE\)/);
+    assert.match(sql, /OR \(contrato_recebido IS NOT TRUE AND data_recebimento IS NOT NULL AND dias_desde_vencimento >= 0\)/);
     return { rows: [
       { ...contract, id: 1, data_recebimento: '2026-10-06', dias_desde_vencimento: 0 },
       { ...contract, id: 2, data_recebimento: '2026-10-07', dias_desde_vencimento: -1 },
       { ...contract, id: 3, data_recebimento: null },
-      { ...contract, id: 4, contrato_recebido: false, saldo_receber: 50, data_recebimento: '2026-09-01', dias_desde_vencimento: 35 },
+      { ...contract, id: 4, contrato_recebido: false, saldo_receber: 0, data_recebimento: '2026-09-01', dias_desde_vencimento: 35 },
       { ...contract, id: 5, corretagem_paga: true },
     ] };
   };
   const notifications = await listAdminContractNotifications();
   assert.deepEqual(notifications.filter((item) => item.type === 'brokerage_due').map((item) => item.contractId).sort(), [1, 2, 3]);
   assert.equal(notifications.find((item) => item.contractId === 4).type, 'receipt_due');
+  assert.equal(notifications.find((item) => item.contractId === 4).actionPath, '/admin/contratos/4/marcar-recebido');
   assert.equal(notifications.some((item) => item.contractId === 5), false);
+});
+
+test('administrator can mark a contract received despite a small balance', async (t) => {
+  const originalQuery = pool.query;
+  t.after(() => { pool.query = originalQuery; });
+  pool.query = async (sql, parameters) => {
+    assert.match(sql, /SET contrato_recebido = TRUE/);
+    assert.doesNotMatch(sql, /SUM\(valor\)|saldo_receber|data_recebimento/);
+    assert.deepEqual(parameters, [42]);
+    return { rowCount: 1 };
+  };
+  assert.equal(await markContractAsReceived(42), 1);
+});
+
+test('admin page lists recent receipts and links to register a new one', () => {
+  let html;
+  renderAdminHomePage({ send: (value) => { html = value; } }, {
+    contractsSummary: {}, recentReceipts: [{ contrato_id: 42, comprador_nome: 'Comprador', data_recebimento: '2026-10-09', valor: '99.98', criado_em: '2026-10-09T12:00:00Z' }],
+  });
+  assert.match(html, /Últimos recebimentos/);
+  assert.match(html, /href="\/admin\/recebimentos\/novo"/);
+  assert.match(html, /href="\/admin\/contratos\/contratos\/42\/recebimentos"/);
+  assert.match(html, /R\$\s*99,98/);
 });
 
 test('brokerage payment action uses the same receipt condition as its notification', async (t) => {

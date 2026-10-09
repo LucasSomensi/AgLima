@@ -296,7 +296,7 @@ async function listContracts(options = {}) {
 
   const listOnlyOpen = options.status !== 'todos';
   const openContractsWhereClause = listOnlyOpen
-    ? `WHERE (c.contrato_embarcado IS NOT TRUE OR ${contractNetValueSql('c')} > COALESCE(receipts.total, 0) OR c.corretagem_paga IS NOT TRUE)`
+    ? 'WHERE (c.contrato_embarcado IS NOT TRUE OR c.contrato_recebido IS NOT TRUE OR c.corretagem_paga IS NOT TRUE)'
     : '';
 
   const result = await pool.query(
@@ -346,7 +346,7 @@ async function listContracts(options = {}) {
 function buildContractNotification(type, contract) {
   const actionPathByType = {
     shipment_due: `/admin/contratos/${contract.id}/marcar-embarcado`,
-    receipt_due: `/admin/contratos/contratos/${contract.id}/recebimentos`,
+    receipt_due: `/admin/contratos/${contract.id}/marcar-recebido`,
     brokerage_due: `/admin/contratos/${contract.id}/marcar-corretagem-paga`,
   };
 
@@ -410,7 +410,7 @@ async function listAdminContractNotifications() {
              corretagem_paga
       FROM saldos
       WHERE (contrato_embarcado IS NOT TRUE AND saldo_kg <= 0)
-         OR (saldo_receber > 0 AND data_recebimento IS NOT NULL AND dias_desde_vencimento >= 0)
+         OR (contrato_recebido IS NOT TRUE AND data_recebimento IS NOT NULL AND dias_desde_vencimento >= 0)
          OR (corretagem_paga IS NOT TRUE AND contrato_recebido IS TRUE)
       ORDER BY data_recebimento ASC NULLS LAST, id ASC
     `
@@ -425,7 +425,7 @@ async function listAdminContractNotifications() {
       notifications.push(buildContractNotification('shipment_due', contract));
     }
 
-    if (Number(contract.saldo_receber) > 0 && contract.data_recebimento && daysSinceDueDate >= 0) {
+    if (!contract.contrato_recebido && contract.data_recebimento && daysSinceDueDate >= 0) {
       notifications.push(buildContractNotification('receipt_due', contract));
     }
 
@@ -476,15 +476,15 @@ async function getAdminContractsSummary() {
       ), proximos_recebimentos AS (
         SELECT id, comprador_nome, data_recebimento
         FROM contratos_calculados
-        WHERE saldo_receber > 0
+        WHERE contrato_recebido IS NOT TRUE
           AND data_recebimento IS NOT NULL
         ORDER BY data_recebimento ASC, id ASC
         LIMIT 1
       )
-      SELECT COUNT(*) FILTER (WHERE contrato_embarcado IS NOT TRUE OR saldo_receber > 0)::integer AS contratos_ativos,
+      SELECT COUNT(*) FILTER (WHERE contrato_embarcado IS NOT TRUE OR contrato_recebido IS NOT TRUE)::integer AS contratos_ativos,
              COALESCE(SUM(GREATEST(saldo_kg, 0)) FILTER (WHERE produto = 'soja' AND contrato_embarcado IS NOT TRUE), 0) AS soja_a_embarcar_kg,
              COALESCE(SUM(GREATEST(saldo_kg, 0)) FILTER (WHERE produto = 'milho' AND contrato_embarcado IS NOT TRUE), 0) AS milho_a_embarcar_kg,
-             COALESCE(SUM(saldo_receber), 0) AS valor_total_a_receber,
+             COALESCE(SUM(saldo_receber) FILTER (WHERE contrato_recebido IS NOT TRUE), 0) AS valor_total_a_receber,
              (SELECT data_recebimento FROM proximos_recebimentos) AS proximo_recebimento_data,
              (SELECT id FROM proximos_recebimentos) AS proximo_recebimento_contrato_id,
              (SELECT comprador_nome FROM proximos_recebimentos) AS proximo_recebimento_comprador
@@ -603,8 +603,6 @@ async function markContractAsShipped(id) {
       UPDATE contratos c
       SET contrato_embarcado = TRUE,
           quantidade_kg = embarque.quantidade_embarcada_kg,
-          contrato_recebido = (COALESCE((SELECT SUM(valor) FROM contrato_recebimentos WHERE contrato_id = c.id), 0) > 0
-            AND COALESCE((SELECT SUM(valor) FROM contrato_recebimentos WHERE contrato_id = c.id), 0) = ${netValueSql('embarque.quantidade_embarcada_kg', 'c.preco_por_saca', 'c.desconta_senar')}),
           atualizado_em = now()
       FROM (
         SELECT c2.id,
@@ -644,6 +642,15 @@ async function markContractBrokerageAsPaid(id) {
   return result.rowCount;
 }
 
+async function markContractAsReceived(id) {
+  ensureDatabaseConfigured();
+  const result = await pool.query(`
+    UPDATE contratos
+    SET contrato_recebido = TRUE, atualizado_em = now()
+    WHERE id = $1 AND contrato_recebido IS NOT TRUE`, [id]);
+  return result.rowCount;
+}
+
 async function updateContract(id, payload) {
   ensureDatabaseConfigured();
   const client = await pool.connect();
@@ -661,8 +668,6 @@ async function updateContract(id, payload) {
           quantidade_kg = $6,
           contrato_embarcado = $7,
           data_recebimento = $8::date,
-          contrato_recebido = (COALESCE((SELECT SUM(valor) FROM contrato_recebimentos WHERE contrato_id = $23), 0) > 0
-            AND COALESCE((SELECT SUM(valor) FROM contrato_recebimentos WHERE contrato_id = $23), 0) = ${netValueSql('$6::numeric', '$3::numeric', '$24::boolean')}),
           desconta_senar = $24,
           corretor = $10,
           valor_corretagem_percentual = $11,
@@ -735,6 +740,7 @@ module.exports = {
   listBuyers,
   listContracts,
   listSellers,
+  markContractAsReceived,
   markContractAsShipped,
   markContractBrokerageAsPaid,
   updateBuyer,

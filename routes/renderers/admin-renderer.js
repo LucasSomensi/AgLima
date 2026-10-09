@@ -626,7 +626,7 @@ function buildAdminNotificationDetails(notification) {
 function getAdminNotificationActionLabel(type) {
   const labels = {
     shipment_due: 'Marcar como embarcado',
-    receipt_due: 'Registrar recebimento',
+    receipt_due: 'Marcar como recebido',
     brokerage_due: 'Marcar corretagem como paga',
   };
 
@@ -657,10 +657,10 @@ function renderAdminNotificationsPanel(notifications) {
               <span>${escapeHtml(buildAdminNotificationDetails(notification))}</span>
               ${notification.receiptDate && notification.type !== 'brokerage_due' ? `<span>Vencimento em ${escapeHtml(formatDate(notification.receiptDate))}</span>` : ''}
             </div>
-            ${notification.type === 'receipt_due' ? `<a class="btn-primary-action admin-notification-button" href="${escapeHtml(notification.actionPath)}">${escapeHtml(getAdminNotificationActionLabel(notification.type))}</a>` : `<form class="admin-notification-action" action="${escapeHtml(notification.actionPath)}" method="post">
+            <form class="admin-notification-action" action="${escapeHtml(notification.actionPath)}" method="post">
                 <input type="hidden" name="_csrf" value="{{CSRF_TOKEN}}">
               <button class="btn-primary-action admin-notification-button" type="submit">${escapeHtml(getAdminNotificationActionLabel(notification.type))}</button>
-            </form>`}
+            </form>
           </li>
         `)
     .join('');
@@ -725,6 +725,21 @@ function renderAdminContractsPanel(summary = {}) {
           </div>
         </section>
       `;
+}
+
+function renderAdminRecentReceiptsPanel(receipts = []) {
+  const rows = receipts.map((receipt) => `
+    <tr>
+      <td>${escapeHtml(formatDate(receipt.data_recebimento))}</td>
+      <td><a class="admin-table-link" href="/admin/contratos/contratos/${escapeHtml(receipt.contrato_id)}/recebimentos">Contrato #${escapeHtml(receipt.contrato_id)}</a></td>
+      <td>${escapeHtml(receipt.comprador_nome)}</td>
+      <td>${escapeHtml(formatMoney(receipt.valor))}</td>
+      <td>${escapeHtml(formatDateTime(receipt.criado_em))}</td>
+    </tr>`).join('') || renderEmptyRow(5, 'Nenhum recebimento registrado.');
+  return `<section class="admin-section admin-notifications-panel admin-home-panel" aria-labelledby="admin-receipts-title">
+    <div class="admin-section-header admin-notifications-header"><h2 id="admin-receipts-title">Últimos recebimentos</h2><a class="btn-primary-action" href="/admin/recebimentos/novo">Registrar recebimento</a></div>
+    <div class="admin-table-wrapper"><table class="admin-table"><thead><tr><th>Data do recebimento</th><th>Contrato</th><th>Comprador</th><th>Valor</th><th>Registrado em</th></tr></thead><tbody>${rows}</tbody></table></div>
+  </section>`;
 }
 
 function renderAdminDryerPanel(batch, readings = [], settings) {
@@ -793,12 +808,13 @@ function renderAdminWeighbridgePanel({ inputs = [], outputs = [] } = {}) {
       `;
 }
 
-function renderAdminHomePage(res, { notifications = [], contractsSummary = {}, dryerBatch = null, dryerReadings = [], dryerSettings, storageSummary = [], scaleInputs = [], scaleOutputs = [], message, error } = {}) {
+function renderAdminHomePage(res, { notifications = [], contractsSummary = {}, recentReceipts = [], dryerBatch = null, dryerReadings = [], dryerSettings, storageSummary = [], scaleInputs = [], scaleOutputs = [], message, error } = {}) {
   const adminHomeHtml = renderTemplate('admin-home.html', {
     ADMIN_HOME_MESSAGE: buildAlertHtml(message),
     ADMIN_HOME_ERROR: buildAlertHtml(error, 'error'),
     ADMIN_NOTIFICATIONS_PANEL: renderAdminNotificationsPanel(notifications),
     ADMIN_CONTRACTS_PANEL: renderAdminContractsPanel(contractsSummary),
+    ADMIN_RECEIPTS_PANEL: renderAdminRecentReceiptsPanel(recentReceipts),
     ADMIN_DRYER_PANEL: renderAdminDryerPanel(dryerBatch, dryerReadings, dryerSettings),
     ADMIN_STORAGE_PANEL: renderAdminStoragePanel(storageSummary),
     ADMIN_WEIGHBRIDGE_PANEL: renderAdminWeighbridgePanel({ inputs: scaleInputs, outputs: scaleOutputs }),
@@ -1115,10 +1131,27 @@ function renderAdminContractReceiptsPage(res, { contract, receipts, message = ''
     SENAR: contract.desconta_senar ? escapeHtml(formatMoney(contract.desconto_senar)) : 'Não aplicado',
     TOTAL: escapeHtml(formatMoney(contract.valor_contrato)),
     RECEIVED: escapeHtml(formatMoney(contract.valor_recebido)), BALANCE: escapeHtml(formatMoney(contract.saldo_receber)),
+    MANUAL_ACTION: contract.contrato_recebido
+      ? '<p class="admin-muted">Contrato marcado como recebido pelo administrador.</p>'
+      : `<form action="/admin/contratos/${escapeHtml(contract.id)}/marcar-recebido" method="post"><input type="hidden" name="_csrf" value="{{CSRF_TOKEN}}"><input type="hidden" name="retorno" value="recebimentos"><button class="btn-secondary-action" type="submit">Marcar contrato como recebido</button></form>`,
     MESSAGE: buildAlertHtml(message), ERROR: buildAlertHtml(error, 'error'), ROWS: rows,
     INPUT_DATE: escapeHtml(input.data_recebimento || ''), INPUT_VALUE: escapeHtml(input.valor || ''),
     INPUT_NOTE: escapeHtml(input.observacao || ''), DISABLED: Number(contract.saldo_receber) <= 0 ? 'disabled' : '',
   }));
+}
+
+function renderAdminNewReceiptPage(res, { contracts }) {
+  const options = contracts.map((contract) => buildOption(contract.id,
+    `Contrato #${contract.id} · ${contract.comprador_nome} · ${formatDate(contract.data_contrato)} · saldo ${formatMoney(contract.saldo_receber)}`)).join('');
+  return renderContractFormPage(res, {
+    pageTitle: 'Novo recebimento', formTitle: 'Novo recebimento',
+    formDescription: 'Selecione o contrato para consultar o saldo e registrar o recebimento.',
+    formHtml: `<form class="contact-form contracts-form" action="/admin/recebimentos/novo" method="get">
+      <label>Contrato<select class="form-control" name="contrato_id" required><option value="">Selecione</option>${options}</select></label>
+      <div class="contracts-form-actions"><button class="btn-primary-action" type="submit"${contracts.length ? '' : ' disabled'}>Continuar</button><a class="btn-secondary-action" href="/admin">Cancelar</a></div>
+      ${contracts.length ? '' : '<p class="admin-muted">Nenhum contrato tem saldo a receber.</p>'}
+    </form>`,
+  });
 }
 
 function renderConstructionPage(res, role, options = {}) {
@@ -1154,6 +1187,7 @@ module.exports = {
   renderAdminBatchesPage,
   renderAdminContractsPage,
   renderAdminContractReceiptsPage,
+  renderAdminNewReceiptPage,
   renderAdminBuyerFormPage,
   renderAdminSellerFormPage,
   renderAdminContractFormPage,

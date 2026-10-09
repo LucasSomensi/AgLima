@@ -30,7 +30,7 @@ function buildReceiptPayload(body) {
 async function getContractReceipts(contractId) {
   ensureDatabaseConfigured();
   const contractResult = await pool.query(`
-    SELECT c.id, c.data_contrato, c.data_recebimento, c.quantidade_kg, c.preco_por_saca, c.desconta_senar,
+    SELECT c.id, c.data_contrato, c.data_recebimento, c.quantidade_kg, c.preco_por_saca, c.desconta_senar, c.contrato_recebido,
            comp.nome AS comprador_nome, c.produto,
            ${grossValueSql('c.quantidade_kg', 'c.preco_por_saca')} AS valor_bruto,
            ${senarDiscountSql('c.quantidade_kg', 'c.preco_por_saca', 'c.desconta_senar')} AS desconto_senar,
@@ -54,6 +54,33 @@ async function getContractReceipts(contractId) {
   return { contract: contractResult.rows[0], receipts: receipts.rows };
 }
 
+async function listRecentContractReceipts(limit = 10) {
+  ensureDatabaseConfigured();
+  const result = await pool.query(`
+    SELECT r.id, r.contrato_id, r.data_recebimento, r.valor, r.criado_em,
+           comp.nome AS comprador_nome, COALESCE(u.login, 'Registro anterior') AS usuario_login
+    FROM contrato_recebimentos r
+    JOIN contratos c ON c.id = r.contrato_id
+    JOIN compradores comp ON comp.id = c.comprador_id
+    LEFT JOIN users u ON u.id = r.usuario_id
+    ORDER BY r.criado_em DESC, r.id DESC
+    LIMIT $1`, [limit]);
+  return result.rows;
+}
+
+async function listReceivableContracts() {
+  ensureDatabaseConfigured();
+  const result = await pool.query(`
+    SELECT c.id, c.data_contrato, comp.nome AS comprador_nome,
+           ${contractNetValueSql('c')} - COALESCE(receipts.total, 0) AS saldo_receber
+    FROM contratos c
+    JOIN compradores comp ON comp.id = c.comprador_id
+    LEFT JOIN (SELECT contrato_id, SUM(valor) AS total FROM contrato_recebimentos GROUP BY contrato_id) receipts ON receipts.contrato_id = c.id
+    WHERE ${contractNetValueSql('c')} > COALESCE(receipts.total, 0)
+    ORDER BY c.data_contrato DESC, c.id DESC`);
+  return result.rows;
+}
+
 async function createContractReceipt(contractId, payload, userId) {
   ensureDatabaseConfigured();
   const client = await pool.connect();
@@ -70,9 +97,6 @@ async function createContractReceipt(contractId, payload, userId) {
     await client.query(`
       INSERT INTO contrato_recebimentos (contrato_id, data_recebimento, valor, observacao, usuario_id)
       VALUES ($1, $2::date, $3, $4, $5)`, [contractId, payload.date, payload.value, payload.observation, userId]);
-    await client.query(`
-      UPDATE contratos SET contrato_recebido = $2, atualizado_em = now() WHERE id = $1`,
-    [contractId, numericCents(payload.value) === remaining]);
     await client.query('COMMIT');
   } catch (error) {
     await client.query('ROLLBACK');
@@ -82,4 +106,4 @@ async function createContractReceipt(contractId, payload, userId) {
   }
 }
 
-module.exports = { buildReceiptPayload, createContractReceipt, getContractReceipts, numericCents };
+module.exports = { buildReceiptPayload, createContractReceipt, getContractReceipts, listRecentContractReceipts, listReceivableContracts, numericCents };
