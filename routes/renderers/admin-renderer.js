@@ -730,7 +730,7 @@ function renderAdminContractsPanel(summary = {}) {
 function renderAdminRecentReceiptsPanel(receipts = []) {
   const rows = receipts.map((receipt) => `
     <tr>
-      <td>${receipt.data_recebimento ? escapeHtml(formatDate(receipt.data_recebimento)) : ''}</td>
+      <td>${escapeHtml(formatDate(receipt.data_recebimento))}</td>
       <td><a class="admin-table-link" href="/admin/contratos/contratos/${escapeHtml(receipt.contrato_id)}/recebimentos">Contrato #${escapeHtml(receipt.contrato_id)}</a></td>
       <td>${escapeHtml(receipt.comprador_nome)}</td>
       <td>${escapeHtml(formatMoney(receipt.valor))}</td>
