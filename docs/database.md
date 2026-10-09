@@ -159,7 +159,7 @@ A migration `migrations/20261009_add_contract_receipts.sql` cria `contrato_receb
 | `quantidade_kg` | `numeric` | Não | — | Quantidade do contrato em quilogramas. |
 | `contrato_embarcado` | `boolean` | Não | `false` | Indica se o contrato foi embarcado. |
 | `data_recebimento` | `date` | Sim | — | Data de recebimento, quando aplicável. |
-| `contrato_recebido` | `boolean` | Não | `false` | Indica se os lançamentos completaram o valor esperado a receber. |
+| `contrato_recebido` | `boolean` | Não | `false` | Indica se o administrador marcou manualmente o contrato como recebido. |
 | `desconta_senar` | `boolean` | Não | `true` | Indica se o comprador desconta 0,2% de SENAR do valor bruto. |
 | `corretor` | `character varying` | Sim | — | Nome do corretor, quando houver. |
 | `valor_corretagem_percentual` | `numeric` | Sim | — | Percentual/valor de corretagem informado no contrato. |
