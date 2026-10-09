@@ -71,7 +71,7 @@ Restrições relevantes:
 - `GET /balanca/saidas/:id/nf`: exibe as informações de nota fiscal da saída e do contrato associado.
 - `POST /balanca/saidas/:id/desvincular-contrato`: remove a associação entre saída e contrato e recalcula o status de embarque do contrato.
 - `GET /balanca/contratos`: lista contratos abertos com saldo positivo para embarque.
-- `GET /balanca/contratos/:id`: exibe detalhe de contrato aberto e as saídas já associadas a ele.
+- `GET /balanca/contratos/:id`: exibe detalhe de contrato e as saídas associadas; para administradores, também mostra os recebimentos e o resumo financeiro.
 
 ## Fluxo operacional do operador
 
@@ -278,7 +278,7 @@ A linha de cada contrato mostra:
 - Quantidade já embarcada.
 - Saldo.
 
-No detalhe do contrato, o operador vê os dados completos necessários à operação e uma tabela de saídas associadas ao contrato. Cada saída associada possui link para sua tela de detalhes e link direto para “Informações NF”.
+No detalhe do contrato, o operador vê os dados completos necessários à operação e uma tabela de saídas associadas ao contrato. Cada saída associada possui link para sua tela de detalhes e link direto para “Informações NF”. Quando um administrador acessa a mesma rota, vê também um quadro de recebimentos e o resumo financeiro do contrato.
 
 ## Regras de negócio atuais
 

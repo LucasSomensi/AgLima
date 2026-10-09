@@ -731,13 +731,13 @@ function renderAdminRecentReceiptsPanel(receipts = []) {
   const rows = receipts.map((receipt) => `
     <tr>
       <td>${escapeHtml(formatDate(receipt.data_recebimento))}</td>
-      <td><a class="admin-table-link" href="/admin/contratos/contratos/${escapeHtml(receipt.contrato_id)}/recebimentos">Contrato #${escapeHtml(receipt.contrato_id)}</a></td>
+      <td><a class="admin-table-link" href="/balanca/contratos/${escapeHtml(receipt.contrato_id)}">Contrato #${escapeHtml(receipt.contrato_id)}</a></td>
       <td>${escapeHtml(receipt.comprador_nome)}</td>
       <td>${escapeHtml(formatMoney(receipt.valor))}</td>
       <td>${escapeHtml(formatDateTime(receipt.criado_em))}</td>
     </tr>`).join('') || renderEmptyRow(5, 'Nenhum recebimento registrado.');
   return `<section class="admin-section admin-notifications-panel admin-home-panel" aria-labelledby="admin-receipts-title">
-    <div class="admin-section-header admin-notifications-header"><h2 id="admin-receipts-title">Últimos recebimentos</h2><a class="btn-primary-action" href="/admin/recebimentos/novo">Registrar recebimento</a></div>
+    <div class="admin-section-header admin-notifications-header"><h2 id="admin-receipts-title">Últimos 10 recebimentos</h2><a class="btn-primary-action" href="/admin/recebimentos">Ver todos os recebimentos</a></div>
     <div class="admin-table-wrapper"><table class="admin-table"><thead><tr><th>Data do recebimento</th><th>Contrato</th><th>Comprador</th><th>Valor</th><th>Registrado em</th></tr></thead><tbody>${rows}</tbody></table></div>
   </section>`;
 }
@@ -1106,7 +1106,7 @@ function renderAdminContractsPage(res, { buyers, sellers, contracts, selectedBuy
           <td>${escapeHtml(formatMoney(contract.preco_por_saca))}</td>
           <td>${escapeHtml(formatKg(contract.quantidade_kg))}</td>
           <td>${escapeHtml(formatMoney(contract.saldo_receber))}</td>
-          <td><a class="admin-table-link" href="/admin/contratos/contratos/${escapeHtml(contract.id)}/recebimentos">Recebimentos</a> · <a class="admin-table-link" href="${escapeHtml(buildContractsPageHref({ ...contractEditStatusParam })).replace('/admin/contratos', `/admin/contratos/contratos/${escapeHtml(contract.id)}/editar`)}">Editar</a></td>
+          <td><a class="admin-table-link" href="${escapeHtml(buildContractsPageHref({ ...contractEditStatusParam })).replace('/admin/contratos', `/admin/contratos/contratos/${escapeHtml(contract.id)}/editar`)}">Editar</a></td>
         </tr>
       `)
     .join('') || '<tr><td colspan="8">Nenhum contrato cadastrado.</td></tr>';
@@ -1123,35 +1123,31 @@ function renderAdminContractsPage(res, { buyers, sellers, contracts, selectedBuy
   res.send(contractsHtml);
 }
 
-function renderAdminContractReceiptsPage(res, { contract, receipts, message = '', error = '', input = {} }) {
-  const rows = receipts.map((receipt) => `<tr><td>${escapeHtml(formatDate(receipt.data_recebimento))}</td><td>${escapeHtml(formatMoney(receipt.valor))}</td><td>${escapeHtml(receipt.usuario_login)}</td><td>${escapeHtml(receipt.observacao || '-')}</td></tr>`).join('') || renderEmptyRow(4, 'Nenhum recebimento registrado.');
-  res.send(renderTemplate('admin-contract-receipts.html', {
-    CONTRACT_ID: escapeHtml(contract.id), BUYER: escapeHtml(contract.comprador_nome), PRODUCT: escapeHtml(contract.produto),
-    CONTRACT_DATE: escapeHtml(formatDate(contract.data_contrato)), GROSS: escapeHtml(formatMoney(contract.valor_bruto)),
-    SENAR: contract.desconta_senar ? escapeHtml(formatMoney(contract.desconto_senar)) : 'Não aplicado',
-    TOTAL: escapeHtml(formatMoney(contract.valor_contrato)),
-    RECEIVED: escapeHtml(formatMoney(contract.valor_recebido)), BALANCE: escapeHtml(formatMoney(contract.saldo_receber)),
-    MANUAL_ACTION: contract.contrato_recebido
-      ? '<p class="admin-muted">Contrato marcado como recebido pelo administrador.</p>'
-      : `<form action="/admin/contratos/${escapeHtml(contract.id)}/marcar-recebido" method="post"><input type="hidden" name="_csrf" value="{{CSRF_TOKEN}}"><input type="hidden" name="retorno" value="recebimentos"><button class="btn-secondary-action" type="submit">Marcar contrato como recebido</button></form>`,
-    MESSAGE: buildAlertHtml(message), ERROR: buildAlertHtml(error, 'error'), ROWS: rows,
-    INPUT_DATE: escapeHtml(input.data_recebimento || ''), INPUT_VALUE: escapeHtml(input.valor || ''),
-    INPUT_NOTE: escapeHtml(input.observacao || ''), DISABLED: Number(contract.saldo_receber) <= 0 ? 'disabled' : '',
-  }));
-}
-
-function renderAdminNewReceiptPage(res, { contracts }) {
+function renderAdminReceiptsPage(res, { contracts, receipts, message = '', error = '', input = {} }) {
   const options = contracts.map((contract) => buildOption(contract.id,
-    `Contrato #${contract.id} · ${contract.comprador_nome} · ${formatDate(contract.data_contrato)} · saldo ${formatMoney(contract.saldo_receber)}`)).join('');
-  return renderContractFormPage(res, {
-    pageTitle: 'Novo recebimento', formTitle: 'Novo recebimento',
-    formDescription: 'Selecione o contrato para consultar o saldo e registrar o recebimento.',
-    formHtml: `<form class="contact-form contracts-form" action="/admin/recebimentos/novo" method="get">
-      <label>Contrato<select class="form-control" name="contrato_id" required><option value="">Selecione</option>${options}</select></label>
-      <div class="contracts-form-actions"><button class="btn-primary-action" type="submit"${contracts.length ? '' : ' disabled'}>Continuar</button><a class="btn-secondary-action" href="/admin">Cancelar</a></div>
-      ${contracts.length ? '' : '<p class="admin-muted">Nenhum contrato tem saldo a receber.</p>'}
-    </form>`,
-  });
+    `Contrato #${contract.id} · ${contract.comprador_nome} · ${formatDate(contract.data_contrato)} · saldo ${formatMoney(contract.saldo_receber)}`,
+    input.contrato_id)).join('');
+  const rows = receipts.items.map((receipt) => `<tr>
+    <td>${escapeHtml(formatDate(receipt.data_recebimento))}</td>
+    <td><a class="admin-table-link" href="/balanca/contratos/${escapeHtml(receipt.contrato_id)}">Contrato #${escapeHtml(receipt.contrato_id)}</a></td>
+    <td>${escapeHtml(receipt.comprador_nome)}</td>
+    <td>${escapeHtml(formatMoney(receipt.valor))}</td>
+    <td>${escapeHtml(receipt.observacao || '-')}</td>
+    <td>${escapeHtml(receipt.usuario_login)}</td>
+    <td>${escapeHtml(formatDateTime(receipt.criado_em))}</td>
+  </tr>`).join('') || renderEmptyRow(7, 'Nenhum recebimento registrado.');
+
+  res.send(renderTemplate('admin-receipts.html', {
+    MESSAGE: buildAlertHtml(message), ERROR: buildAlertHtml(error, 'error'),
+    CONTRACT_OPTIONS: options,
+    NO_CONTRACTS: contracts.length ? '' : '<p class="admin-muted">Nenhum contrato tem saldo a receber.</p>',
+    DISABLED: contracts.length ? '' : 'disabled',
+    INPUT_DATE: escapeHtml(input.data_recebimento || ''),
+    INPUT_VALUE: escapeHtml(input.valor || ''),
+    INPUT_NOTE: escapeHtml(input.observacao || ''),
+    ROWS: rows,
+    PAGINATION: buildPaginationHtml({ ...receipts, basePath: '/admin/recebimentos', ariaLabel: 'Paginação dos recebimentos' }),
+  }));
 }
 
 function renderConstructionPage(res, role, options = {}) {
@@ -1186,8 +1182,7 @@ module.exports = {
   renderAdminBatchDetailPage,
   renderAdminBatchesPage,
   renderAdminContractsPage,
-  renderAdminContractReceiptsPage,
-  renderAdminNewReceiptPage,
+  renderAdminReceiptsPage,
   renderAdminBuyerFormPage,
   renderAdminSellerFormPage,
   renderAdminContractFormPage,

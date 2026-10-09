@@ -68,6 +68,19 @@ async function listRecentContractReceipts(limit = 10) {
   return result.rows;
 }
 
+async function listContractReceipts() {
+  ensureDatabaseConfigured();
+  const result = await pool.query(`
+    SELECT r.id, r.contrato_id, r.data_recebimento, r.valor, r.observacao, r.criado_em,
+           comp.nome AS comprador_nome, COALESCE(u.login, 'Registro anterior') AS usuario_login
+    FROM contrato_recebimentos r
+    JOIN contratos c ON c.id = r.contrato_id
+    JOIN compradores comp ON comp.id = c.comprador_id
+    LEFT JOIN users u ON u.id = r.usuario_id
+    ORDER BY r.criado_em DESC, r.id DESC`);
+  return result.rows;
+}
+
 async function listReceivableContracts() {
   ensureDatabaseConfigured();
   const result = await pool.query(`
@@ -106,4 +119,4 @@ async function createContractReceipt(contractId, payload, userId) {
   }
 }
 
-module.exports = { buildReceiptPayload, createContractReceipt, getContractReceipts, listRecentContractReceipts, listReceivableContracts, numericCents };
+module.exports = { buildReceiptPayload, createContractReceipt, getContractReceipts, listContractReceipts, listRecentContractReceipts, listReceivableContracts, numericCents };

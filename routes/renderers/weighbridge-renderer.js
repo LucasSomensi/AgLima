@@ -341,7 +341,46 @@ function buildScaleContractOutputRows(outputs) {
     .join('') || '<tr><td colspan="7">Nenhuma saída associada a este contrato.</td></tr>';
 }
 
-function renderScaleContractDetailPage(res, { contract, outputs }) {
+function buildContractReceiptsSection(receiptInfo, message, error) {
+  if (!receiptInfo) return '';
+
+  const { contract, receipts } = receiptInfo;
+  const rows = receipts.map((receipt) => `<tr>
+    <td>${escapeHtml(formatDate(receipt.data_recebimento))}</td>
+    <td>${escapeHtml(formatMoney(receipt.valor))}</td>
+    <td>${escapeHtml(receipt.usuario_login)}</td>
+    <td>${escapeHtml(receipt.observacao || '-')}</td>
+  </tr>`).join('') || '<tr><td colspan="4">Nenhum recebimento registrado.</td></tr>';
+
+  const manualAction = contract.contrato_recebido
+    ? '<p class="admin-muted">Contrato marcado como recebido pelo administrador.</p>'
+    : `<form action="/admin/contratos/${escapeHtml(contract.id)}/marcar-recebido" method="post">
+        <input type="hidden" name="_csrf" value="{{CSRF_TOKEN}}">
+        <input type="hidden" name="retorno" value="balanca">
+        <button class="btn-secondary-action" type="submit">Marcar contrato como recebido</button>
+      </form>`;
+
+  return `<section class="admin-section" aria-labelledby="contract-receipts-title">
+    <h2 id="contract-receipts-title">Recebimentos</h2>
+    ${buildAlertHtml(message)}${buildAlertHtml(error, 'error')}
+    <div class="admin-home-metrics-grid">
+      <div class="admin-home-metric"><span>Valor bruto do contrato</span><strong>${escapeHtml(formatMoney(contract.valor_bruto))}</strong></div>
+      <div class="admin-home-metric"><span>Desconto SENAR</span><strong>${contract.desconta_senar ? escapeHtml(formatMoney(contract.desconto_senar)) : 'Não aplicado'}</strong></div>
+      <div class="admin-home-metric"><span>Valor esperado</span><strong>${escapeHtml(formatMoney(contract.valor_contrato))}</strong></div>
+      <div class="admin-home-metric"><span>Recebido</span><strong>${escapeHtml(formatMoney(contract.valor_recebido))}</strong></div>
+      <div class="admin-home-metric"><span>Falta receber</span><strong>${escapeHtml(formatMoney(contract.saldo_receber))}</strong></div>
+    </div>
+    ${manualAction}
+    <div class="admin-table-wrapper contracts-table-wrapper">
+      <table class="admin-table contracts-table">
+        <thead><tr><th>Data</th><th>Valor</th><th>Registrado por</th><th>Comentário</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+  </section>`;
+}
+
+function renderScaleContractDetailPage(res, { contract, outputs, receiptInfo = null, message = '', error = '' }) {
   const pagePath = path.join(__dirname, '../../views/weighbridge-contract-detail.html');
   const html = fs
     .readFileSync(pagePath, 'utf8')
@@ -355,7 +394,8 @@ function renderScaleContractDetailPage(res, { contract, outputs }) {
     .replace('{{COMPRADOR_NOME_COMPLETO}}', escapeHtml(contract.comprador_nome_completo))
     .replace('{{PRECO_POR_SACA}}', escapeHtml(formatMoney(contract.preco_por_saca)))
     .replace('{{NUMERO_SAIDAS}}', escapeHtml(outputs.length))
-    .replace('{{OUTPUT_ROWS}}', buildScaleContractOutputRows(outputs));
+    .replace('{{OUTPUT_ROWS}}', buildScaleContractOutputRows(outputs))
+    .replace('{{RECEIPTS_SECTION}}', buildContractReceiptsSection(receiptInfo, message, error));
 
   res.send(html);
 }

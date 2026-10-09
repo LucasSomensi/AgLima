@@ -1,7 +1,7 @@
 const express = require('express');
 const { requireRole, requireRoot } = require('./auth');
 const { MANAGED_ROLES, ROOT_LOGIN, ROLES } = require('./constants');
-const { buildReceiptPayload, createContractReceipt, getContractReceipts, listRecentContractReceipts, listReceivableContracts } = require('./receipt-service');
+const { buildReceiptPayload, createContractReceipt, listContractReceipts, listRecentContractReceipts, listReceivableContracts } = require('./receipt-service');
 const {
   buildBuyerPayload,
   buildContractPayload,
@@ -37,8 +37,7 @@ const {
   renderAdminBatchDetailPage,
   renderAdminBatchesPage,
   renderAdminContractsPage,
-  renderAdminContractReceiptsPage,
-  renderAdminNewReceiptPage,
+  renderAdminReceiptsPage,
   renderAdminBuyerFormPage,
   renderAdminContractFormPage,
   renderAdminSellerFormPage,
@@ -309,41 +308,34 @@ router.get('/admin/contratos', canAccessAdminPanel, async (req, res) => {
   }
 });
 
-router.get('/admin/recebimentos/novo', canAccessAdminPanel, async (req, res) => {
-  const contractId = String(req.query.contrato_id || '').trim();
-  if (/^\d+$/.test(contractId)) {
-    return res.redirect(`/admin/contratos/contratos/${contractId}/recebimentos`);
-  }
-  try {
-    const contracts = await listReceivableContracts();
-    return renderAdminNewReceiptPage(res, { contracts });
-  } catch (error) {
-    console.error('Error loading new receipt form:', error.message);
-    return res.status(500).send('Não foi possível carregar os contratos agora.');
-  }
-});
+async function loadReceiptsPage(req, res, { error = '', input = {} } = {}) {
+  const [contracts, allReceipts] = await Promise.all([listReceivableContracts(), listContractReceipts()]);
+  return renderAdminReceiptsPage(res, {
+    contracts,
+    receipts: paginateItems(allReceipts, req.query.pagina),
+    message: req.query.registrado ? 'Recebimento registrado com sucesso.' : '',
+    error: error || req.query.error || '',
+    input,
+  });
+}
 
-router.get('/admin/contratos/contratos/:id/recebimentos', canAccessAdminPanel, async (req, res) => {
+router.get('/admin/recebimentos', canAccessAdminPanel, async (req, res) => {
   try {
-    const info = await getContractReceipts(req.params.id);
-    if (!info) return res.status(404).send('Contrato não encontrado.');
-    return renderAdminContractReceiptsPage(res, {
-      ...info,
-      message: req.query.registrado ? 'Recebimento registrado com sucesso.' : req.query.recebido ? 'Contrato marcado como recebido com sucesso.' : '',
-      error: req.query.error || '',
-    });
+    return await loadReceiptsPage(req, res);
   } catch (error) {
-    console.error('Error loading contract receipts:', error.message);
+    console.error('Error loading receipts:', error.message);
     return res.status(500).send('Não foi possível carregar os recebimentos agora.');
   }
 });
 
-router.post('/admin/contratos/contratos/:id/recebimentos', canAccessAdminPanel, async (req, res) => {
+router.post('/admin/recebimentos', canAccessAdminPanel, async (req, res) => {
+  const contractId = String(req.body.contrato_id || '').trim();
+  const contractError = /^\d+$/.test(contractId) ? '' : 'Selecione um contrato válido.';
   const { payload, error: validationError } = buildReceiptPayload(req.body);
-  if (!validationError) {
+  if (!contractError && !validationError) {
     try {
-      await createContractReceipt(req.params.id, payload, req.sessionUser.userId);
-      return res.redirect(`/admin/contratos/contratos/${req.params.id}/recebimentos?registrado=1`);
+      await createContractReceipt(contractId, payload, req.sessionUser.userId);
+      return res.redirect('/admin/recebimentos?registrado=1');
     } catch (error) {
       if (!['Contrato não encontrado.', 'O valor informado excede o saldo a receber.'].includes(error.message)) {
         console.error('Error creating contract receipt:', error.message);
@@ -353,11 +345,12 @@ router.post('/admin/contratos/contratos/:id/recebimentos', canAccessAdminPanel, 
     }
   }
   try {
-    const info = await getContractReceipts(req.params.id);
-    if (!info) return res.status(404).send('Contrato não encontrado.');
-    return renderAdminContractReceiptsPage(res.status(400), { ...info, error: validationError || req.receiptError, input: req.body });
+    return await loadReceiptsPage(req, res.status(400), {
+      error: contractError || validationError || req.receiptError,
+      input: req.body,
+    });
   } catch (error) {
-    console.error('Error loading contract receipts:', error.message);
+    console.error('Error loading receipts after failed submission:', error.message);
     return res.status(500).send('Não foi possível carregar os recebimentos agora.');
   }
 });
@@ -539,11 +532,11 @@ router.post('/admin/contratos/:id/marcar-embarcado', canAccessAdminPanel, async 
 });
 
 router.post('/admin/contratos/:id/marcar-recebido', canAccessAdminPanel, async (req, res) => {
+  const fromContractDetail = req.body.retorno === 'balanca';
   try {
     const updatedRows = await markContractAsReceived(req.params.id);
-    const fromReceipts = req.body.retorno === 'recebimentos';
-    if (fromReceipts) {
-      return res.redirect(buildRedirect(`/admin/contratos/contratos/${req.params.id}/recebimentos`, updatedRows
+    if (fromContractDetail) {
+      return res.redirect(buildRedirect(`/balanca/contratos/${req.params.id}`, updatedRows
         ? { recebido: '1' } : { error: 'Esse contrato já foi marcado como recebido ou não existe.' }));
     }
     return res.redirect(buildAdminHomeRedirect(updatedRows
@@ -551,6 +544,11 @@ router.post('/admin/contratos/:id/marcar-recebido', canAccessAdminPanel, async (
       : { error: 'Esse contrato já foi marcado como recebido ou não existe.' }));
   } catch (error) {
     console.error('Error marking contract as received:', error.message);
+    if (fromContractDetail) {
+      return res.redirect(buildRedirect(`/balanca/contratos/${req.params.id}`, {
+        error: 'Não foi possível atualizar o contrato agora.',
+      }));
+    }
     return res.redirect(buildAdminHomeRedirect({ error: 'Não foi possível atualizar o contrato agora.' }));
   }
 });
