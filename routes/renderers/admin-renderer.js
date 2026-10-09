@@ -734,11 +734,10 @@ function renderAdminRecentReceiptsPanel(receipts = []) {
       <td><a class="admin-table-link" href="/admin/contratos/contratos/${escapeHtml(receipt.contrato_id)}/recebimentos">Contrato #${escapeHtml(receipt.contrato_id)}</a></td>
       <td>${escapeHtml(receipt.comprador_nome)}</td>
       <td>${escapeHtml(formatMoney(receipt.valor))}</td>
-      <td>${escapeHtml(formatDateTime(receipt.criado_em))}</td>
-    </tr>`).join('') || renderEmptyRow(5, 'Nenhum recebimento registrado.');
+    </tr>`).join('') || renderEmptyRow(4, 'Nenhum recebimento registrado.');
   return `<section class="admin-section admin-notifications-panel admin-home-panel" aria-labelledby="admin-receipts-title">
     <div class="admin-section-header admin-notifications-header"><h2 id="admin-receipts-title">Últimos recebimentos</h2><a class="btn-primary-action" href="/admin/recebimentos/novo">Registrar recebimento</a></div>
-    <div class="admin-table-wrapper"><table class="admin-table"><thead><tr><th>Data do recebimento</th><th>Contrato</th><th>Comprador</th><th>Valor</th><th>Registrado em</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <div class="admin-table-wrapper"><table class="admin-table"><thead><tr><th>Data do recebimento</th><th>Contrato</th><th>Comprador</th><th>Valor</th></tr></thead><tbody>${rows}</tbody></table></div>
   </section>`;
 }
 

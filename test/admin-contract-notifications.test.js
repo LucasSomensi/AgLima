@@ -57,6 +57,8 @@ test('admin page lists recent receipts and links to register a new one', () => {
   assert.match(html, /href="\/admin\/recebimentos\/novo"/);
   assert.match(html, /href="\/admin\/contratos\/contratos\/42\/recebimentos"/);
   assert.match(html, /R\$\s*99,98/);
+  assert.match(html, /<th>Data do recebimento<\/th>/);
+  assert.doesNotMatch(html, /Registrado em/);
 });
 
 test('brokerage payment action uses the same receipt condition as its notification', async (t) => {
