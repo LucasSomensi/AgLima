@@ -1,10 +1,11 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
 process.env.DATABASE_URL = 'postgres://example.invalid/agrolima';
-const { buildReceiptPayload, createContractReceipt } = require('../routes/receipt-service');
+const { buildReceiptPayload, createContractReceipt, listRecentContractReceipts } = require('../routes/receipt-service');
 const { netValueSql } = require('../routes/contract-finance');
 const { createContract, updateContract } = require('../routes/contract-service');
 const { pool } = require('../routes/database');
+const { renderAdminContractReceiptsPage, renderAdminNewReceiptPage } = require('../routes/renderers/admin-renderer');
 
 test('receipt payload validates money, date and notes', () => {
   assert.deepEqual(buildReceiptPayload({ valor: '42,5', data_recebimento: '2026-10-09' }).payload,
@@ -39,7 +40,35 @@ test('contract persistence stores and checks the SENAR choice', async (t) => {
   assert.equal(inserted.parameters.at(-1), false);
   assert.match(updated.sql, /desconta_senar = \$24/);
   assert.match(updated.sql, /CASE WHEN \$24::boolean THEN/);
+  assert.doesNotMatch(updated.sql, /contrato_recebido\s*=/);
   assert.equal(updated.parameters.at(-1), false);
+});
+
+test('recent receipts are ordered by registration time and capped at ten', async (t) => {
+  const originalQuery = pool.query;
+  t.after(() => { pool.query = originalQuery; });
+  pool.query = async (sql, parameters) => {
+    assert.match(sql, /ORDER BY r\.criado_em DESC, r\.id DESC\s+LIMIT \$1/);
+    assert.deepEqual(parameters, [10]);
+    return { rows: [{ id: 1 }] };
+  };
+  assert.deepEqual(await listRecentContractReceipts(), [{ id: 1 }]);
+});
+
+test('new receipt chooser and contract detail keep manual received action available', () => {
+  let chooser = '';
+  let detail = '';
+  renderAdminNewReceiptPage({ send: (html) => { chooser = html; } }, {
+    contracts: [{ id: 7, data_contrato: '2026-10-09', comprador_nome: 'Comprador', saldo_receber: '0.02' }],
+  });
+  renderAdminContractReceiptsPage({ send: (html) => { detail = html; } }, {
+    contract: { id: 7, data_contrato: '2026-10-09', comprador_nome: 'Comprador', produto: 'soja', valor_bruto: '100.00', desconto_senar: '0.20', desconta_senar: true, valor_contrato: '99.80', valor_recebido: '99.78', saldo_receber: '0.02', contrato_recebido: false },
+    receipts: [],
+  });
+  assert.match(chooser, /Contrato #7/);
+  assert.match(chooser, /saldo R\$\s*0,02/);
+  assert.match(detail, /Marcar contrato como recebido/);
+  assert.match(detail, /retorno" value="recebimentos"/);
 });
 
 test('receipt service rejects overpayment and rolls back', async (t) => {
@@ -59,7 +88,7 @@ test('receipt service rejects overpayment and rolls back', async (t) => {
   assert.equal(statements.some((sql) => sql.startsWith('INSERT INTO contrato_recebimentos')), false);
 });
 
-test('final receipt updates contract status in the same transaction', async (t) => {
+test('final receipt commits without changing the manual received status', async (t) => {
   const originalConnect = pool.connect;
   const statements = [];
   pool.connect = async () => ({
@@ -72,6 +101,7 @@ test('final receipt updates contract status in the same transaction', async (t) 
   });
   t.after(() => { pool.connect = originalConnect; });
   await createContractReceipt(7, { value: '20.00', date: '2026-10-09', observation: null }, 'user-id');
-  assert.deepEqual(statements.find((item) => item.sql.startsWith('UPDATE contratos')).parameters, [7, true]);
+  assert.equal(statements.some((item) => item.sql.startsWith('UPDATE contratos')), false);
+  assert.equal(statements.some((item) => item.sql.startsWith('INSERT INTO contrato_recebimentos')), true);
   assert.equal(statements.at(-1).sql, 'COMMIT');
 });

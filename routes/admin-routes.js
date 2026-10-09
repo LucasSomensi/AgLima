@@ -1,7 +1,7 @@
 const express = require('express');
 const { requireRole, requireRoot } = require('./auth');
 const { MANAGED_ROLES, ROOT_LOGIN, ROLES } = require('./constants');
-const { buildReceiptPayload, createContractReceipt, getContractReceipts } = require('./receipt-service');
+const { buildReceiptPayload, createContractReceipt, getContractReceipts, listRecentContractReceipts, listReceivableContracts } = require('./receipt-service');
 const {
   buildBuyerPayload,
   buildContractPayload,
@@ -18,6 +18,7 @@ const {
   listContracts,
   listSellers,
   markContractAsShipped,
+  markContractAsReceived,
   markContractBrokerageAsPaid,
   updateBuyer,
   updateContract,
@@ -37,6 +38,7 @@ const {
   renderAdminBatchesPage,
   renderAdminContractsPage,
   renderAdminContractReceiptsPage,
+  renderAdminNewReceiptPage,
   renderAdminBuyerFormPage,
   renderAdminContractFormPage,
   renderAdminSellerFormPage,
@@ -106,9 +108,10 @@ function buildAdminHomeRedirect(params = {}) {
 
 router.get('/admin', canAccessAdminPanel, async (req, res) => {
   try {
-    const [notifications, contractsSummary, dryerBatch, dryerSettings, storageSummary, scaleInputs, scaleOutputs] = await Promise.all([
+    const [notifications, contractsSummary, recentReceipts, dryerBatch, dryerSettings, storageSummary, scaleInputs, scaleOutputs] = await Promise.all([
       listAdminContractNotifications(),
       getAdminContractsSummary(),
+      listRecentContractReceipts(10),
       getActiveDryerBatch(),
       getDryerSettings(),
       getStorageSummary(),
@@ -120,6 +123,7 @@ router.get('/admin', canAccessAdminPanel, async (req, res) => {
     return renderAdminHomePage(res, {
       notifications,
       contractsSummary,
+      recentReceipts,
       dryerBatch,
       dryerReadings,
       dryerSettings,
@@ -305,11 +309,29 @@ router.get('/admin/contratos', canAccessAdminPanel, async (req, res) => {
   }
 });
 
+router.get('/admin/recebimentos/novo', canAccessAdminPanel, async (req, res) => {
+  const contractId = String(req.query.contrato_id || '').trim();
+  if (/^\d+$/.test(contractId)) {
+    return res.redirect(`/admin/contratos/contratos/${contractId}/recebimentos`);
+  }
+  try {
+    const contracts = await listReceivableContracts();
+    return renderAdminNewReceiptPage(res, { contracts });
+  } catch (error) {
+    console.error('Error loading new receipt form:', error.message);
+    return res.status(500).send('Não foi possível carregar os contratos agora.');
+  }
+});
+
 router.get('/admin/contratos/contratos/:id/recebimentos', canAccessAdminPanel, async (req, res) => {
   try {
     const info = await getContractReceipts(req.params.id);
     if (!info) return res.status(404).send('Contrato não encontrado.');
-    return renderAdminContractReceiptsPage(res, { ...info, message: req.query.registrado ? 'Recebimento registrado com sucesso.' : '' });
+    return renderAdminContractReceiptsPage(res, {
+      ...info,
+      message: req.query.registrado ? 'Recebimento registrado com sucesso.' : req.query.recebido ? 'Contrato marcado como recebido com sucesso.' : '',
+      error: req.query.error || '',
+    });
   } catch (error) {
     console.error('Error loading contract receipts:', error.message);
     return res.status(500).send('Não foi possível carregar os recebimentos agora.');
@@ -516,8 +538,21 @@ router.post('/admin/contratos/:id/marcar-embarcado', canAccessAdminPanel, async 
   );
 });
 
-router.post('/admin/contratos/:id/marcar-recebido', canAccessAdminPanel, (req, res) => {
-  return res.redirect(`/admin/contratos/contratos/${req.params.id}/recebimentos`);
+router.post('/admin/contratos/:id/marcar-recebido', canAccessAdminPanel, async (req, res) => {
+  try {
+    const updatedRows = await markContractAsReceived(req.params.id);
+    const fromReceipts = req.body.retorno === 'recebimentos';
+    if (fromReceipts) {
+      return res.redirect(buildRedirect(`/admin/contratos/contratos/${req.params.id}/recebimentos`, updatedRows
+        ? { recebido: '1' } : { error: 'Esse contrato já foi marcado como recebido ou não existe.' }));
+    }
+    return res.redirect(buildAdminHomeRedirect(updatedRows
+      ? { message: 'Contrato marcado como recebido com sucesso.' }
+      : { error: 'Esse contrato já foi marcado como recebido ou não existe.' }));
+  } catch (error) {
+    console.error('Error marking contract as received:', error.message);
+    return res.redirect(buildAdminHomeRedirect({ error: 'Não foi possível atualizar o contrato agora.' }));
+  }
 });
 
 router.post('/admin/contratos/:id/marcar-corretagem-paga', canAccessAdminPanel, async (req, res) => {

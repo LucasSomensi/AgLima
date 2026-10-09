@@ -45,19 +45,19 @@ Ao salvar com sucesso, o administrador volta para `/admin/contratos` com uma men
 - Criação: `/admin/contratos/contratos/novo`.
 - Edição: `/admin/contratos/contratos/:id/editar`.
 - Campos principais: data do contrato, produto, preço por saca, comprador, vendedor, quantidade em kg, data prevista de recebimento, desconto de SENAR, corretor e percentual de corretagem.
-- Marcadores: contrato embarcado e corretagem paga. O estado de recebido acompanha o saldo dos lançamentos.
+- Marcadores: contrato embarcado e corretagem paga. O estado de recebido é marcado manualmente na notificação administrativa ou na página de recebimentos.
 - Campos avançados: inscrição estadual do vendedor, natureza da operação, CFOP, dados da transportadora, e-mail, informações de interesse do contribuinte e observações.
 
 Ao salvar com sucesso, o administrador volta para `/admin/contratos` com uma mensagem de confirmação. Em caso de erro, o formulário é reaberto para correção.
 
 ## Regras de contrato em aberto
 
-Um contrato é considerado em aberto quando ainda existe alguma pendência operacional ou financeira, como embarque não marcado, recebimento não marcado ou corretagem não paga. Esses contratos aparecem no filtro padrão **Em aberto** da lista principal.
+Um contrato é considerado em aberto quando ainda existe alguma pendência operacional ou financeira, como embarque não marcado, recebimento não marcado pelo administrador ou corretagem não paga. Esses contratos aparecem no filtro padrão **Em aberto** da lista principal. O saldo financeiro continua visível mesmo após a marcação manual.
 
 O controle financeiro, incluindo a regra de SENAR, está descrito em [recebimentos.md](recebimentos.md).
 
 ## Notificações administrativas
 
 - Quando o saldo chega a zero ou fica negativo, o painel avisa que o contrato está com embarque concluído e permite marcá-lo como embarcado.
-- O aviso de recebimento aparece a partir da data prevista enquanto houver saldo a receber.
+- O aviso de recebimento aparece a partir da data prevista enquanto o administrador não marcar o contrato como recebido. Sua ação é **Marcar como recebido**.
 - O aviso de corretagem pendente aparece assim que o contrato é marcado como recebido, independentemente da data prevista. Ele permanece até a corretagem ser marcada como paga.
