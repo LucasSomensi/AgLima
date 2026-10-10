@@ -99,6 +99,7 @@ test('receipts page combines entry form and paginated history', () => {
   assert.match(html, /action="\/admin\/recebimentos" method="post"/);
   assert.match(html, /name="contrato_id"/);
   assert.match(html, /name="valor" type="text" inputmode="numeric"/);
+  assert.match(html, /<details class="contracts-advanced-fields" >\s*<summary[^>]*>Adicionar comentário \(opcional\)<\/summary>/);
   assert.match(html, /name="observacao" maxlength="200" rows="1"/);
   assert.match(html, /src="\/js\/receipt-value\.js"/);
   assert.match(html, /saldo R\$\s*0,02/);

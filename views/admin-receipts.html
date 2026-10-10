@@ -38,7 +38,10 @@
               <label>Data do recebimento<input class="form-control" name="data_recebimento" type="date" value="{{INPUT_DATE}}" required></label>
               <label>Valor recebido (R$)<input class="form-control" name="valor" type="text" inputmode="numeric" autocomplete="off" placeholder="0,00" value="{{INPUT_VALUE}}" required></label>
             </div>
-            <label>Comentário (opcional)<textarea class="form-control" name="observacao" maxlength="200" rows="1">{{INPUT_NOTE}}</textarea></label>
+            <details class="contracts-advanced-fields" {{COMMENT_DETAILS_OPEN}}>
+              <summary class="btn-secondary-action contracts-advanced-toggle">Adicionar comentário (opcional)</summary>
+              <label>Comentário<textarea class="form-control" name="observacao" maxlength="200" rows="1">{{INPUT_NOTE}}</textarea></label>
+            </details>
             <div class="contracts-form-actions"><button class="btn-primary-action" type="submit" {{DISABLED}}>Registrar recebimento</button></div>
             {{NO_CONTRACTS}}
           </form>

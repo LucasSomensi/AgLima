@@ -1006,6 +1006,7 @@ function renderAdminReceiptsPage(res, { contracts, receipts, message = '', error
     INPUT_DATE: escapeHtml(input.data_recebimento || ''),
     INPUT_VALUE: escapeHtml(input.valor || ''),
     INPUT_NOTE: escapeHtml(input.observacao || ''),
+    COMMENT_DETAILS_OPEN: input.observacao ? 'open' : '',
     ROWS: rows,
     PAGINATION: buildPaginationHtml({ ...receipts, basePath: '/admin/recebimentos', ariaLabel: 'Paginação dos recebimentos' }),
   }));
