@@ -1,4 +1,4 @@
-         table_name          |                        constraint_name                         | constraint_type |          column_name          |     foreign_table_name      |      foreign_column_name      
+         table_name          |                        constraint_name                         | constraint_type |          column_name          |     foreign_table_name      |      foreign_column_name
 -----------------------------+----------------------------------------------------------------+-----------------+-------------------------------+-----------------------------+-------------------------------
  armazenamento_recalibracoes | armazenamento_recalibracoes_criado_em_not_null                 | CHECK           |                               | armazenamento_recalibracoes | criado_em
  armazenamento_recalibracoes | armazenamento_recalibracoes_criado_por_user_id_not_null        | CHECK           |                               | armazenamento_recalibracoes | criado_por_user_id
@@ -38,6 +38,12 @@
  auth_login_events           | auth_login_events_user_agent_texto_check                       | CHECK           |                               | auth_login_events           | user_agent
  auth_login_events           | auth_login_events_usuario_id_fkey                              | FOREIGN KEY     | usuario_id                    | users                       | id
  auth_login_events           | auth_login_events_pkey                                         | PRIMARY KEY     | id                            | auth_login_events           | id
+ balancas_pesos_atuais       | balancas_pesos_atuais_atualizado_em_not_null                   | CHECK           |                               | balancas_pesos_atuais       | atualizado_em
+ balancas_pesos_atuais       | balancas_pesos_atuais_balanca_id_not_null                      | CHECK           |                               | balancas_pesos_atuais       | balanca_id
+ balancas_pesos_atuais       | balancas_pesos_atuais_balanca_id_positivo_check                | CHECK           |                               | balancas_pesos_atuais       | balanca_id
+ balancas_pesos_atuais       | balancas_pesos_atuais_peso_kg_not_null                         | CHECK           |                               | balancas_pesos_atuais       | peso_kg
+ balancas_pesos_atuais       | balancas_pesos_atuais_peso_nao_negativo_check                  | CHECK           |                               | balancas_pesos_atuais       | peso_kg
+ balancas_pesos_atuais       | balancas_pesos_atuais_pkey                                     | PRIMARY KEY     | balanca_id                    | balancas_pesos_atuais       | balanca_id
  compradores                 | compradores_atualizado_em_not_null                             | CHECK           |                               | compradores                 | atualizado_em
  compradores                 | compradores_cep_formato_check                                  | CHECK           |                               | compradores                 | cep
  compradores                 | compradores_cpf_cnpj_check                                     | CHECK           |                               | compradores                 | cpf_cnpj
@@ -47,6 +53,15 @@
  compradores                 | compradores_nome_not_null                                      | CHECK           |                               | compradores                 | nome
  compradores                 | compradores_pkey                                               | PRIMARY KEY     | id                            | compradores                 | id
  compradores                 | compradores_nome_unique                                        | UNIQUE          | nome                          | compradores                 | nome
+ contrato_recebimentos       | contrato_recebimentos_contrato_id_not_null                     | CHECK           |                               | contrato_recebimentos       | contrato_id
+ contrato_recebimentos       | contrato_recebimentos_criado_em_not_null                       | CHECK           |                               | contrato_recebimentos       | criado_em
+ contrato_recebimentos       | contrato_recebimentos_data_recebimento_not_null                | CHECK           |                               | contrato_recebimentos       | data_recebimento
+ contrato_recebimentos       | contrato_recebimentos_id_not_null                              | CHECK           |                               | contrato_recebimentos       | id
+ contrato_recebimentos       | contrato_recebimentos_valor_check                              | CHECK           |                               | contrato_recebimentos       | valor
+ contrato_recebimentos       | contrato_recebimentos_valor_not_null                           | CHECK           |                               | contrato_recebimentos       | valor
+ contrato_recebimentos       | contrato_recebimentos_contrato_id_fkey                         | FOREIGN KEY     | contrato_id                   | contratos                   | id
+ contrato_recebimentos       | contrato_recebimentos_usuario_id_fkey                          | FOREIGN KEY     | usuario_id                    | users                       | id
+ contrato_recebimentos       | contrato_recebimentos_pkey                                     | PRIMARY KEY     | id                            | contrato_recebimentos       | id
  contratos                   | contratos_atualizado_em_not_null                               | CHECK           |                               | contratos                   | atualizado_em
  contratos                   | contratos_comprador_id_not_null                                | CHECK           |                               | contratos                   | comprador_id
  contratos                   | contratos_contrato_embarcado_not_null                          | CHECK           |                               | contratos                   | contrato_embarcado
@@ -54,6 +69,7 @@
  contratos                   | contratos_corretagem_paga_not_null                             | CHECK           |                               | contratos                   | corretagem_paga
  contratos                   | contratos_criado_em_not_null                                   | CHECK           |                               | contratos                   | criado_em
  contratos                   | contratos_data_contrato_not_null                               | CHECK           |                               | contratos                   | data_contrato
+ contratos                   | contratos_desconta_senar_not_null                              | CHECK           |                               | contratos                   | desconta_senar
  contratos                   | contratos_id_not_null                                          | CHECK           |                               | contratos                   | id
  contratos                   | contratos_preco_por_saca_not_null                              | CHECK           |                               | contratos                   | preco_por_saca
  contratos                   | contratos_produto_not_null                                     | CHECK           |                               | contratos                   | produto
@@ -65,6 +81,7 @@
  dryer_batches               | dryer_batches_completed_at_check                               | CHECK           |                               | dryer_batches               | status
  dryer_batches               | dryer_batches_completed_at_check                               | CHECK           |                               | dryer_batches               | completed_at
  dryer_batches               | dryer_batches_created_at_not_null                              | CHECK           |                               | dryer_batches               | created_at
+ dryer_batches               | dryer_batches_discharge_silo_number_positive_check             | CHECK           |                               | dryer_batches               | discharge_silo_number
  dryer_batches               | dryer_batches_grain_type_check                                 | CHECK           |                               | dryer_batches               | grain_type
  dryer_batches               | dryer_batches_grain_type_not_null                              | CHECK           |                               | dryer_batches               | grain_type
  dryer_batches               | dryer_batches_id_not_null                                      | CHECK           |                               | dryer_batches               | id
@@ -92,6 +109,8 @@
  dryer_moisture_readings     | dryer_moisture_readings_batch_id_fkey                          | FOREIGN KEY     | batch_id                      | dryer_batches               | id
  dryer_moisture_readings     | dryer_moisture_readings_measured_by_user_id_fkey               | FOREIGN KEY     | measured_by_user_id           | users                       | id
  dryer_moisture_readings     | dryer_moisture_readings_pkey                                   | PRIMARY KEY     | id                            | dryer_moisture_readings     | id
+ dryer_settings              | dryer_settings_discharge_silo_count_check                      | CHECK           |                               | dryer_settings              | discharge_silo_count
+ dryer_settings              | dryer_settings_discharge_silo_count_not_null                   | CHECK           |                               | dryer_settings              | discharge_silo_count
  dryer_settings              | dryer_settings_id_not_null                                     | CHECK           |                               | dryer_settings              | id
  dryer_settings              | dryer_settings_singleton                                       | CHECK           |                               | dryer_settings              | id
  dryer_settings              | dryer_settings_target_moisture_check                           | CHECK           |                               | dryer_settings              | target_moisture
