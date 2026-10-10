@@ -455,6 +455,7 @@ function formatDaysOverdueLabel(daysOverdue) {
 }
 
 function buildAdminNotificationTitle(notification) {
+  if (notification.type === 'backup_due') return 'Backup do banco de dados pendente';
   const contractLabel = `Contrato #${notification.contractId}`;
 
   if (notification.type === 'shipment_due') {
@@ -473,6 +474,12 @@ function buildAdminNotificationTitle(notification) {
 }
 
 function buildAdminNotificationDetails(notification) {
+  if (notification.type === 'backup_due') {
+    const elapsed = notification.daysSinceBackup === null
+      ? 'Nenhum backup foi baixado ainda.'
+      : `O último backup foi há ${notification.daysSinceBackup} dias.`;
+    return `${elapsed} Baixe e guarde uma cópia dos dados, incluindo usuários sem os hashes das senhas.`;
+  }
   if (notification.type === 'shipment_due') {
     return `${notification.buyerName} · Saldo: ${formatKg(notification.balanceKg)}`;
   }
@@ -490,6 +497,7 @@ function buildAdminNotificationDetails(notification) {
 
 function getAdminNotificationActionLabel(type) {
   const labels = {
+    backup_due: 'Baixar backup',
     shipment_due: 'Marcar como embarcado',
     receipt_due: 'Marcar como recebido',
     brokerage_due: 'Marcar corretagem como paga',
