@@ -88,6 +88,8 @@ const {
 } = require('./storage-service');
 const { listScaleInputs, listScaleOutputs } = require('./weighbridge-service');
 const { buildDryerMoistureReadingsCsv } = require('./dryer-csv');
+const { getBackupNotification } = require('./backup-service');
+const { downloadBackup } = require('./backup-download');
 
 const router = express.Router();
 
@@ -107,7 +109,7 @@ function buildAdminHomeRedirect(params = {}) {
 
 router.get('/admin', canAccessAdminPanel, async (req, res) => {
   try {
-    const [notifications, contractsSummary, recentReceipts, dryerBatch, dryerSettings, storageSummary, scaleInputs, scaleOutputs] = await Promise.all([
+    const [notifications, contractsSummary, recentReceipts, dryerBatch, dryerSettings, storageSummary, scaleInputs, scaleOutputs, backupNotification] = await Promise.all([
       listAdminContractNotifications(),
       getAdminContractsSummary(),
       listRecentContractReceipts(10),
@@ -116,11 +118,12 @@ router.get('/admin', canAccessAdminPanel, async (req, res) => {
       getStorageSummary(),
       listScaleInputs({ limit: 10 }),
       listScaleOutputs({ limit: 10 }),
+      getBackupNotification(),
     ]);
     const dryerReadings = await listDryerMoistureReadings(dryerBatch?.id);
 
     return renderAdminHomePage(res, {
-      notifications,
+      notifications: backupNotification ? [backupNotification, ...notifications] : notifications,
       contractsSummary,
       recentReceipts,
       dryerBatch,
@@ -137,6 +140,8 @@ router.get('/admin', canAccessAdminPanel, async (req, res) => {
     return res.status(500).send('Não foi possível carregar as notificações administrativas agora.');
   }
 });
+
+router.post('/admin/backup', canAccessAdminPanel, downloadBackup);
 
 router.get('/admin/secador', canAccessAdminPanel, async (req, res) => {
   try {

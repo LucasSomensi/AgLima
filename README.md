@@ -162,6 +162,9 @@ O painel do usuário `root` cria apenas usuários dos perfis `admin`, `client`, 
 
 ## Painel administrativo do secador
 
+O painel também permite baixar backups do banco, incluindo usuários sem hashes de
+senhas. Consulte [configuração e funcionamento dos backups](docs/backups.md).
+
 Usuários com perfil `admin` acessam `/admin`. A tela inicial mostra a batelada ativa com status, data e hora de início, produto, umidade alvo e medições de umidade, sem botões operacionais de registrar umidade, iniciar descarga, iniciar nova batelada ou parar o secador. A mesma tela permite alterar a umidade alvo salva em `dryer_settings`; novas bateladas passam a usar esse valor no momento em que são iniciadas.
 
 O botão **Ver bateladas anteriores** abre `/admin/bateladas`, com as bateladas concluídas em ordem cronológica reversa. Cada linha abre `/admin/bateladas/:id`, exibindo as informações salvas e medições daquela batelada.
