@@ -98,6 +98,9 @@ test('receipts page combines entry form and paginated history', () => {
   });
   assert.match(html, /action="\/admin\/recebimentos" method="post"/);
   assert.match(html, /name="contrato_id"/);
+  assert.match(html, /name="valor" type="text" inputmode="numeric"/);
+  assert.match(html, /name="observacao" maxlength="200" rows="1"/);
+  assert.match(html, /src="\/js\/receipt-value\.js"/);
   assert.match(html, /saldo R\$\s*0,02/);
   assert.match(html, /Comentário 31/);
   assert.doesNotMatch(html, /Comentário 1<\/td>/);

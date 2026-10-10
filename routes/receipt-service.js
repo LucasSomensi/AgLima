@@ -23,7 +23,7 @@ function buildReceiptPayload(body) {
     return { error: 'Informe uma data de recebimento válida.' };
   }
   const observation = String(body.observacao || '').trim();
-  if (observation.length > 500) return { error: 'A observação deve ter no máximo 500 caracteres.' };
+  if (observation.length > 200) return { error: 'A observação deve ter no máximo 200 caracteres.' };
   return { payload: { value: `${cents / 100n}.${String(cents % 100n).padStart(2, '0')}`, date, observation: observation || null } };
 }
 

@@ -36,9 +36,9 @@
             <div class="contracts-form-grid">
               <label>Contrato<select class="form-control" name="contrato_id" required><option value="">Selecione</option>{{CONTRACT_OPTIONS}}</select></label>
               <label>Data do recebimento<input class="form-control" name="data_recebimento" type="date" value="{{INPUT_DATE}}" required></label>
-              <label>Valor recebido (R$)<input class="form-control" name="valor" type="number" min="0.01" step="0.01" inputmode="decimal" value="{{INPUT_VALUE}}" required></label>
+              <label>Valor recebido (R$)<input class="form-control" name="valor" type="text" inputmode="numeric" autocomplete="off" placeholder="0,00" value="{{INPUT_VALUE}}" required></label>
             </div>
-            <label>Comentário (opcional)<textarea class="form-control" name="observacao" maxlength="500" rows="2">{{INPUT_NOTE}}</textarea></label>
+            <label>Comentário (opcional)<textarea class="form-control" name="observacao" maxlength="200" rows="1">{{INPUT_NOTE}}</textarea></label>
             <div class="contracts-form-actions"><button class="btn-primary-action" type="submit" {{DISABLED}}>Registrar recebimento</button></div>
             {{NO_CONTRACTS}}
           </form>
@@ -60,5 +60,6 @@
       <img class="footer-logo" src="/images/logotipo%20agrolima.jpeg" alt="Logotipo da AgroLima">
       <span>AgroLima © 2026. Todos os direitos reservados.</span>
     </footer>
+    <script src="/js/receipt-value.js"></script>
   </body>
 </html>
