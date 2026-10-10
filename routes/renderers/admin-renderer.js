@@ -602,7 +602,7 @@ function renderAdminRecentReceiptsPanel(receipts = []) {
       <td>${escapeHtml(formatDateTime(receipt.criado_em))}</td>
     </tr>`).join('') || renderEmptyRow(5, 'Nenhum recebimento registrado.');
   return `<section class="admin-section admin-notifications-panel admin-home-panel" aria-labelledby="admin-receipts-title">
-    <div class="admin-section-header admin-notifications-header"><h2 id="admin-receipts-title">Últimos 10 recebimentos</h2><a class="btn-primary-action" href="/admin/recebimentos">Ver todos os recebimentos</a></div>
+    <div class="admin-section-header admin-notifications-header"><h2 id="admin-receipts-title">Últimos 10 recebimentos</h2><a class="btn-secondary-action" href="/admin/recebimentos">Ver todos os recebimentos</a></div>
     <div class="admin-table-wrapper"><table class="admin-table"><thead><tr><th>Data do recebimento</th><th>Contrato</th><th>Comprador</th><th>Valor</th><th>Registrado em</th></tr></thead><tbody>${rows}</tbody></table></div>
   </section>`;
 }
