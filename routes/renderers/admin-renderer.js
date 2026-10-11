@@ -473,6 +473,10 @@ function buildAdminNotificationTitle(notification) {
   return `${contractLabel} precisa de atenção`;
 }
 
+function renderPrivateMoney(value) {
+  return `<span data-private-money><span data-money-mask aria-label="Valor oculto">••••••</span><span data-money-value hidden>${escapeHtml(formatMoney(value))}</span></span>`;
+}
+
 function buildAdminNotificationDetails(notification) {
   if (notification.type === 'backup_due') {
     const elapsed = notification.daysSinceBackup === null
@@ -485,11 +489,11 @@ function buildAdminNotificationDetails(notification) {
   }
 
   if (notification.type === 'receipt_due') {
-    return `${notification.buyerName} · Falta receber: ${formatMoney(notification.balanceValue ?? notification.contractValue)}`;
+    return `${notification.buyerName} · Falta receber:`;
   }
 
   if (notification.type === 'brokerage_due') {
-    return `${notification.buyerName} · Corretagem: ${formatMoney(notification.brokerageValue)}`;
+    return `${notification.buyerName} · Corretagem:`;
   }
 
   return notification.buyerName;
@@ -527,7 +531,7 @@ function renderAdminNotificationsPanel(notifications) {
           <li class="admin-notification-item admin-notification-${escapeHtml(notification.type)}">
             <div class="admin-notification-copy">
               <strong>${escapeHtml(buildAdminNotificationTitle(notification))}</strong>
-              <span>${escapeHtml(buildAdminNotificationDetails(notification))}</span>
+              <span>${escapeHtml(buildAdminNotificationDetails(notification))}${notification.type === 'receipt_due' ? ` ${renderPrivateMoney(notification.balanceValue ?? notification.contractValue)}` : notification.type === 'brokerage_due' ? ` ${renderPrivateMoney(notification.brokerageValue)}` : ''}</span>
               ${notification.receiptDate && notification.type !== 'brokerage_due' ? `<span>Vencimento em ${escapeHtml(formatDate(notification.receiptDate))}</span>` : ''}
             </div>
             <form class="admin-notification-action" action="${escapeHtml(notification.actionPath)}" method="post">
@@ -593,7 +597,7 @@ function renderAdminContractsPanel(summary = {}) {
             ${renderAdminMetric('Contratos ativos', String(summary.contratos_ativos || 0))}
             ${renderAdminMetric('Soja a embarcar', `${formatKg(sojaKg)} · ${formatSacks(sojaKg / 60, 2)}`)}
             ${renderAdminMetric('Milho a embarcar', `${formatKg(milhoKg)} · ${formatSacks(milhoKg / 60, 2)}`)}
-            ${renderAdminMetric('Valor total a receber', formatMoney(summary.valor_total_a_receber || 0))}
+            ${renderAdminMetricHtml('Valor total a receber', renderPrivateMoney(summary.valor_total_a_receber || 0))}
             ${renderAdminMetricHtml('Próximo recebimento', nextReceipt)}
           </div>
         </section>
@@ -606,7 +610,7 @@ function renderAdminRecentReceiptsPanel(receipts = []) {
       <td>${escapeHtml(formatDate(receipt.data_recebimento))}</td>
       <td><a class="admin-table-link" href="/balanca/contratos/${escapeHtml(receipt.contrato_id)}">Contrato #${escapeHtml(receipt.contrato_id)}</a></td>
       <td>${escapeHtml(receipt.comprador_nome)}</td>
-      <td>${escapeHtml(formatMoney(receipt.valor))}</td>
+      <td>${renderPrivateMoney(receipt.valor)}</td>
       <td>${escapeHtml(formatDateTime(receipt.criado_em))}</td>
     </tr>`).join('') || renderEmptyRow(5, 'Nenhum recebimento registrado.');
   return `<section class="admin-section admin-notifications-panel admin-home-panel" aria-labelledby="admin-receipts-title">

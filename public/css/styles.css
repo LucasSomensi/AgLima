@@ -319,6 +319,25 @@ body {
   width: 100%;
 }
 
+.admin-money-toggle {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.admin-money-toggle [hidden],
+[data-private-money] [hidden] {
+  display: none !important;
+}
+
+.admin-home-metric [data-private-money] span {
+  font: inherit;
+  color: inherit;
+}
+
 .admin-home-card {
   max-width: 1380px;
 }
