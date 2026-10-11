@@ -20,10 +20,16 @@
             <h1 id="admin-home-title" class="page-title">Administração</h1>
             <p class="page-description">Escolha qual módulo deseja acessar.</p>
           </div>
+          <div class="admin-header-actions">
+            <button class="btn-secondary-action admin-money-toggle" id="admin-money-toggle" type="button" aria-label="Mostrar valores monetários" title="Mostrar valores monetários" aria-pressed="false">
+              <svg data-eye-open viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+              <svg data-eye-closed hidden viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m3 3 18 18M10.6 5.1 12 5c6.5 0 10 7 10 7a20 20 0 0 1-3 3.8M6.3 6.3A22 22 0 0 0 2 12s3.5 7 10 7a12 12 0 0 0 5.7-1.7M10 10a3 3 0 0 0 4 4"/></svg>
+            </button>
           <form action="/logout" method="post">
             <input type="hidden" name="_csrf" value="{{CSRF_TOKEN}}">
             <button class="btn-secondary-action" type="submit">Sair</button>
           </form>
+          </div>
         </div>
 
         {{ADMIN_HOME_MESSAGE}}
@@ -40,5 +46,6 @@
       <img class="footer-logo" src="/images/logotipo%20agrolima.jpeg" alt="Logotipo da AgroLima">
       <span>AgroLima © 2026. Todos os direitos reservados.</span>
     </footer>
+    <script src="/js/admin-money-visibility.js" defer></script>
   </body>
 </html>
