@@ -1,6 +1,8 @@
 # API de integração da balança
 
-Este documento é o contrato completo para o programa Python que lê a porta serial da balança física e publica o peso no AgroLima. A integração atual corresponde à **balança 1**.
+Este documento descreve a **API do equipamento**, para o programa Python que lê a porta serial e publica o peso da **balança 1**. Esse endpoint continua compatível com a integração existente.
+
+Para executar todas as ações do operador (entradas, saídas, classificação, contratos, relatórios e exclusões), consulte a [API operacional v1](api-balanca-operacional.md) e a [especificação OpenAPI](api-balanca.openapi.json). A chave `api_key` **não** autoriza essas operações: use o login e o token de operador descritos no novo guia.
 
 ## Visão geral do fluxo
 
@@ -103,7 +105,7 @@ Todas as respostas conhecidas da API são JSON e possuem a propriedade `error`.
 | --- | --- | --- |
 | `400 Bad Request` | `peso_kg` ausente, texto, fracionário, negativo ou acima do limite | `{"error":"peso_kg deve ser um número inteiro entre 0 e 2147483647."}` |
 | `401 Unauthorized` | Cabeçalho ausente, esquema diferente de Bearer ou chave incorreta | `{"error":"Chave de API inválida ou ausente."}` |
-| `413 Payload Too Large` | Corpo excedeu o limite global de 100 KB | resposta textual do servidor; o cliente nunca deve se aproximar desse limite |
+| `413 Payload Too Large` | Corpo excedeu o limite global de 100 KB | `{"code":"PAYLOAD_TOO_LARGE","error":"A requisição excede 100 KB."}` |
 | `503 Service Unavailable` | Variável `api_key` ausente no Railway | `{"error":"API da balança não configurada."}` |
 | `500 Internal Server Error` | Falha inesperada ao gravar no banco | `{"error":"Não foi possível salvar o peso da balança."}` |
 

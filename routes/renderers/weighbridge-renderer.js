@@ -6,10 +6,10 @@ const {
   formatDateTime,
   formatDigitsOnly,
   formatPlainDecimal,
-  toDateOnlyInputValue,
   toDateTimeLocalValue,
 } = require('../utils');
 const { buildAlertHtml, buildPaginationHtml } = require('./template-utils');
+const { canCopyInputReport, buildInputClipboardReport, buildScaleOutputInvoiceName } = require('../weighbridge-reports');
 
 const DEFAULT_INVOICE_OPERATION_NATURE = 'Venda';
 const DEFAULT_INVOICE_CFOP = '5101';
@@ -99,47 +99,6 @@ function isInputClassified(input) {
     && input.impureza_percent !== undefined
     && input.graos_avariados_percent !== null
     && input.graos_avariados_percent !== undefined;
-}
-
-function formatInputReportDateTime(value) {
-  const localValue = toDateTimeLocalValue(value);
-
-  if (!localValue) {
-    return '-';
-  }
-
-  const [datePart, timePart] = localValue.split('T');
-  const [year, month, day] = datePart.split('-');
-
-  return `${day}/${month}/${year} ${timePart}`;
-}
-
-function formatReportMoisture(value) {
-  if (value === null || value === undefined || value === '') {
-    return '-';
-  }
-
-  return Number(value).toLocaleString('pt-BR', {
-    minimumFractionDigits: 1,
-    maximumFractionDigits: 1,
-  });
-}
-
-function canCopyInputReport(input) {
-  return Boolean(input.origem)
-    && input.peso_tara_kg !== null
-    && input.peso_tara_kg !== undefined
-    && isInputClassified(input);
-}
-
-function buildInputClipboardReport(input) {
-  return [
-    formatInputReportDateTime(input.data_entrada),
-    input.placa_caminhao || '-',
-    input.origem || '-',
-    `${formatRoundedKg(input.peso_liquido_kg)}kg`,
-    `Umidade: ${formatReportMoisture(input.umidade_percent)}%`,
-  ].join('\n');
 }
 
 function getDefaultScaleInputProduct(dataEntradaValue) {
@@ -593,15 +552,6 @@ function buildCopyFieldHtml(label, value, options = {}) {
   const displayValue = value === null || value === undefined || value === '' ? '-' : value;
 
   return `<div${fieldClass}><dt>${escapeHtml(label)}</dt><dd><span class="copy-field-value">${escapeHtml(displayValue)}</span><button class="copy-field-button" type="button" aria-label="Copiar ${escapeHtml(label)}">Copiar</button></dd></div>`;
-}
-
-function buildScaleOutputInvoiceName(outputInfo) {
-  const outputDate = toDateOnlyInputValue(outputInfo.data_saida) || '-';
-  const plate = outputInfo.placa_caminhao || '-';
-  const product = formatProductLabel(outputInfo.produto).toUpperCase();
-  const outputNumber = outputInfo.saida_id || '-';
-
-  return `${outputDate} ${plate} ${product} ${outputNumber}`;
 }
 
 function buildScaleOutputInvoiceDetailHtml(outputInfo) {

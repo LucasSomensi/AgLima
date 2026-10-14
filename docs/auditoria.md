@@ -35,7 +35,11 @@ A estratégia principal é manter a tabela flexível: `tipo_acao`, `entidade_tip
 | `desvincular_contrato_saida` | Ao remover o vínculo entre uma saída e um contrato. | `saidas_balanca` |
 | `dividir_saida` | Ao dividir uma saída em duas linhas. | `saidas_balanca` |
 
-> Observação: o sistema ainda não possui fluxo implementado para dividir entradas nem uma tela geral de edição de saída além da inclusão do peso bruto. Quando esses fluxos forem adicionados, eles devem gravar `dividir_entrada` e/ou `editar_saida` usando o mesmo padrão.
+> A edição geral de saída também registra `editar_saida`. Divisão de entradas não
+> está implementada. A [API operacional](api-balanca-operacional.md) reutiliza esses
+> serviços: a autoria vem do usuário autenticado pelo token, nunca de um ID enviado
+> pelo cliente. Criação, tara, origem, classificação e associação conservam seus
+> campos de autoria nas próprias tabelas, sem novos tipos de evento nesta versão.
 
 ## Reversão manual
 
