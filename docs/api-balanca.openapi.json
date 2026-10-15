@@ -1,0 +1,3095 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "AgroLima — API da balança",
+    "version": "1.0.0",
+    "description": "Operações do operador e publicação legada do equipamento. Leia api-balanca-operacional.md para fluxos, auditoria e cuidados com repetição: escritas não possuem Idempotency-Key."
+  },
+  "servers": [
+    {
+      "url": "https://SEU_DOMINIO"
+    }
+  ],
+  "security": [
+    {
+      "operatorBearer": []
+    }
+  ],
+  "paths": {
+    "/api/v1/balanca/sessao": {
+      "post": {
+        "summary": "Autenticar operador",
+        "operationId": "post_sessao",
+        "responses": {
+          "200": {
+            "description": "Sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Session"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Erro. Ver tabela de códigos no guia: 400/401/403/404/409/413/415/429/500/503.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Login"
+              }
+            }
+          }
+        },
+        "security": []
+      },
+      "get": {
+        "summary": "Consultar identidade",
+        "operationId": "get_sessao",
+        "responses": {
+          "200": {
+            "description": "Sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Me"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Erro. Ver tabela de códigos no guia: 400/401/403/404/409/413/415/429/500/503.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Revogar token atual",
+        "operationId": "delete_sessao",
+        "responses": {
+          "204": {
+            "description": "Concluído, sem corpo."
+          },
+          "default": {
+            "description": "Erro. Ver tabela de códigos no guia: 400/401/403/404/409/413/415/429/500/503.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/balanca": {
+      "get": {
+        "summary": "Últimas dez entradas e saídas",
+        "operationId": "get_home",
+        "responses": {
+          "200": {
+            "description": "Sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Home"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Erro. Ver tabela de códigos no guia: 400/401/403/404/409/413/415/429/500/503.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/balanca/peso-atual": {
+      "get": {
+        "summary": "Consultar último peso",
+        "operationId": "get_peso_atual",
+        "responses": {
+          "200": {
+            "description": "Sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Weight"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Erro. Ver tabela de códigos no guia: 400/401/403/404/409/413/415/429/500/503.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/balanca/entradas": {
+      "get": {
+        "summary": "Listar entradas",
+        "operationId": "get_entradas",
+        "responses": {
+          "200": {
+            "description": "Sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InputPage"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Erro. Ver tabela de códigos no guia: 400/401/403/404/409/413/415/429/500/503.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "pagina",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000000,
+              "default": 1
+            }
+          },
+          {
+            "name": "limite",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            }
+          }
+        ]
+      },
+      "post": {
+        "summary": "Criar entrada",
+        "operationId": "post_entradas",
+        "responses": {
+          "201": {
+            "description": "Sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IdResult"
+                }
+              }
+            },
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Caminho do registro criado."
+              }
+            }
+          },
+          "default": {
+            "description": "Erro. Ver tabela de códigos no guia: 400/401/403/404/409/413/415/429/500/503.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InputCreate"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/balanca/entradas/placas": {
+      "get": {
+        "summary": "Sugerir placas",
+        "operationId": "get_entradas_placas",
+        "responses": {
+          "200": {
+            "description": "Sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Plates"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Erro. Ver tabela de códigos no guia: 400/401/403/404/409/413/415/429/500/503.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 20
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/balanca/entradas/tara-anterior": {
+      "get": {
+        "summary": "Consultar tara anterior",
+        "operationId": "get_entradas_tara_anterior",
+        "responses": {
+          "200": {
+            "description": "Sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreviousTare"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Erro. Ver tabela de códigos no guia: 400/401/403/404/409/413/415/429/500/503.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "placa",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "ABC1D23"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/balanca/entradas/{id}": {
+      "get": {
+        "summary": "Consultar entrada",
+        "operationId": "get_entradas_id",
+        "responses": {
+          "200": {
+            "description": "Sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Input"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Erro. Ver tabela de códigos no guia: 400/401/403/404/409/413/415/429/500/503.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]{0,18}$",
+              "description": "Inteiro positivo até 9223372036854775807; prefira string para precisão.",
+              "example": "123"
+            }
+          }
+        ]
+      },
+      "put": {
+        "summary": "Substituir campos editáveis da entrada",
+        "operationId": "put_entradas_id",
+        "responses": {
+          "200": {
+            "description": "Sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IdResult"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Erro. Ver tabela de códigos no guia: 400/401/403/404/409/413/415/429/500/503.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InputEdit"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]{0,18}$",
+              "description": "Inteiro positivo até 9223372036854775807; prefira string para precisão.",
+              "example": "123"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/balanca/entradas/{id}/tara": {
+      "post": {
+        "summary": "Adicionar tara",
+        "operationId": "post_entradas_id_tara",
+        "responses": {
+          "200": {
+            "description": "Sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IdResult"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Erro. Ver tabela de códigos no guia: 400/401/403/404/409/413/415/429/500/503.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Tare"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]{0,18}$",
+              "description": "Inteiro positivo até 9223372036854775807; prefira string para precisão.",
+              "example": "123"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/balanca/entradas/{id}/classificacao": {
+      "post": {
+        "summary": "Gravar classificação",
+        "operationId": "post_entradas_id_classificacao",
+        "responses": {
+          "200": {
+            "description": "Sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IdResult"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Erro. Ver tabela de códigos no guia: 400/401/403/404/409/413/415/429/500/503.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Classification"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]{0,18}$",
+              "description": "Inteiro positivo até 9223372036854775807; prefira string para precisão.",
+              "example": "123"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/balanca/entradas/{id}/origem": {
+      "post": {
+        "summary": "Definir origem",
+        "operationId": "post_entradas_id_origem",
+        "responses": {
+          "200": {
+            "description": "Sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IdResult"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Erro. Ver tabela de códigos no guia: 400/401/403/404/409/413/415/429/500/503.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Origin"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]{0,18}$",
+              "description": "Inteiro positivo até 9223372036854775807; prefira string para precisão.",
+              "example": "123"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/balanca/entradas/{id}/deletar": {
+      "post": {
+        "summary": "Excluir entrada com motivo",
+        "operationId": "post_entradas_id_deletar",
+        "responses": {
+          "204": {
+            "description": "Concluído, sem corpo."
+          },
+          "default": {
+            "description": "Erro. Ver tabela de códigos no guia: 400/401/403/404/409/413/415/429/500/503.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Deletion"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]{0,18}$",
+              "description": "Inteiro positivo até 9223372036854775807; prefira string para precisão.",
+              "example": "123"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/balanca/entradas/{id}/relatorio": {
+      "get": {
+        "summary": "Relatório para copiar",
+        "operationId": "get_entradas_id_relatorio",
+        "responses": {
+          "200": {
+            "description": "Sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Report"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Erro. Ver tabela de códigos no guia: 400/401/403/404/409/413/415/429/500/503.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]{0,18}$",
+              "description": "Inteiro positivo até 9223372036854775807; prefira string para precisão.",
+              "example": "123"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/balanca/entradas/{id}/ticket.pdf": {
+      "get": {
+        "summary": "Baixar ticket de entrada",
+        "operationId": "get_entradas_id_ticket_pdf",
+        "responses": {
+          "200": {
+            "description": "Sucesso",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Erro. Ver tabela de códigos no guia: 400/401/403/404/409/413/415/429/500/503.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]{0,18}$",
+              "description": "Inteiro positivo até 9223372036854775807; prefira string para precisão.",
+              "example": "123"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/balanca/entradas.csv": {
+      "get": {
+        "summary": "Exportar entradas em CSV",
+        "operationId": "get_entradas_csv",
+        "responses": {
+          "200": {
+            "description": "Sucesso",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Erro. Ver tabela de códigos no guia: 400/401/403/404/409/413/415/429/500/503.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/balanca/saidas": {
+      "get": {
+        "summary": "Listar saídas",
+        "operationId": "get_saidas",
+        "responses": {
+          "200": {
+            "description": "Sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OutputPage"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Erro. Ver tabela de códigos no guia: 400/401/403/404/409/413/415/429/500/503.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "pagina",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000000,
+              "default": 1
+            }
+          },
+          {
+            "name": "limite",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            }
+          }
+        ]
+      },
+      "post": {
+        "summary": "Criar saída com tara",
+        "operationId": "post_saidas",
+        "responses": {
+          "201": {
+            "description": "Sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IdResult"
+                }
+              }
+            },
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Caminho do registro criado."
+              }
+            }
+          },
+          "default": {
+            "description": "Erro. Ver tabela de códigos no guia: 400/401/403/404/409/413/415/429/500/503.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OutputCreate"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/balanca/saidas/{id}": {
+      "get": {
+        "summary": "Consultar saída",
+        "operationId": "get_saidas_id",
+        "responses": {
+          "200": {
+            "description": "Sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OutputDetail"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Erro. Ver tabela de códigos no guia: 400/401/403/404/409/413/415/429/500/503.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]{0,18}$",
+              "description": "Inteiro positivo até 9223372036854775807; prefira string para precisão.",
+              "example": "123"
+            }
+          }
+        ]
+      },
+      "put": {
+        "summary": "Substituir campos editáveis da saída",
+        "operationId": "put_saidas_id",
+        "responses": {
+          "200": {
+            "description": "Sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IdResult"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Erro. Ver tabela de códigos no guia: 400/401/403/404/409/413/415/429/500/503.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OutputEdit"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]{0,18}$",
+              "description": "Inteiro positivo até 9223372036854775807; prefira string para precisão.",
+              "example": "123"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/balanca/saidas/{id}/bruto": {
+      "post": {
+        "summary": "Adicionar bruto",
+        "operationId": "post_saidas_id_bruto",
+        "responses": {
+          "200": {
+            "description": "Sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LinkResult"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Erro. Ver tabela de códigos no guia: 400/401/403/404/409/413/415/429/500/503.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Gross"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]{0,18}$",
+              "description": "Inteiro positivo até 9223372036854775807; prefira string para precisão.",
+              "example": "123"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/balanca/saidas/{id}/compradores": {
+      "get": {
+        "summary": "Compradores elegíveis",
+        "operationId": "get_saidas_id_compradores",
+        "responses": {
+          "200": {
+            "description": "Sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Buyers"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Erro. Ver tabela de códigos no guia: 400/401/403/404/409/413/415/429/500/503.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]{0,18}$",
+              "description": "Inteiro positivo até 9223372036854775807; prefira string para precisão.",
+              "example": "123"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/balanca/saidas/{id}/contratos": {
+      "get": {
+        "summary": "Contratos elegíveis",
+        "operationId": "get_saidas_id_contratos",
+        "responses": {
+          "200": {
+            "description": "Sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EligibleContracts"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Erro. Ver tabela de códigos no guia: 400/401/403/404/409/413/415/429/500/503.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]{0,18}$",
+              "description": "Inteiro positivo até 9223372036854775807; prefira string para precisão.",
+              "example": "123"
+            }
+          },
+          {
+            "name": "comprador_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]{0,18}$",
+              "description": "Inteiro positivo até 9223372036854775807; prefira string para precisão.",
+              "example": "123"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/balanca/saidas/{id}/associar": {
+      "post": {
+        "summary": "Associar contrato",
+        "operationId": "post_saidas_id_associar",
+        "responses": {
+          "200": {
+            "description": "Sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LinkResult"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Erro. Ver tabela de códigos no guia: 400/401/403/404/409/413/415/429/500/503.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Association"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]{0,18}$",
+              "description": "Inteiro positivo até 9223372036854775807; prefira string para precisão.",
+              "example": "123"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/balanca/saidas/{id}/desvincular-contrato": {
+      "post": {
+        "summary": "Desvincular contrato",
+        "operationId": "post_saidas_id_desvincular_contrato",
+        "responses": {
+          "200": {
+            "description": "Sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LinkResult"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Erro. Ver tabela de códigos no guia: 400/401/403/404/409/413/415/429/500/503.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Empty"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]{0,18}$",
+              "description": "Inteiro positivo até 9223372036854775807; prefira string para precisão.",
+              "example": "123"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/balanca/saidas/{id}/dividir": {
+      "post": {
+        "summary": "Dividir saída",
+        "operationId": "post_saidas_id_dividir",
+        "responses": {
+          "201": {
+            "description": "Sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SplitResult"
+                }
+              }
+            },
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Caminho do registro criado."
+              }
+            }
+          },
+          "default": {
+            "description": "Erro. Ver tabela de códigos no guia: 400/401/403/404/409/413/415/429/500/503.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Split"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]{0,18}$",
+              "description": "Inteiro positivo até 9223372036854775807; prefira string para precisão.",
+              "example": "123"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/balanca/saidas/{id}/deletar": {
+      "post": {
+        "summary": "Excluir saída com motivo",
+        "operationId": "post_saidas_id_deletar",
+        "responses": {
+          "204": {
+            "description": "Concluído, sem corpo."
+          },
+          "default": {
+            "description": "Erro. Ver tabela de códigos no guia: 400/401/403/404/409/413/415/429/500/503.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Deletion"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]{0,18}$",
+              "description": "Inteiro positivo até 9223372036854775807; prefira string para precisão.",
+              "example": "123"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/balanca/saidas/{id}/nf": {
+      "get": {
+        "summary": "Dados para NF (não emite NF-e)",
+        "operationId": "get_saidas_id_nf",
+        "responses": {
+          "200": {
+            "description": "Sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Invoice"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Erro. Ver tabela de códigos no guia: 400/401/403/404/409/413/415/429/500/503.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]{0,18}$",
+              "description": "Inteiro positivo até 9223372036854775807; prefira string para precisão.",
+              "example": "123"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/balanca/saidas/{id}/ticket.pdf": {
+      "get": {
+        "summary": "Baixar ticket de saída",
+        "operationId": "get_saidas_id_ticket_pdf",
+        "responses": {
+          "200": {
+            "description": "Sucesso",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Erro. Ver tabela de códigos no guia: 400/401/403/404/409/413/415/429/500/503.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]{0,18}$",
+              "description": "Inteiro positivo até 9223372036854775807; prefira string para precisão.",
+              "example": "123"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/balanca/saidas.csv": {
+      "get": {
+        "summary": "Exportar saídas em CSV",
+        "operationId": "get_saidas_csv",
+        "responses": {
+          "200": {
+            "description": "Sucesso",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Erro. Ver tabela de códigos no guia: 400/401/403/404/409/413/415/429/500/503.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/balanca/contratos": {
+      "get": {
+        "summary": "Listar contratos com saldo não embarcado",
+        "operationId": "get_contratos",
+        "responses": {
+          "200": {
+            "description": "Sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContractPage"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Erro. Ver tabela de códigos no guia: 400/401/403/404/409/413/415/429/500/503.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "pagina",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000000,
+              "default": 1
+            }
+          },
+          {
+            "name": "limite",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            }
+          },
+          {
+            "name": "filtro",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "nao-embarcados"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/balanca/contratos/{id}": {
+      "get": {
+        "summary": "Consultar contrato e suas saídas",
+        "operationId": "get_contratos_id",
+        "responses": {
+          "200": {
+            "description": "Sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContractDetail"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Erro. Ver tabela de códigos no guia: 400/401/403/404/409/413/415/429/500/503.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]{0,18}$",
+              "description": "Inteiro positivo até 9223372036854775807; prefira string para precisão.",
+              "example": "123"
+            }
+          }
+        ]
+      }
+    },
+    "/api/balancas/1/peso": {
+      "post": {
+        "summary": "Publicar peso do equipamento (legado)",
+        "operationId": "publish_scale_weight",
+        "security": [
+          {
+            "scaleDeviceKey": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WeightPublish"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Peso substituído",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Weight"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Erro legado: objeto com error; erros do parser também têm code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "operatorBearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "Opaque 64 hex; login /api/v1/balanca/sessao"
+      },
+      "scaleDeviceKey": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Valor da variável api_key do equipamento, sem permissão operacional."
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "error": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "error"
+        ],
+        "additionalProperties": false
+      },
+      "IdResult": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[1-9][0-9]{0,18}$",
+            "description": "Inteiro positivo até 9223372036854775807; prefira string para precisão.",
+            "example": "123"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "additionalProperties": false
+      },
+      "Login": {
+        "type": "object",
+        "properties": {
+          "login": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "minLength": 1,
+            "description": "Máximo 72 bytes UTF-8."
+          }
+        },
+        "required": [
+          "login",
+          "password"
+        ],
+        "additionalProperties": false
+      },
+      "Session": {
+        "type": "object",
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "token_type": {
+            "type": "string",
+            "enum": [
+              "Bearer"
+            ]
+          },
+          "expires_in": {
+            "type": "integer",
+            "enum": [
+              57600
+            ]
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "user": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "login": {
+                "type": "string"
+              },
+              "role": {
+                "type": "string",
+                "enum": [
+                  "weighbridge_operator",
+                  "admin"
+                ]
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "access_token",
+          "token_type",
+          "expires_in",
+          "expires_at",
+          "user"
+        ],
+        "additionalProperties": false
+      },
+      "Me": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "type": "object",
+            "properties": {
+              "userId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "login": {
+                "type": "string"
+              },
+              "role": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "userId",
+              "login",
+              "role"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "user"
+        ],
+        "additionalProperties": false
+      },
+      "InputCreate": {
+        "type": "object",
+        "properties": {
+          "data_entrada": {
+            "type": "string",
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}(:[0-9]{2})?$",
+            "description": "Data real em Brasília, sem offset/Z. Omissão na criação usa now().",
+            "example": "2026-10-14T09:30"
+          },
+          "placa_caminhao": {
+            "type": "string",
+            "maxLength": 200,
+            "example": "ABC1D23"
+          },
+          "produto": {
+            "type": "string",
+            "enum": [
+              "milho",
+              "soja"
+            ]
+          },
+          "peso_bruto_kg": {
+            "oneOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": true,
+                "minimum": 0,
+                "maximum": 999999999.999
+              },
+              {
+                "type": "string",
+                "pattern": "^[0-9]{1,9}(\\.[0-9]{1,3})?$"
+              }
+            ],
+            "description": "Positivo, menor que 80000 kg."
+          },
+          "usar_tara_anterior": {
+            "type": "boolean",
+            "default": false
+          }
+        },
+        "required": [
+          "placa_caminhao",
+          "produto",
+          "peso_bruto_kg"
+        ],
+        "additionalProperties": false
+      },
+      "InputEdit": {
+        "type": "object",
+        "properties": {
+          "data_entrada": {
+            "type": "string",
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}(:[0-9]{2})?$",
+            "description": "Data real em Brasília, sem offset/Z. Omissão na criação usa now().",
+            "example": "2026-10-14T09:30"
+          },
+          "placa_caminhao": {
+            "type": "string",
+            "maxLength": 200,
+            "example": "ABC1D23"
+          },
+          "produto": {
+            "type": "string",
+            "enum": [
+              "milho",
+              "soja"
+            ]
+          },
+          "peso_bruto_kg": {
+            "oneOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": true,
+                "minimum": 0,
+                "maximum": 999999999.999
+              },
+              {
+                "type": "string",
+                "pattern": "^[0-9]{1,9}(\\.[0-9]{1,3})?$"
+              }
+            ],
+            "description": "Positivo, menor que 80000 kg."
+          },
+          "peso_tara_kg": {
+            "anyOf": [
+              {
+                "oneOf": [
+                  {
+                    "type": "number",
+                    "exclusiveMinimum": true,
+                    "minimum": 0,
+                    "maximum": 999999999.999
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9]{1,9}(\\.[0-9]{1,3})?$"
+                  }
+                ],
+                "description": "Kg positivo, até 3 casas decimais, sem separador de milhares."
+              },
+              {
+                "type": "string",
+                "nullable": true,
+                "enum": [
+                  null
+                ]
+              }
+            ]
+          },
+          "origem": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 200
+          },
+          "umidade_percent": {
+            "anyOf": [
+              {
+                "oneOf": [
+                  {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 100
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9]{1,3}(\\.[0-9]{1,3})?$"
+                  }
+                ],
+                "description": "Percentual entre 0 e 100 inclusive."
+              },
+              {
+                "type": "string",
+                "nullable": true,
+                "enum": [
+                  null
+                ]
+              }
+            ]
+          },
+          "impureza_percent": {
+            "anyOf": [
+              {
+                "oneOf": [
+                  {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 100
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9]{1,3}(\\.[0-9]{1,3})?$"
+                  }
+                ],
+                "description": "Percentual entre 0 e 100 inclusive."
+              },
+              {
+                "type": "string",
+                "nullable": true,
+                "enum": [
+                  null
+                ]
+              }
+            ]
+          },
+          "graos_avariados_percent": {
+            "anyOf": [
+              {
+                "oneOf": [
+                  {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 100
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9]{1,3}(\\.[0-9]{1,3})?$"
+                  }
+                ],
+                "description": "Percentual entre 0 e 100 inclusive."
+              },
+              {
+                "type": "string",
+                "nullable": true,
+                "enum": [
+                  null
+                ]
+              }
+            ]
+          }
+        },
+        "required": [
+          "data_entrada",
+          "placa_caminhao",
+          "produto",
+          "peso_bruto_kg",
+          "peso_tara_kg",
+          "origem",
+          "umidade_percent",
+          "impureza_percent",
+          "graos_avariados_percent"
+        ],
+        "additionalProperties": false
+      },
+      "OutputCreate": {
+        "type": "object",
+        "properties": {
+          "data_saida": {
+            "type": "string",
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}(:[0-9]{2})?$",
+            "description": "Data real em Brasília, sem offset/Z. Omissão na criação usa now().",
+            "example": "2026-10-14T09:30"
+          },
+          "placa_caminhao": {
+            "type": "string",
+            "maxLength": 200,
+            "example": "ABC1D23"
+          },
+          "produto": {
+            "type": "string",
+            "enum": [
+              "milho",
+              "soja"
+            ]
+          },
+          "peso_tara_kg": {
+            "oneOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": true,
+                "minimum": 0,
+                "maximum": 999999999.999
+              },
+              {
+                "type": "string",
+                "pattern": "^[0-9]{1,9}(\\.[0-9]{1,3})?$"
+              }
+            ],
+            "description": "Kg positivo, até 3 casas decimais, sem separador de milhares."
+          }
+        },
+        "required": [
+          "placa_caminhao",
+          "produto",
+          "peso_tara_kg"
+        ],
+        "additionalProperties": false
+      },
+      "OutputEdit": {
+        "type": "object",
+        "properties": {
+          "data_saida": {
+            "type": "string",
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}(:[0-9]{2})?$",
+            "description": "Data real em Brasília, sem offset/Z. Omissão na criação usa now().",
+            "example": "2026-10-14T09:30"
+          },
+          "placa_caminhao": {
+            "type": "string",
+            "maxLength": 200,
+            "example": "ABC1D23"
+          },
+          "produto": {
+            "type": "string",
+            "enum": [
+              "milho",
+              "soja"
+            ]
+          },
+          "peso_tara_kg": {
+            "oneOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": true,
+                "minimum": 0,
+                "maximum": 999999999.999
+              },
+              {
+                "type": "string",
+                "pattern": "^[0-9]{1,9}(\\.[0-9]{1,3})?$"
+              }
+            ],
+            "description": "Kg positivo, até 3 casas decimais, sem separador de milhares."
+          },
+          "peso_bruto_kg": {
+            "anyOf": [
+              {
+                "oneOf": [
+                  {
+                    "type": "number",
+                    "exclusiveMinimum": true,
+                    "minimum": 0,
+                    "maximum": 999999999.999
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9]{1,9}(\\.[0-9]{1,3})?$"
+                  }
+                ],
+                "description": "Kg positivo, até 3 casas decimais, sem separador de milhares."
+              },
+              {
+                "type": "string",
+                "nullable": true,
+                "enum": [
+                  null
+                ]
+              }
+            ]
+          }
+        },
+        "required": [
+          "data_saida",
+          "placa_caminhao",
+          "produto",
+          "peso_tara_kg",
+          "peso_bruto_kg"
+        ],
+        "additionalProperties": false
+      },
+      "Tare": {
+        "type": "object",
+        "properties": {
+          "peso_tara_kg": {
+            "oneOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": true,
+                "minimum": 0,
+                "maximum": 999999999.999
+              },
+              {
+                "type": "string",
+                "pattern": "^[0-9]{1,9}(\\.[0-9]{1,3})?$"
+              }
+            ],
+            "description": "Kg positivo, até 3 casas decimais, sem separador de milhares."
+          }
+        },
+        "required": [
+          "peso_tara_kg"
+        ],
+        "additionalProperties": false
+      },
+      "Gross": {
+        "type": "object",
+        "properties": {
+          "peso_bruto_kg": {
+            "oneOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": true,
+                "minimum": 0,
+                "maximum": 999999999.999
+              },
+              {
+                "type": "string",
+                "pattern": "^[0-9]{1,9}(\\.[0-9]{1,3})?$"
+              }
+            ],
+            "description": "Kg positivo, até 3 casas decimais, sem separador de milhares."
+          },
+          "peso_bruto_adicionado_em": {
+            "type": "string",
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}(:[0-9]{2})?$",
+            "description": "Data real em Brasília, sem offset/Z. Omissão na criação usa now().",
+            "example": "2026-10-14T09:30"
+          }
+        },
+        "required": [
+          "peso_bruto_kg"
+        ],
+        "additionalProperties": false
+      },
+      "Classification": {
+        "type": "object",
+        "properties": {
+          "umidade_percent": {
+            "oneOf": [
+              {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 100
+              },
+              {
+                "type": "string",
+                "pattern": "^[0-9]{1,3}(\\.[0-9]{1,3})?$"
+              }
+            ],
+            "description": "Percentual entre 0 e 100 inclusive."
+          },
+          "impureza_percent": {
+            "oneOf": [
+              {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 100
+              },
+              {
+                "type": "string",
+                "pattern": "^[0-9]{1,3}(\\.[0-9]{1,3})?$"
+              }
+            ],
+            "description": "Percentual entre 0 e 100 inclusive."
+          },
+          "graos_avariados_percent": {
+            "oneOf": [
+              {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 100
+              },
+              {
+                "type": "string",
+                "pattern": "^[0-9]{1,3}(\\.[0-9]{1,3})?$"
+              }
+            ],
+            "description": "Percentual entre 0 e 100 inclusive."
+          }
+        },
+        "required": [
+          "umidade_percent",
+          "impureza_percent",
+          "graos_avariados_percent"
+        ],
+        "additionalProperties": false
+      },
+      "Origin": {
+        "type": "object",
+        "properties": {
+          "origem": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "origem"
+        ],
+        "additionalProperties": false
+      },
+      "Deletion": {
+        "type": "object",
+        "properties": {
+          "motivo_delecao": {
+            "type": "string",
+            "minLength": 20,
+            "maxLength": 2000,
+            "description": "Mínimo após normalizar espaços."
+          }
+        },
+        "required": [
+          "motivo_delecao"
+        ],
+        "additionalProperties": false
+      },
+      "Association": {
+        "type": "object",
+        "properties": {
+          "comprador_id": {
+            "oneOf": [
+              {
+                "type": "string",
+                "pattern": "^[1-9][0-9]{0,18}$",
+                "description": "Inteiro positivo até 9223372036854775807; prefira string para precisão.",
+                "example": "123"
+              },
+              {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "contrato_id": {
+            "oneOf": [
+              {
+                "type": "string",
+                "pattern": "^[1-9][0-9]{0,18}$",
+                "description": "Inteiro positivo até 9223372036854775807; prefira string para precisão.",
+                "example": "123"
+              },
+              {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              }
+            ]
+          }
+        },
+        "required": [
+          "comprador_id",
+          "contrato_id"
+        ],
+        "additionalProperties": false
+      },
+      "Split": {
+        "type": "object",
+        "properties": {
+          "peso_liquido_primeira_kg": {
+            "oneOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": true,
+                "minimum": 0,
+                "maximum": 999999999.999
+              },
+              {
+                "type": "string",
+                "pattern": "^[0-9]{1,9}(\\.[0-9]{1,3})?$"
+              }
+            ],
+            "description": "Kg positivo, até 3 casas decimais, sem separador de milhares."
+          }
+        },
+        "required": [
+          "peso_liquido_primeira_kg"
+        ],
+        "additionalProperties": false
+      },
+      "Empty": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      },
+      "LinkResult": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[1-9][0-9]{0,18}$",
+            "description": "Inteiro positivo até 9223372036854775807; prefira string para precisão.",
+            "example": "123"
+          },
+          "contrato_id": {
+            "type": "string",
+            "pattern": "^[1-9][0-9]{0,18}$",
+            "description": "Inteiro positivo até 9223372036854775807; prefira string para precisão.",
+            "example": "123",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "contrato_id"
+        ],
+        "additionalProperties": false
+      },
+      "SplitResult": {
+        "type": "object",
+        "properties": {
+          "saida_original_id": {
+            "type": "string",
+            "pattern": "^[1-9][0-9]{0,18}$",
+            "description": "Inteiro positivo até 9223372036854775807; prefira string para precisão.",
+            "example": "123"
+          },
+          "nova_saida_id": {
+            "type": "string",
+            "pattern": "^[1-9][0-9]{0,18}$",
+            "description": "Inteiro positivo até 9223372036854775807; prefira string para precisão.",
+            "example": "123"
+          }
+        },
+        "required": [
+          "saida_original_id",
+          "nova_saida_id"
+        ],
+        "additionalProperties": false
+      },
+      "Input": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[1-9][0-9]{0,18}$",
+            "description": "Inteiro positivo até 9223372036854775807; prefira string para precisão.",
+            "example": "123"
+          },
+          "data_entrada": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "placa_caminhao": {
+            "type": "string"
+          },
+          "produto": {
+            "type": "string",
+            "enum": [
+              "milho",
+              "soja"
+            ]
+          },
+          "peso_bruto_kg": {
+            "type": "string",
+            "description": "Decimal PostgreSQL representado como texto, com ponto."
+          },
+          "peso_tara_kg": {
+            "type": "string",
+            "description": "Decimal PostgreSQL representado como texto, com ponto.",
+            "nullable": true
+          },
+          "peso_liquido_kg": {
+            "type": "string",
+            "description": "Decimal PostgreSQL representado como texto, com ponto.",
+            "nullable": true
+          },
+          "liquido_real_kg": {
+            "type": "string",
+            "description": "Decimal PostgreSQL representado como texto, com ponto.",
+            "nullable": true
+          },
+          "tara_usada_de_entrada_id": {
+            "type": "string",
+            "pattern": "^[1-9][0-9]{0,18}$",
+            "description": "Inteiro positivo até 9223372036854775807; prefira string para precisão.",
+            "example": "123",
+            "nullable": true
+          },
+          "origem": {
+            "type": "string",
+            "nullable": true
+          },
+          "umidade_percent": {
+            "type": "string",
+            "description": "Decimal PostgreSQL representado como texto, com ponto.",
+            "nullable": true
+          },
+          "impureza_percent": {
+            "type": "string",
+            "description": "Decimal PostgreSQL representado como texto, com ponto.",
+            "nullable": true
+          },
+          "graos_avariados_percent": {
+            "type": "string",
+            "description": "Decimal PostgreSQL representado como texto, com ponto.",
+            "nullable": true
+          },
+          "classificado_em": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "cliente_user_id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          }
+        },
+        "additionalProperties": true
+      },
+      "Output": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[1-9][0-9]{0,18}$",
+            "description": "Inteiro positivo até 9223372036854775807; prefira string para precisão.",
+            "example": "123"
+          },
+          "data_saida": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "placa_caminhao": {
+            "type": "string"
+          },
+          "produto": {
+            "type": "string",
+            "enum": [
+              "milho",
+              "soja"
+            ]
+          },
+          "peso_tara_kg": {
+            "type": "string",
+            "description": "Decimal PostgreSQL representado como texto, com ponto."
+          },
+          "peso_bruto_kg": {
+            "type": "string",
+            "description": "Decimal PostgreSQL representado como texto, com ponto.",
+            "nullable": true
+          },
+          "peso_liquido_kg": {
+            "type": "string",
+            "description": "Decimal PostgreSQL representado como texto, com ponto.",
+            "nullable": true
+          },
+          "contrato_id": {
+            "type": "string",
+            "pattern": "^[1-9][0-9]{0,18}$",
+            "description": "Inteiro positivo até 9223372036854775807; prefira string para precisão.",
+            "example": "123",
+            "nullable": true
+          },
+          "comprador_nome": {
+            "type": "string",
+            "nullable": true
+          },
+          "data_contrato": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          }
+        },
+        "additionalProperties": true
+      },
+      "OutputDetail": {
+        "type": "object",
+        "properties": {
+          "saida_id": {
+            "type": "string",
+            "pattern": "^[1-9][0-9]{0,18}$",
+            "description": "Inteiro positivo até 9223372036854775807; prefira string para precisão.",
+            "example": "123"
+          },
+          "data_saida": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "placa_caminhao": {
+            "type": "string"
+          },
+          "produto": {
+            "type": "string",
+            "enum": [
+              "milho",
+              "soja"
+            ]
+          },
+          "peso_tara_kg": {
+            "type": "string",
+            "description": "Decimal PostgreSQL representado como texto, com ponto."
+          },
+          "peso_bruto_kg": {
+            "type": "string",
+            "description": "Decimal PostgreSQL representado como texto, com ponto.",
+            "nullable": true
+          },
+          "peso_liquido_kg": {
+            "type": "string",
+            "description": "Decimal PostgreSQL representado como texto, com ponto.",
+            "nullable": true
+          },
+          "contrato_id": {
+            "type": "string",
+            "pattern": "^[1-9][0-9]{0,18}$",
+            "description": "Inteiro positivo até 9223372036854775807; prefira string para precisão.",
+            "example": "123",
+            "nullable": true
+          },
+          "data_contrato": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "peso_bruto_adicionado_em": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "operador_login": {
+            "type": "string",
+            "nullable": true
+          },
+          "preco_por_saca": {
+            "type": "string",
+            "description": "Decimal PostgreSQL representado como texto, com ponto.",
+            "nullable": true
+          },
+          "preco_por_kg": {
+            "type": "string",
+            "description": "Decimal PostgreSQL representado como texto, com ponto.",
+            "nullable": true
+          },
+          "preco_por_ton": {
+            "type": "string",
+            "description": "Decimal PostgreSQL representado como texto, com ponto.",
+            "nullable": true
+          },
+          "quantidade_kg": {
+            "type": "string",
+            "description": "Decimal PostgreSQL representado como texto, com ponto.",
+            "nullable": true
+          },
+          "contrato_saldo_kg": {
+            "type": "string",
+            "description": "Decimal PostgreSQL representado como texto, com ponto.",
+            "nullable": true
+          },
+          "observacoes": {
+            "type": "string",
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "inscricao_estadual_vendedor": {
+            "type": "string",
+            "nullable": true
+          },
+          "natureza_operacao": {
+            "type": "string",
+            "nullable": true
+          },
+          "cfop": {
+            "type": "string",
+            "nullable": true
+          },
+          "informacoes_interesse_contribuinte": {
+            "type": "string",
+            "nullable": true
+          },
+          "razao_social_transportadora": {
+            "type": "string",
+            "nullable": true
+          },
+          "cnpj_transportadora": {
+            "type": "string",
+            "nullable": true
+          },
+          "inscricao_estadual_transportadora": {
+            "type": "string",
+            "nullable": true
+          },
+          "uf_transportadora": {
+            "type": "string",
+            "nullable": true
+          },
+          "vendedor_nome_completo": {
+            "type": "string",
+            "nullable": true
+          },
+          "comprador_nome_completo": {
+            "type": "string",
+            "nullable": true
+          },
+          "comprador_cpf_cnpj": {
+            "type": "string",
+            "nullable": true
+          },
+          "comprador_inscricao_estadual": {
+            "type": "string",
+            "nullable": true
+          },
+          "comprador_endereco": {
+            "type": "string",
+            "nullable": true
+          },
+          "comprador_numero": {
+            "type": "string",
+            "nullable": true
+          },
+          "comprador_cep": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": true
+      },
+      "Invoice": {
+        "type": "object",
+        "properties": {
+          "saida_id": {
+            "type": "string",
+            "pattern": "^[1-9][0-9]{0,18}$",
+            "description": "Inteiro positivo até 9223372036854775807; prefira string para precisão.",
+            "example": "123"
+          },
+          "data_saida": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "placa_caminhao": {
+            "type": "string"
+          },
+          "produto": {
+            "type": "string",
+            "enum": [
+              "milho",
+              "soja"
+            ]
+          },
+          "peso_tara_kg": {
+            "type": "string",
+            "description": "Decimal PostgreSQL representado como texto, com ponto."
+          },
+          "peso_bruto_kg": {
+            "type": "string",
+            "description": "Decimal PostgreSQL representado como texto, com ponto.",
+            "nullable": true
+          },
+          "peso_liquido_kg": {
+            "type": "string",
+            "description": "Decimal PostgreSQL representado como texto, com ponto.",
+            "nullable": true
+          },
+          "contrato_id": {
+            "type": "string",
+            "pattern": "^[1-9][0-9]{0,18}$",
+            "description": "Inteiro positivo até 9223372036854775807; prefira string para precisão.",
+            "example": "123",
+            "nullable": true
+          },
+          "data_contrato": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "peso_bruto_adicionado_em": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "operador_login": {
+            "type": "string",
+            "nullable": true
+          },
+          "preco_por_saca": {
+            "type": "string",
+            "description": "Decimal PostgreSQL representado como texto, com ponto.",
+            "nullable": true
+          },
+          "preco_por_kg": {
+            "type": "string",
+            "description": "Decimal PostgreSQL representado como texto, com ponto.",
+            "nullable": true
+          },
+          "preco_por_ton": {
+            "type": "string",
+            "description": "Decimal PostgreSQL representado como texto, com ponto.",
+            "nullable": true
+          },
+          "quantidade_kg": {
+            "type": "string",
+            "description": "Decimal PostgreSQL representado como texto, com ponto.",
+            "nullable": true
+          },
+          "contrato_saldo_kg": {
+            "type": "string",
+            "description": "Decimal PostgreSQL representado como texto, com ponto.",
+            "nullable": true
+          },
+          "observacoes": {
+            "type": "string",
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "inscricao_estadual_vendedor": {
+            "type": "string",
+            "nullable": true
+          },
+          "natureza_operacao": {
+            "type": "string",
+            "nullable": true
+          },
+          "cfop": {
+            "type": "string",
+            "nullable": true
+          },
+          "informacoes_interesse_contribuinte": {
+            "type": "string",
+            "nullable": true
+          },
+          "razao_social_transportadora": {
+            "type": "string",
+            "nullable": true
+          },
+          "cnpj_transportadora": {
+            "type": "string",
+            "nullable": true
+          },
+          "inscricao_estadual_transportadora": {
+            "type": "string",
+            "nullable": true
+          },
+          "uf_transportadora": {
+            "type": "string",
+            "nullable": true
+          },
+          "vendedor_nome_completo": {
+            "type": "string",
+            "nullable": true
+          },
+          "comprador_nome_completo": {
+            "type": "string",
+            "nullable": true
+          },
+          "comprador_cpf_cnpj": {
+            "type": "string",
+            "nullable": true
+          },
+          "comprador_inscricao_estadual": {
+            "type": "string",
+            "nullable": true
+          },
+          "comprador_endereco": {
+            "type": "string",
+            "nullable": true
+          },
+          "comprador_numero": {
+            "type": "string",
+            "nullable": true
+          },
+          "comprador_cep": {
+            "type": "string",
+            "nullable": true
+          },
+          "nome_nf": {
+            "type": "string"
+          },
+          "peso_liquido_ton": {
+            "type": "string",
+            "description": "Decimal PostgreSQL representado como texto, com ponto.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": true
+      },
+      "Contract": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[1-9][0-9]{0,18}$",
+            "description": "Inteiro positivo até 9223372036854775807; prefira string para precisão.",
+            "example": "123"
+          },
+          "data_contrato": {
+            "type": "string",
+            "format": "date"
+          },
+          "produto": {
+            "type": "string",
+            "enum": [
+              "milho",
+              "soja"
+            ]
+          },
+          "quantidade_kg": {
+            "type": "string",
+            "description": "Decimal PostgreSQL representado como texto, com ponto."
+          },
+          "comprador_nome": {
+            "type": "string"
+          },
+          "quantidade_embarcada_kg": {
+            "type": "string",
+            "description": "Decimal PostgreSQL representado como texto, com ponto."
+          },
+          "saldo_kg": {
+            "type": "string",
+            "description": "Decimal PostgreSQL representado como texto, com ponto."
+          }
+        },
+        "additionalProperties": true
+      },
+      "ContractDetail": {
+        "type": "object",
+        "properties": {
+          "contract": {
+            "type": "object",
+            "properties": {
+              "contrato_id": {
+                "type": "string",
+                "pattern": "^[1-9][0-9]{0,18}$",
+                "description": "Inteiro positivo até 9223372036854775807; prefira string para precisão.",
+                "example": "123"
+              },
+              "data_contrato": {
+                "type": "string",
+                "format": "date"
+              },
+              "produto": {
+                "type": "string",
+                "enum": [
+                  "milho",
+                  "soja"
+                ]
+              },
+              "preco_por_saca": {
+                "type": "string",
+                "description": "Decimal PostgreSQL representado como texto, com ponto."
+              },
+              "quantidade_kg": {
+                "type": "string",
+                "description": "Decimal PostgreSQL representado como texto, com ponto."
+              },
+              "quantidade_embarcada_kg": {
+                "type": "string",
+                "description": "Decimal PostgreSQL representado como texto, com ponto."
+              },
+              "saldo_kg": {
+                "type": "string",
+                "description": "Decimal PostgreSQL representado como texto, com ponto."
+              },
+              "vendedor_nome_completo": {
+                "type": "string"
+              },
+              "comprador_nome_completo": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": true
+          },
+          "outputs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Output"
+            }
+          }
+        },
+        "required": [
+          "contract",
+          "outputs"
+        ],
+        "additionalProperties": false
+      },
+      "InputPage": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Input"
+            }
+          },
+          "pagina": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "limite": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "tem_proxima": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "items",
+          "pagina",
+          "limite",
+          "tem_proxima"
+        ],
+        "additionalProperties": false
+      },
+      "OutputPage": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Output"
+            }
+          },
+          "pagina": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "limite": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "tem_proxima": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "items",
+          "pagina",
+          "limite",
+          "tem_proxima"
+        ],
+        "additionalProperties": false
+      },
+      "ContractPage": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Contract"
+            }
+          },
+          "pagina": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "limite": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "tem_proxima": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "items",
+          "pagina",
+          "limite",
+          "tem_proxima"
+        ],
+        "additionalProperties": false
+      },
+      "Plate": {
+        "type": "object",
+        "properties": {
+          "placa_caminhao": {
+            "type": "string"
+          },
+          "tem_tara_anterior": {
+            "type": "boolean"
+          },
+          "peso_tara_kg": {
+            "type": "string",
+            "description": "Decimal PostgreSQL representado como texto, com ponto.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "Plates": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Plate"
+            }
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "additionalProperties": false
+      },
+      "PreviousTare": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[1-9][0-9]{0,18}$",
+            "description": "Inteiro positivo até 9223372036854775807; prefira string para precisão.",
+            "example": "123"
+          },
+          "peso_tara_kg": {
+            "type": "string",
+            "description": "Decimal PostgreSQL representado como texto, com ponto."
+          }
+        },
+        "additionalProperties": false
+      },
+      "Buyer": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[1-9][0-9]{0,18}$",
+            "description": "Inteiro positivo até 9223372036854775807; prefira string para precisão.",
+            "example": "123"
+          },
+          "nome": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Buyers": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Buyer"
+            }
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "additionalProperties": false
+      },
+      "EligibleContract": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[1-9][0-9]{0,18}$",
+            "description": "Inteiro positivo até 9223372036854775807; prefira string para precisão.",
+            "example": "123"
+          },
+          "data_contrato": {
+            "type": "string",
+            "format": "date"
+          },
+          "produto": {
+            "type": "string",
+            "enum": [
+              "milho",
+              "soja"
+            ]
+          },
+          "preco_por_saca": {
+            "type": "string",
+            "description": "Decimal PostgreSQL representado como texto, com ponto."
+          },
+          "quantidade_kg": {
+            "type": "string",
+            "description": "Decimal PostgreSQL representado como texto, com ponto."
+          },
+          "quantidade_embarcada_kg": {
+            "type": "string",
+            "description": "Decimal PostgreSQL representado como texto, com ponto."
+          },
+          "saldo_kg": {
+            "type": "string",
+            "description": "Decimal PostgreSQL representado como texto, com ponto."
+          }
+        },
+        "additionalProperties": false
+      },
+      "EligibleContracts": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EligibleContract"
+            }
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "additionalProperties": false
+      },
+      "Home": {
+        "type": "object",
+        "properties": {
+          "entradas": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Input"
+            },
+            "maxItems": 10
+          },
+          "saidas": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Output"
+            },
+            "maxItems": 10
+          }
+        },
+        "required": [
+          "entradas",
+          "saidas"
+        ],
+        "additionalProperties": false
+      },
+      "Weight": {
+        "type": "object",
+        "properties": {
+          "balanca_id": {
+            "type": "integer",
+            "enum": [
+              1
+            ]
+          },
+          "peso_kg": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2147483647
+          },
+          "atualizado_em": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "WeightPublish": {
+        "type": "object",
+        "properties": {
+          "peso_kg": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2147483647
+          }
+        },
+        "required": [
+          "peso_kg"
+        ],
+        "additionalProperties": true
+      },
+      "Report": {
+        "type": "object",
+        "properties": {
+          "texto": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "texto"
+        ],
+        "additionalProperties": false
+      }
+    }
+  }
+}

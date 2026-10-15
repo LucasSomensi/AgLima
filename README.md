@@ -52,6 +52,13 @@ ROOT_PASSWORD=troque-esta-senha
 
 Depois de alterar variáveis no Railway, faça redeploy ou reinicie o serviço para o processo Node.js ler os novos valores.
 
+## API da balança
+
+- [API do equipamento](docs/api-balanca.md): envio do peso atual com `api_key`.
+- [API operacional v1](docs/api-balanca-operacional.md): todas as ações do operador,
+  autenticação por usuário, exemplos, implantação e regras de repetição.
+- [OpenAPI](docs/api-balanca.openapi.json): contrato importável em clientes de API.
+
 ## Banco de dados
 
 A aplicação usa PostgreSQL. Consulte a documentação complementar antes de criar ou alterar tabelas:

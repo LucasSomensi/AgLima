@@ -5,6 +5,10 @@ const PRODUCT_VALUES = ['milho', 'soja'];
 const MAX_INPUT_GROSS_WEIGHT_KG = 80000;
 const MIN_DELETE_REASON_LENGTH = 20;
 
+function weighbridgeError(code, message) {
+  return Object.assign(new Error(message), { code });
+}
+
 function getAuditActor(userOrId) {
   if (userOrId && typeof userOrId === 'object') {
     return {
@@ -455,8 +459,8 @@ async function createScaleInput(payload, userId) {
 async function listScaleInputs(options = {}) {
   ensureDatabaseConfigured();
 
-  const limitClause = options.limit ? 'LIMIT $1' : '';
-  const values = options.limit ? [options.limit] : [];
+  const limitClause = options.limit ? 'LIMIT $1 OFFSET $2' : '';
+  const values = options.limit ? [options.limit, options.offset || 0] : [];
   const orderDirection = options.order === 'asc' ? 'ASC' : 'DESC';
   const result = await pool.query(
     `
@@ -752,6 +756,7 @@ async function deleteScaleInput(inputId, user, motivoDelecao) {
     }
 
     await client.query('COMMIT');
+    return Boolean(input);
   } catch (error) {
     await client.query('ROLLBACK');
     throw error;
@@ -952,8 +957,8 @@ async function defineScaleInputOrigin(inputId, origem, userId) {
 async function listScaleOutputs(options = {}) {
   ensureDatabaseConfigured();
 
-  const limitClause = options.limit ? 'LIMIT $1' : '';
-  const values = options.limit ? [options.limit] : [];
+  const limitClause = options.limit ? 'LIMIT $1 OFFSET $2' : '';
+  const values = options.limit ? [options.limit, options.offset || 0] : [];
   const orderDirection = options.order === 'asc' ? 'ASC' : 'DESC';
   const result = await pool.query(
     `
@@ -1085,11 +1090,11 @@ async function associateScaleOutputToContract(outputId, buyerId, contractId, use
     const output = outputResult.rows[0];
 
     if (!output) {
-      throw new Error('Saída não encontrada.');
+      throw weighbridgeError('NOT_FOUND', 'Saída não encontrada.');
     }
 
     if (output.contrato_id) {
-      throw new Error('Essa saída já está associada a um contrato.');
+      throw weighbridgeError('STATE_CONFLICT', 'Essa saída já está associada a um contrato.');
     }
 
     const contractResult = await client.query(
@@ -1108,15 +1113,15 @@ async function associateScaleOutputToContract(outputId, buyerId, contractId, use
     const contract = contractResult.rows[0];
 
     if (!contract) {
-      throw new Error('Contrato não encontrado.');
+      throw weighbridgeError('NOT_FOUND', 'Contrato não encontrado.');
     }
 
     if (String(contract.comprador_id) !== String(buyerId)) {
-      throw new Error('O contrato selecionado não pertence ao comprador informado.');
+      throw weighbridgeError('STATE_CONFLICT', 'O contrato selecionado não pertence ao comprador informado.');
     }
 
     if (contract.produto !== output.produto) {
-      throw new Error('O contrato selecionado não é do mesmo produto da saída.');
+      throw weighbridgeError('STATE_CONFLICT', 'O contrato selecionado não é do mesmo produto da saída.');
     }
 
     const shippedResult = await client.query(
@@ -1131,7 +1136,7 @@ async function associateScaleOutputToContract(outputId, buyerId, contractId, use
     const contractKg = Number(contract.quantidade_kg);
 
     if (contract.contrato_embarcado || shippedKg >= contractKg) {
-      throw new Error('Esse contrato já terminou de embarcar.');
+      throw weighbridgeError('STATE_CONFLICT', 'Esse contrato já terminou de embarcar.');
     }
 
     await client.query(
@@ -1170,11 +1175,11 @@ async function unlinkScaleOutputFromContract(outputId, user) {
     const output = outputResult.rows[0];
 
     if (!output) {
-      throw new Error('Saída não encontrada.');
+      throw weighbridgeError('NOT_FOUND', 'Saída não encontrada.');
     }
 
     if (!output.contrato_id) {
-      throw new Error('Essa saída não está associada a um contrato.');
+      throw weighbridgeError('STATE_CONFLICT', 'Essa saída não está associada a um contrato.');
     }
 
     const updateResult = await client.query(
@@ -1235,7 +1240,7 @@ async function deleteScaleOutput(outputId, user, motivoDelecao) {
     const output = outputResult.rows[0];
 
     if (!output) {
-      throw new Error('Saída não encontrada.');
+      throw weighbridgeError('NOT_FOUND', 'Saída não encontrada.');
     }
 
     await client.query('DELETE FROM saidas_balanca WHERE id = $1', [outputId]);
@@ -1264,7 +1269,7 @@ async function splitScaleOutput(outputId, firstNetWeightKg, user) {
   const normalizedFirstNetWeightKg = normalizeDecimal(firstNetWeightKg);
 
   if (!normalizedFirstNetWeightKg) {
-    throw new Error('Informe um peso líquido válido para a primeira saída.');
+    throw weighbridgeError('INVALID_BODY', 'Informe um peso líquido válido para a primeira saída.');
   }
 
   const client = await pool.connect();
@@ -1279,11 +1284,11 @@ async function splitScaleOutput(outputId, firstNetWeightKg, user) {
     const output = outputResult.rows[0];
 
     if (!output) {
-      throw new Error('Saída não encontrada.');
+      throw weighbridgeError('NOT_FOUND', 'Saída não encontrada.');
     }
 
     if (output.peso_liquido_kg === null || output.peso_liquido_kg === undefined) {
-      throw new Error('Adicione a tara da saída antes de dividir.');
+      throw weighbridgeError('STATE_CONFLICT', 'Adicione o peso bruto da saída antes de dividir.');
     }
 
     const firstNetWeight = Number(normalizedFirstNetWeightKg);
@@ -1292,7 +1297,7 @@ async function splitScaleOutput(outputId, firstNetWeightKg, user) {
     const originalNetWeight = Number(output.peso_liquido_kg);
 
     if (firstNetWeight >= originalNetWeight) {
-      throw new Error('O peso líquido da primeira saída precisa ser menor que o peso líquido original.');
+      throw weighbridgeError('STATE_CONFLICT', 'O peso líquido da primeira saída precisa ser menor que o peso líquido original.');
     }
 
     const firstGrossWeight = originalTareWeight + firstNetWeight;
@@ -1390,7 +1395,7 @@ function normalizeWeighbridgeContractFilter(filter) {
     : WEIGHBRIDGE_CONTRACT_FILTERS.UNSHIPPED;
 }
 
-async function listOpenContractsForWeighbridge(filter = WEIGHBRIDGE_CONTRACT_FILTERS.UNSHIPPED) {
+async function listOpenContractsForWeighbridge(filter = WEIGHBRIDGE_CONTRACT_FILTERS.UNSHIPPED, options = {}) {
   ensureDatabaseConfigured();
 
   const normalizedFilter = normalizeWeighbridgeContractFilter(filter);
@@ -1420,7 +1425,9 @@ async function listOpenContractsForWeighbridge(filter = WEIGHBRIDGE_CONTRACT_FIL
       GROUP BY c.id, c.data_contrato, c.produto, c.quantidade_kg, comp.nome
       ${unshippedHavingClause}
       ORDER BY c.data_contrato ASC, c.id ASC
-    `
+      ${options.limit ? 'LIMIT $1 OFFSET $2' : ''}
+    `,
+    options.limit ? [options.limit, options.offset || 0] : []
   );
 
   return result.rows;

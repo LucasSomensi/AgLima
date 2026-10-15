@@ -16,6 +16,15 @@ app.use(express.json({ limit: '100kb' }));
 app.use('/', indexRouter);
 
 app.use((error, req, res, next) => {
+  if (req.path.startsWith('/api/')) {
+    if (res.headersSent) return next(error);
+    const status = error.type === 'entity.too.large' ? 413
+      : error.type === 'entity.parse.failed' ? 400
+        : error.status === 415 ? 415 : 500;
+    res.setHeader('Cache-Control', 'no-store');
+    return res.status(status).json({ code: status === 413 ? 'PAYLOAD_TOO_LARGE' : status === 400 ? 'INVALID_JSON' : status === 415 ? 'UNSUPPORTED_MEDIA_TYPE' : 'INTERNAL_ERROR',
+      error: status === 413 ? 'A requisição excede 100 KB.' : status === 400 ? 'JSON inválido.' : status === 415 ? 'Codificação do corpo não suportada.' : 'Não foi possível concluir a operação.' });
+  }
   if (error && error.type === 'entity.too.large') {
     return res.status(413).send('A requisição excede o tamanho permitido.');
   }
