@@ -480,6 +480,7 @@ async function listScaleInputs(options = {}) {
              classificado_em,
              cliente_user_id
       FROM entradas_balanca
+      ${options.pendingOnly ? 'WHERE peso_tara_kg IS NULL OR peso_bruto_kg IS NULL OR umidade_percent IS NULL OR impureza_percent IS NULL OR graos_avariados_percent IS NULL' : ''}
       ORDER BY data_entrada ${orderDirection}, id ${orderDirection}
       ${limitClause}
     `,
@@ -975,6 +976,7 @@ async function listScaleOutputs(options = {}) {
       FROM saidas_balanca s
       LEFT JOIN contratos c ON c.id = s.contrato_id
       LEFT JOIN compradores comp ON comp.id = c.comprador_id
+      ${options.pendingOnly ? 'WHERE s.peso_tara_kg IS NULL OR s.peso_bruto_kg IS NULL' : ''}
       ORDER BY s.data_saida ${orderDirection}, s.id ${orderDirection}
       ${limitClause}
     `,

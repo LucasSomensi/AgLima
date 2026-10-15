@@ -73,6 +73,30 @@
           </a>
         </nav>
 
+        <!-- YARD_START -->
+        <section class="admin-section" aria-labelledby="yard-title">
+          <div class="admin-section-header">
+            <h2 id="yard-title">Pátio</h2>
+          </div>
+          <div class="admin-table-wrapper">
+            <table class="admin-table weighbridge-table">
+              <thead>
+                <tr>
+                  <th scope="col">Movimentação</th>
+                  <th scope="col">Placa</th>
+                  <th scope="col">Data/hora</th>
+                  <th scope="col">Produto</th>
+                  <th scope="col">Bruto</th>
+                  <th scope="col">Tara</th>
+                  <th scope="col">Ações</th>
+                </tr>
+              </thead>
+              <tbody>{{YARD_ROWS}}</tbody>
+            </table>
+          </div>
+        </section>
+        <!-- YARD_END -->
+
         <section class="admin-section" aria-labelledby="recent-inputs-title">
           <div class="admin-section-header">
             <h2 id="recent-inputs-title">Últimas 10 entradas</h2>
