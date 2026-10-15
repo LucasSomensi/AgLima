@@ -1571,6 +1571,12 @@ button:disabled,
   }
 }
 
+.weighbridge-yard-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .weighbridge-table {
   min-width: 860px;
 }

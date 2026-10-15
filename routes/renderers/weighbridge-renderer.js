@@ -195,12 +195,50 @@ function buildScaleOutputRows(outputs, { showAllLink = false } = {}) {
     .join('') || `<tr><td colspan="8">${showAllLink ? 'Nenhuma saída cadastrada.' : 'Nenhuma saída recente cadastrada.'}</td></tr>`;
 }
 
-function renderWeighbridgeHomePage(res, { inputs = [], outputs = [], message, error }) {
+function buildYardRows(inputs, outputs) {
+  const movements = [
+    ...inputs.map((item) => ({ item, type: 'entradas', label: 'Entrada', date: item.data_entrada })),
+    ...outputs.map((item) => ({ item, type: 'saidas', label: 'Saída', date: item.data_saida })),
+  ].sort((a, b) => new Date(a.date) - new Date(b.date));
+
+  return movements.map(({ item, type, label, date }) => {
+    const href = `/balanca/${type}/${encodeURIComponent(item.id)}`;
+    const actions = [];
+    const addAction = (suffix, text) => actions.push(`<a class="btn-secondary-action" href="${escapeHtml(href + suffix)}">${text}</a>`);
+    if (item.peso_tara_kg == null) {
+      addAction(type === 'entradas' ? '/tara' : '', 'Adicionar tara');
+    }
+    if (item.peso_bruto_kg == null) {
+      addAction(type === 'saidas' ? '/bruto' : '', 'Adicionar bruto');
+    }
+    if (type === 'entradas' && !isInputClassified(item)) {
+      addAction('/classificacao', 'Adicionar classificação');
+    }
+    if (!actions.length) return '';
+    if (type === 'saidas' && !item.contrato_id) {
+      addAction('/associar', 'Associar contrato');
+    }
+    return `<tr>
+      <td>${label}</td>
+      <td><a class="admin-table-link" href="${escapeHtml(href)}">${escapeHtml(item.placa_caminhao)}</a></td>
+      <td>${escapeHtml(formatDateTime(date))}</td>
+      <td>${escapeHtml(formatProductLabel(item.produto))}</td>
+      <td>${escapeHtml(formatKg(item.peso_bruto_kg))}</td>
+      <td>${escapeHtml(formatKg(item.peso_tara_kg))}</td>
+      <td><div class="weighbridge-yard-actions">${actions.join(' ')}</div></td>
+    </tr>`;
+  }).join('');
+}
+
+function renderWeighbridgeHomePage(res, { inputs = [], outputs = [], yardInputs = [], yardOutputs = [], message, error }) {
   const pagePath = path.join(__dirname, '../../views/weighbridge-home.html');
+  const yardRows = buildYardRows(yardInputs, yardOutputs);
   const html = fs
     .readFileSync(pagePath, 'utf8')
+    .replace(/<!-- YARD_START -->([\s\S]*?)<!-- YARD_END -->/, (_, section) => yardRows ? section : '')
     .replace('{{WEIGHBRIDGE_MESSAGE}}', buildAlertHtml(message))
     .replace('{{WEIGHBRIDGE_ERROR}}', buildAlertHtml(error, 'error'))
+    .replace('{{YARD_ROWS}}', yardRows)
     .replace('{{SCALE_INPUT_ROWS}}', buildScaleInputRows(inputs))
     .replace('{{SCALE_OUTPUT_ROWS}}', buildScaleOutputRows(outputs));
 

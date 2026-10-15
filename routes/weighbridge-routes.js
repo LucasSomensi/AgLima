@@ -89,14 +89,18 @@ router.get('/balanca', canAccessWeighbridge, async (req, res) => {
   }
 
   try {
-    const [inputs, outputs] = await Promise.all([
+    const [inputs, outputs, yardInputs, yardOutputs] = await Promise.all([
       listScaleInputs({ limit: 10 }),
       listScaleOutputs({ limit: 10 }),
+      listScaleInputs({ pendingOnly: true, order: 'asc' }),
+      listScaleOutputs({ pendingOnly: true, order: 'asc' }),
     ]);
 
     return renderWeighbridgeHomePage(res, {
       inputs,
       outputs,
+      yardInputs,
+      yardOutputs,
       message: req.query.entrada_criada
         ? 'Entrada adicionada com sucesso.'
         : req.query.entrada_editada
