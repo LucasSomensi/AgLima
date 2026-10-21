@@ -75,3 +75,21 @@ test('admin notifications describe completed shipment and pending brokerage with
   assert.match(html, /Marcar corretagem como paga/);
   assert.doesNotMatch(html, /pronto para embarque|venceu há|Vencimento em/);
 });
+
+test('receipt notification offers separate mark-only and balance actions with CSRF and no client-supplied amount', () => {
+  let html;
+  renderAdminHomePage({ send: (value) => { html = value; } }, {
+    notifications: [{ type: 'receipt_due', contractId: 7, buyerName: 'Comprador', balanceValue: '0.02', actionPath: '/admin/contratos/7/marcar-recebido' }],
+  });
+  const notification = html.match(/<li class="admin-notification-item admin-notification-receipt_due">([\s\S]*?)<\/li>/)[1];
+  const forms = [...notification.matchAll(/<form[^>]*action="([^"]+)" method="post">([\s\S]*?)<\/form>/g)];
+  assert.equal(forms.length, 2);
+  assert.equal(forms[0][1], '/admin/contratos/7/marcar-recebido');
+  assert.match(forms[0][2], /Apenas marcar como recebido/);
+  assert.equal(forms[1][1], '/admin/contratos/7/receber-saldo');
+  assert.match(forms[1][2], /Lançar saldo e marcar como recebido/);
+  for (const form of forms) {
+    assert.match(form[2], /name="_csrf" value="{{CSRF_TOKEN}}"/);
+    assert.doesNotMatch(form[2], /name="valor"|name="data_recebimento"/);
+  }
+});
