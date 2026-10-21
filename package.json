@@ -18,5 +18,8 @@
     "backfill-dryer-derived-values": "node scripts/backfill-dryer-derived-values.js",
     "backfill-dryer-batch-numbers": "node scripts/backfill-dryer-batch-numbers.js",
     "backfill-storage-recalibration-deltas": "node scripts/backfill-storage-recalibration-deltas.js"
+  },
+  "allowScripts": {
+    "bcrypt@5.1.1": true
   }
 }

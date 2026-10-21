@@ -103,11 +103,13 @@ test('package contains users without hashes; consistent snapshot, history and cl
   t.after(() => backup.cleanup());
   assert.match(backup.fileName, /sem-senhas.*\.tar\.gz$/);
   const files = execFileSync('tar', ['-tzf', backup.filePath], { encoding: 'utf8' });
-  assert.match(files, /database.dump\nusers.json\nLEIA-ME.txt/);
+  assert.match(files, /database.dump\r?\nusers.json\r?\nLEIA-ME.txt/);
   const users = execFileSync('tar', ['-xOzf', backup.filePath, 'users.json'], { encoding: 'utf8' });
   assert.equal(JSON.parse(users)[0].login, 'Teste " especial');
   assert.doesNotMatch(users, /password_hash/);
-  assert.equal((await fs.stat(backup.filePath)).mode & 0o777, 0o600);
+  if (process.platform !== 'win32') {
+    assert.equal((await fs.stat(backup.filePath)).mode & 0o777, 0o600);
+  }
   assert.equal(client.statements.some(({ sql }) => sql.includes('INSERT INTO')), false);
   await backup.recordDelivery('admin-id');
   assert.equal(client.statements.find(({ sql }) => sql.includes('INSERT INTO')).values[1], 'admin-id');
