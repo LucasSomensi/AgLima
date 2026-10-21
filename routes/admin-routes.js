@@ -1,7 +1,7 @@
 const express = require('express');
 const { requireRole, requireRoot } = require('./auth');
 const { MANAGED_ROLES, ROOT_LOGIN, ROLES } = require('./constants');
-const { buildReceiptPayload, createContractReceipt, listContractReceipts, listRecentContractReceipts, listReceivableContracts } = require('./receipt-service');
+const { buildReceiptPayload, createContractReceipt, listContractReceipts, listRecentContractReceipts, listReceivableContracts, receiveContractBalanceAndMarkReceived } = require('./receipt-service');
 const {
   buildBuyerPayload,
   buildContractPayload,
@@ -555,6 +555,18 @@ router.post('/admin/contratos/:id/marcar-recebido', canAccessAdminPanel, async (
       }));
     }
     return res.redirect(buildAdminHomeRedirect({ error: 'Não foi possível atualizar o contrato agora.' }));
+  }
+});
+
+router.post('/admin/contratos/:id/receber-saldo', canAccessAdminPanel, async (req, res) => {
+  try {
+    const updatedRows = await receiveContractBalanceAndMarkReceived(req.params.id, req.sessionUser.userId);
+    return res.redirect(buildAdminHomeRedirect(updatedRows
+      ? { message: 'Saldo liquidado e contrato marcado como recebido com sucesso.' }
+      : { error: 'Esse contrato já foi marcado como recebido ou não existe.' }));
+  } catch (error) {
+    console.error('Error receiving contract balance:', error.message);
+    return res.redirect(buildAdminHomeRedirect({ error: 'Não foi possível lançar o saldo e marcar o contrato como recebido agora.' }));
   }
 });
 

@@ -1207,6 +1207,15 @@ button:disabled,
   margin: 0;
 }
 
+.admin-notification-actions {
+  display: grid;
+  gap: 8px;
+}
+
+.admin-notification-actions .admin-notification-button {
+  width: 100%;
+}
+
 .admin-notification-button {
   min-height: 42px;
   padding-inline: 18px;

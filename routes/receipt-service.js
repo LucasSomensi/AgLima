@@ -119,4 +119,42 @@ async function createContractReceipt(contractId, payload, userId) {
   }
 }
 
-module.exports = { buildReceiptPayload, createContractReceipt, getContractReceipts, listContractReceipts, listRecentContractReceipts, listReceivableContracts, numericCents };
+async function receiveContractBalanceAndMarkReceived(contractId, userId) {
+  ensureDatabaseConfigured();
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    // Use the same lock as manual receipts and contract edits. Calculate the
+    // balance only after acquiring it, so a waiting request sees new receipts.
+    const contractResult = await client.query(`
+      SELECT c.id, c.contrato_recebido, ${contractNetValueSql('c')} AS valor_contrato
+      FROM contratos c WHERE c.id = $1 FOR UPDATE`, [contractId]);
+    const contract = contractResult.rows[0];
+    if (!contract || contract.contrato_recebido) {
+      await client.query('COMMIT');
+      return 0;
+    }
+    const receivedResult = await client.query(`
+      SELECT COALESCE(SUM(valor), 0) AS total FROM contrato_recebimentos WHERE contrato_id = $1`, [contractId]);
+    const remaining = numericCents(contract.valor_contrato) - numericCents(receivedResult.rows[0].total);
+    if (remaining > 0n) {
+      const value = `${remaining / 100n}.${String(remaining % 100n).padStart(2, '0')}`;
+      await client.query(`
+        INSERT INTO contrato_recebimentos (contrato_id, data_recebimento, valor, observacao, usuario_id)
+        VALUES ($1, (now() AT TIME ZONE 'America/Sao_Paulo')::date, $2, $3, $4)`,
+      [contractId, value, 'Recebimento do saldo pela notificação administrativa.', userId]);
+    }
+    await client.query(`
+      UPDATE contratos SET contrato_recebido = TRUE, atualizado_em = now()
+      WHERE id = $1`, [contractId]);
+    await client.query('COMMIT');
+    return 1;
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+module.exports = { buildReceiptPayload, createContractReceipt, getContractReceipts, listContractReceipts, listRecentContractReceipts, listReceivableContracts, numericCents, receiveContractBalanceAndMarkReceived };

@@ -59,5 +59,5 @@ O controle financeiro, incluindo a regra de SENAR, está descrito em [recebiment
 ## Notificações administrativas
 
 - Quando o saldo chega a zero ou fica negativo, o painel avisa que o contrato está com embarque concluído e permite marcá-lo como embarcado.
-- O aviso de recebimento aparece a partir da data prevista enquanto o administrador não marcar o contrato como recebido. Sua ação é **Marcar como recebido**.
+- O aviso de recebimento aparece a partir da data prevista enquanto o administrador não marcar o contrato como recebido. Oferece **Apenas marcar como recebido**, sem gerar lançamento, e **Lançar saldo e marcar como recebido**, que registra o saldo exato restante com a data atual de Brasília e conclui o contrato na mesma transação. Se o saldo já estiver zerado, a segunda opção apenas conclui a marcação. Veja [recebimentos.md](recebimentos.md).
 - O aviso de corretagem pendente aparece assim que o contrato é marcado como recebido, independentemente da data prevista. Ele permanece até a corretagem ser marcada como paga.

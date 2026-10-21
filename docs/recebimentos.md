@@ -21,7 +21,12 @@ Os cálculos usam `numeric` no PostgreSQL e arredondam em centavos. Por exemplo,
 
 O serviço aceita somente valores positivos com até duas casas decimais e datas válidas. A gravação bloqueia a linha do contrato em uma transação e rejeita valores acima do saldo. A edição do contrato não pode reduzir seu novo valor esperado abaixo do total já recebido.
 
-O marcador `contrato_recebido` é uma decisão manual do administrador, separada do saldo calculado. Lançar pagamentos ou alterar o valor do contrato não muda esse marcador. A notificação de recebimento aparece quando chega a data prevista e o marcador ainda é falso, mesmo que a soma já tenha zerado o saldo. Sua única ação é **Marcar como recebido**. O detalhe do contrato também oferece essa ação, inclusive para contratos sem data prevista. Isso permite encerrar um contrato com pequena diferença de centavos sem falsificar um lançamento. Após a marcação, a diferença continua visível no histórico, mas sai do total de pendências financeiras no painel.
+O marcador `contrato_recebido` é uma decisão manual do administrador, separada do saldo calculado. Lançar pagamentos pelo formulário ou alterar o valor do contrato não muda esse marcador. A notificação de recebimento aparece quando chega a data prevista e o marcador ainda é falso, mesmo que a soma já tenha zerado o saldo. Ela oferece duas ações:
+
+- **Apenas marcar como recebido**: altera somente o marcador, sem criar recebimento. Permite encerrar um contrato com pequena diferença de centavos; a diferença continua visível no histórico, mas sai do total de pendências financeiras no painel. O detalhe do contrato também oferece essa marcação, inclusive para contratos sem data prevista.
+- **Lançar saldo e marcar como recebido**: recalcula o saldo atual, considerando SENAR e todos os lançamentos anteriores, registra exatamente o valor restante e marca o contrato como recebido. O lançamento usa a data atual de Brasília (`America/Sao_Paulo`), o usuário administrador autenticado e o comentário “Recebimento do saldo pela notificação administrativa.” Se o saldo já for zero ou negativo, apenas marca o contrato, sem criar lançamento de valor zero ou negativo.
+
+A segunda ação usa `POST /admin/contratos/:id/receber-saldo`, com sessão administrativa e proteção CSRF. O valor é calculado no servidor, sem aceitar valor ou data enviados pelo navegador. A transação bloqueia a linha do contrato antes de consultar os recebimentos, usando o mesmo bloqueio dos lançamentos manuais e das edições de contrato. Inserção e marcação são confirmadas juntas; qualquer falha desfaz ambas. Repetir a ação para um contrato já marcado não gera outro lançamento.
 
 ## Migração
 

@@ -1,7 +1,7 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
 process.env.DATABASE_URL = 'postgres://example.invalid/agrolima';
-const { buildReceiptPayload, createContractReceipt, listContractReceipts, listRecentContractReceipts } = require('../routes/receipt-service');
+const { buildReceiptPayload, createContractReceipt, listContractReceipts, listRecentContractReceipts, receiveContractBalanceAndMarkReceived } = require('../routes/receipt-service');
 const { netValueSql } = require('../routes/contract-finance');
 const { createContract, updateContract } = require('../routes/contract-service');
 const { pool } = require('../routes/database');
@@ -164,4 +164,105 @@ test('final receipt commits without changing the manual received status', async 
   assert.equal(statements.some((item) => item.sql.startsWith('UPDATE contratos')), false);
   assert.equal(statements.some((item) => item.sql.startsWith('INSERT INTO contrato_recebimentos')), true);
   assert.equal(statements.at(-1).sql, 'COMMIT');
+});
+
+function mockBalanceTransaction(t, { contract = { id: 7, valor_contrato: '99.80', contrato_recebido: false }, total = '99.78', failAt } = {}) {
+  const statements = [];
+  let released = false;
+  t.mock.method(pool, 'connect', async () => ({
+    async query(sql, parameters) {
+      statements.push({ sql: sql.trim(), parameters });
+      if (failAt && sql.includes(failAt)) throw new Error('database failure');
+      if (sql.includes('FOR UPDATE')) return { rows: contract ? [contract] : [] };
+      if (sql.includes('SUM(valor)')) return { rows: [{ total }] };
+      return { rows: [], rowCount: 1 };
+    },
+    release() { released = true; },
+  }));
+  return { statements, get released() { return released; } };
+}
+
+test('receiving the balance records exact remaining cents after SENAR, actor and local date before marking', async (t) => {
+  const state = mockBalanceTransaction(t);
+  assert.equal(await receiveContractBalanceAndMarkReceived(7, 'admin-id'), 1);
+  const insert = state.statements.find(({ sql }) => sql.startsWith('INSERT'));
+  assert.deepEqual(insert.parameters, [7, '0.02', 'Recebimento do saldo pela notificação administrativa.', 'admin-id']);
+  assert.match(insert.sql, /\(now\(\) AT TIME ZONE 'America\/Sao_Paulo'\)::date/);
+  const lock = state.statements.find(({ sql }) => sql.includes('FOR UPDATE'));
+  assert.match(lock.sql, /CASE WHEN c.desconta_senar THEN/);
+  assert.ok(state.statements.indexOf(lock) < state.statements.findIndex(({ sql }) => sql.includes('SUM(valor)')));
+  assert.ok(state.statements.indexOf(insert) < state.statements.findIndex(({ sql }) => sql.startsWith('UPDATE contratos')));
+  assert.equal(state.statements.at(-1).sql, 'COMMIT');
+  assert.equal(state.released, true);
+});
+
+test('balance action only marks the contract when nothing positive remains', async (t) => {
+  for (const total of ['99.80', '100.00']) {
+    await t.test(total, async (t) => {
+      const state = mockBalanceTransaction(t, { total });
+      assert.equal(await receiveContractBalanceAndMarkReceived(7, 'admin-id'), 1);
+      assert.equal(state.statements.some(({ sql }) => sql.startsWith('INSERT')), false);
+      assert.equal(state.statements.some(({ sql }) => sql.startsWith('UPDATE contratos')), true);
+      assert.equal(state.statements.at(-1).sql, 'COMMIT');
+    });
+  }
+});
+
+test('balance action does not add receipts to received or missing contracts', async (t) => {
+  for (const contract of [null, { id: 7, contrato_recebido: true, valor_contrato: '99.80' }]) {
+    await t.test(contract ? 'already received' : 'missing', async (t) => {
+      const state = mockBalanceTransaction(t, { contract });
+      assert.equal(await receiveContractBalanceAndMarkReceived(7, 'admin-id'), 0);
+      assert.equal(state.statements.some(({ sql }) => /INSERT|UPDATE contratos|SUM\(valor\)/.test(sql)), false);
+      assert.equal(state.statements.at(-1).sql, 'COMMIT');
+      assert.equal(state.released, true);
+    });
+  }
+});
+
+test('balance action rolls back both writes if insertion or status update fails', async (t) => {
+  for (const failAt of ['INSERT INTO contrato_recebimentos', 'UPDATE contratos']) {
+    await t.test(failAt, async (t) => {
+      const state = mockBalanceTransaction(t, { failAt });
+      await assert.rejects(receiveContractBalanceAndMarkReceived(7, 'admin-id'), /database failure/);
+      assert.equal(state.statements.at(-1).sql, 'ROLLBACK');
+      assert.equal(state.statements.some(({ sql }) => sql === 'COMMIT'), false);
+      assert.equal(state.released, true);
+    });
+  }
+});
+
+test('concurrent balance requests serialize with a manual receipt and do not duplicate the balance', async (t) => {
+  let received = false;
+  let lockQueue = Promise.resolve();
+  const amounts = [];
+  t.mock.method(pool, 'connect', async () => {
+    let unlock;
+    return {
+      async query(sql, parameters) {
+        if (sql.includes('FOR UPDATE')) {
+          const previous = lockQueue;
+          lockQueue = new Promise((resolve) => { unlock = resolve; });
+          await previous;
+          return { rows: [{ id: 7, valor_contrato: '100.00', contrato_recebido: received }] };
+        }
+        if (sql.includes('SUM(valor)')) return { rows: [{ total: amounts.includes('10.00') ? '90.00' : '80.00' }] };
+        if (sql.includes('INSERT INTO contrato_recebimentos')) {
+          amounts.push(parameters.length === 5 ? parameters[2] : parameters[1]);
+        }
+        if (sql.includes('UPDATE contratos')) received = true;
+        if (sql === 'COMMIT' || sql === 'ROLLBACK') unlock();
+        return { rows: [], rowCount: 1 };
+      },
+      release() {},
+    };
+  });
+  const results = await Promise.all([
+    createContractReceipt(7, { value: '10.00', date: '2026-10-21', observation: null }, 'admin-id'),
+    receiveContractBalanceAndMarkReceived(7, 'admin-id'),
+    receiveContractBalanceAndMarkReceived(7, 'admin-id'),
+  ]);
+  assert.deepEqual(results.slice(1), [1, 0]);
+  assert.deepEqual(amounts, ['10.00', '10.00']);
+  assert.equal(received, true);
 });

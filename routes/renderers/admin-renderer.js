@@ -503,7 +503,7 @@ function getAdminNotificationActionLabel(type) {
   const labels = {
     backup_due: 'Baixar backup',
     shipment_due: 'Marcar como embarcado',
-    receipt_due: 'Marcar como recebido',
+    receipt_due: 'Apenas marcar como recebido',
     brokerage_due: 'Marcar corretagem como paga',
   };
 
@@ -534,10 +534,16 @@ function renderAdminNotificationsPanel(notifications) {
               <span>${escapeHtml(buildAdminNotificationDetails(notification))}${notification.type === 'receipt_due' ? ` ${renderPrivateMoney(notification.balanceValue ?? notification.contractValue)}` : notification.type === 'brokerage_due' ? ` ${renderPrivateMoney(notification.brokerageValue)}` : ''}</span>
               ${notification.receiptDate && notification.type !== 'brokerage_due' ? `<span>Vencimento em ${escapeHtml(formatDate(notification.receiptDate))}</span>` : ''}
             </div>
-            <form class="admin-notification-action" action="${escapeHtml(notification.actionPath)}" method="post">
+            <div class="admin-notification-actions">
+              <form class="admin-notification-action" action="${escapeHtml(notification.actionPath)}" method="post">
                 <input type="hidden" name="_csrf" value="{{CSRF_TOKEN}}">
-              <button class="btn-primary-action admin-notification-button" type="submit">${escapeHtml(getAdminNotificationActionLabel(notification.type))}</button>
-            </form>
+                <button class="${notification.type === 'receipt_due' ? 'btn-secondary-action' : 'btn-primary-action'} admin-notification-button" type="submit">${escapeHtml(getAdminNotificationActionLabel(notification.type))}</button>
+              </form>
+              ${notification.type === 'receipt_due' ? `<form class="admin-notification-action" action="/admin/contratos/${escapeHtml(encodeURIComponent(notification.contractId))}/receber-saldo" method="post">
+                <input type="hidden" name="_csrf" value="{{CSRF_TOKEN}}">
+                <button class="btn-primary-action admin-notification-button" type="submit">Lançar saldo e marcar como recebido</button>
+              </form>` : ''}
+            </div>
           </li>
         `)
     .join('');
