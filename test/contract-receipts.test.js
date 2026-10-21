@@ -35,14 +35,15 @@ test('contract persistence stores and checks the SENAR choice', async (t) => {
     }, release() {},
   });
   t.after(() => { pool.query = originalQuery; pool.connect = originalConnect; });
-  const payload = { dataContrato: '2026-10-09', produto: 'soja', precoPorSaca: '60', compradorId: '1', vendedorId: '2', quantidadeKg: '600', descontaSenar: false };
+  const payload = { dataContrato: '2026-10-09', produto: 'soja', precoPorSaca: '60', compradorId: '1', vendedorId: '2', quantidadeKg: '600', contratoRecebido: true, descontaSenar: false };
   await createContract(payload);
   await updateContract(7, payload);
   assert.match(inserted.sql, /desconta_senar/);
   assert.equal(inserted.parameters.at(-1), false);
   assert.match(updated.sql, /desconta_senar = \$24/);
   assert.match(updated.sql, /CASE WHEN \$24::boolean THEN/);
-  assert.doesNotMatch(updated.sql, /contrato_recebido\s*=/);
+  assert.match(updated.sql, /contrato_recebido\s*=\s*\$9/);
+  assert.equal(updated.parameters[8], payload.contratoRecebido);
   assert.equal(updated.parameters.at(-1), false);
 });
 

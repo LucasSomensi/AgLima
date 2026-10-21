@@ -95,6 +95,7 @@ test('contract form keeps submitted values when rendering validation errors', ()
     buyers: [{ id: '7', nome: 'Comprador Teste' }],
     sellers: [{ id: '9', nome: 'Vendedor Teste' }],
     contract: {
+      id: 7,
       data_contrato: '2026-06-25',
       produto: 'milho',
       preco_por_saca: '65,50',
@@ -130,7 +131,7 @@ test('contract form keeps submitted values when rendering validation errors', ()
   assert.match(html, /name="quantidade_kg"[^>]+value="1000\.5"/);
   assert.match(html, /name="contrato_embarcado" type="checkbox" checked/);
   assert.match(html, /name="data_recebimento" type="date" value="2026-07-01"/);
-  assert.doesNotMatch(html, /name="contrato_recebido"/);
+  assert.match(html, /name="contrato_recebido" type="checkbox" checked/);
   assert.match(html, /<option value="false" selected>Não<\/option>/);
   assert.match(html, /name="corretor" type="text" value="Corretor A"/);
   assert.match(html, /name="valor_corretagem_percentual"[^>]+value="1\.25"/);
@@ -153,4 +154,15 @@ test('new contracts deduct SENAR by default and may opt out', () => {
   assert.equal(buildContractPayload(body).payload.descontaSenar, true);
   assert.equal(buildContractPayload({ ...body, desconta_senar: 'false' }).payload.descontaSenar, false);
   assert.match(buildContractPayload({ ...body, desconta_senar: 'invalid' }).error, /SENAR/);
+});
+
+test('new contract form does not show the received marker', () => {
+  const html = renderWith(renderAdminContractFormPage, { buyers: [], sellers: [], contract: null });
+  assert.doesNotMatch(html, /name="contrato_recebido"/);
+});
+
+test('contract payload reads the received marker', () => {
+  const body = { data_contrato: '2026-10-09', produto: 'soja', preco_por_saca: '60', comprador_id: '1', vendedor_id: '2', quantidade_kg: '600' };
+  assert.equal(buildContractPayload(body).payload.contratoRecebido, false);
+  assert.equal(buildContractPayload({ ...body, contrato_recebido: 'on' }).payload.contratoRecebido, true);
 });
