@@ -89,7 +89,8 @@ async function listReceivableContracts() {
     FROM contratos c
     JOIN compradores comp ON comp.id = c.comprador_id
     LEFT JOIN (SELECT contrato_id, SUM(valor) AS total FROM contrato_recebimentos GROUP BY contrato_id) receipts ON receipts.contrato_id = c.id
-    WHERE ${contractNetValueSql('c')} > COALESCE(receipts.total, 0)
+    WHERE c.contrato_recebido IS NOT TRUE
+      AND ${contractNetValueSql('c')} > COALESCE(receipts.total, 0)
     ORDER BY c.data_contrato DESC, c.id DESC`);
   return result.rows;
 }
