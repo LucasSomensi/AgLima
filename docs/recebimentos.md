@@ -2,7 +2,7 @@
 
 ## Acesso e fluxo
 
-A página `/admin` mostra os últimos 10 recebimentos por ordem de registro e oferece um único link para `/admin/recebimentos`. Essa página reúne o formulário de registro e o histórico completo, paginado em grupos de 30. O administrador escolhe um contrato com saldo positivo, informa a data efetiva, o valor e um comentário opcional, e clica em **Registrar recebimento**. A data `contratos.data_recebimento` continua sendo a previsão, usada nas notificações.
+A página `/admin` mostra os últimos 10 recebimentos por ordem de registro e oferece um único link para `/admin/recebimentos`. Essa página reúne o formulário de registro e o histórico completo, paginado em grupos de 30. O administrador escolhe um contrato com saldo positivo e ainda não marcado como recebido, informa a data efetiva, o valor e um comentário opcional, e clica em **Registrar recebimento**. Contratos marcados como recebidos não aparecem no seletor, mesmo que reste uma diferença de centavos; essa diferença permanece visível no histórico financeiro do contrato. A data `contratos.data_recebimento` continua sendo a previsão, usada nas notificações.
 
 O histórico de um contrato fica em `/balanca/contratos/:id`. O administrador vê ali, além das saídas, o valor bruto, o desconto de SENAR, o valor esperado, o total recebido, o saldo, os lançamentos e a ação manual **Marcar contrato como recebido**. O operador de balança vê apenas os dados operacionais e as saídas; a consulta de recebimentos não é feita para sua sessão. O formulário, a lista geral e a ação de marcação exigem administrador.
 
