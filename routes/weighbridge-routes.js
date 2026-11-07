@@ -69,6 +69,15 @@ function buildWeighbridgeRedirect(params = {}) {
   return buildRedirect('/balanca', params);
 }
 
+async function buildOutputCompletionRedirect(outputId, params) {
+  const output = await getScaleOutputById(outputId);
+  const isComplete = output?.contrato_id
+    && output.peso_tara_kg != null
+    && output.peso_bruto_kg != null
+    && output.peso_liquido_kg != null;
+  return buildRedirect(isComplete ? `/balanca/saidas/${outputId}/nf` : '/balanca', params);
+}
+
 function getWeighbridgeNavigation(req) {
   if (req.sessionUser?.role === ROLES.ADMIN) {
     return {
@@ -695,7 +704,7 @@ router.post('/balanca/saidas/:id/bruto', canAccessWeighbridge, async (req, res) 
       });
     }
 
-    return res.redirect(buildWeighbridgeRedirect({ saida_bruto_adicionado: '1' }));
+    return res.redirect(await buildOutputCompletionRedirect(req.params.id, { saida_bruto_adicionado: '1' }));
   } catch (error) {
     console.error('Error adding scale output gross:', error.message);
     return res.redirect(buildWeighbridgeRedirect({
@@ -749,7 +758,7 @@ router.post('/balanca/saidas/:id/associar', canAccessWeighbridge, async (req, re
 
   try {
     await associateScaleOutputToContract(req.params.id, buyerId, contractId, req.sessionUser.userId);
-    return res.redirect(buildWeighbridgeRedirect({ saida_associada: '1' }));
+    return res.redirect(await buildOutputCompletionRedirect(req.params.id, { saida_associada: '1' }));
   } catch (error) {
     return res.redirect(buildRedirect(`/balanca/saidas/${req.params.id}/associar`, {
       comprador_id: buyerId,
@@ -791,9 +800,9 @@ router.post('/balanca/saidas/:id/dividir', canAccessWeighbridge, async (req, res
 router.post('/balanca/saidas/:id/desvincular-contrato', canAccessWeighbridge, async (req, res) => {
   try {
     await unlinkScaleOutputFromContract(req.params.id, req.sessionUser);
-    return res.redirect(buildRedirect(`/balanca/saidas/${req.params.id}/nf`, { contrato_desvinculado: '1' }));
+    return res.redirect(buildRedirect(`/balanca/saidas/${req.params.id}`, { contrato_desvinculado: '1' }));
   } catch (error) {
-    return res.redirect(buildRedirect(`/balanca/saidas/${req.params.id}/nf`, {
+    return res.redirect(buildRedirect(`/balanca/saidas/${req.params.id}`, {
       error: error.message || 'Não foi possível desvincular o contrato agora.',
     }));
   }
@@ -809,7 +818,8 @@ router.get('/balanca/saidas/:id/nf', canAccessWeighbridge, async (req, res) => {
 
     return renderScaleOutputInvoicePage(res, {
       outputInfo,
-      message: req.query.contrato_desvinculado ? 'Contrato desvinculado da saída com sucesso.' : '',
+      message: req.query.saida_associada ? 'Saída associada ao contrato com sucesso.'
+        : req.query.saida_bruto_adicionado ? 'Peso bruto adicionado à saída com sucesso.' : '',
       error: req.query.error || '',
       navigation: getWeighbridgeNavigation(req),
     });
@@ -904,7 +914,8 @@ router.get('/balanca/saidas/:id', canAccessWeighbridge, async (req, res) => {
 
     return renderScaleOutputDetailPage(res, {
       outputInfo,
-      message: req.query.saida_editada ? 'Saída atualizada com sucesso.' : '',
+      message: req.query.saida_editada ? 'Saída atualizada com sucesso.'
+        : req.query.contrato_desvinculado ? 'Contrato desvinculado da saída com sucesso.' : '',
       error: req.query.error || '',
       navigation: getWeighbridgeNavigation(req),
     });

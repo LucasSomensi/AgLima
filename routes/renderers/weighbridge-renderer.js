@@ -636,12 +636,6 @@ function buildScaleOutputInvoiceDetailHtml(outputInfo) {
           <dl class="weighbridge-detail-grid">
             ${invoiceFields.map(([label, value, options]) => buildCopyFieldHtml(label, value, options)).join('\n            ')}
           </dl>
-          <div class="weighbridge-output-actions">
-            <form action="/balanca/saidas/${escapeHtml(outputInfo.saida_id)}/desvincular-contrato" method="post" onsubmit="return confirm('Desvincular esta saída do contrato?');">
-                <input type="hidden" name="_csrf" value="{{CSRF_TOKEN}}">
-              <button class="btn-danger-action" type="submit">Desvincular contrato</button>
-            </form>
-          </div>
         </section>
   `;
 }
@@ -724,6 +718,12 @@ function buildScaleOutputEditFormHtml(outputInfo, formValues = {}) {
 }
 
 function buildScaleOutputActionsHtml(outputInfo) {
+  const unlinkContractForm = outputInfo.contrato_id ? `
+            <form action="/balanca/saidas/${escapeHtml(outputInfo.saida_id)}/desvincular-contrato" method="post" onsubmit="return confirm('Desvincular esta saída do contrato?');">
+              <input type="hidden" name="_csrf" value="{{CSRF_TOKEN}}">
+              <button class="btn-danger-action" type="submit">Desvincular contrato</button>
+            </form>` : '';
+
   if (outputInfo.peso_bruto_kg === null || outputInfo.peso_bruto_kg === undefined) {
     return `
         <section class="admin-section">
@@ -731,6 +731,7 @@ function buildScaleOutputActionsHtml(outputInfo) {
           <p class="admin-muted">Adicione o peso bruto para calcular o peso líquido antes de dividir a saída ou associar contrato.</p>
           <div class="weighbridge-output-actions">
             <a class="btn-secondary-action" href="/balanca/saidas/${escapeHtml(outputInfo.saida_id)}/bruto">Adicionar bruto</a>
+            ${unlinkContractForm}
 ${buildDeletionReasonFormHtml({
               action: `/balanca/saidas/${outputInfo.saida_id}/deletar`,
               buttonLabel: 'Deletar saída',
@@ -764,6 +765,7 @@ ${buildDeletionReasonFormHtml({
           </form>
 
           <div class="weighbridge-output-actions">
+            ${unlinkContractForm}
 ${buildDeletionReasonFormHtml({
               action: `/balanca/saidas/${outputInfo.saida_id}/deletar`,
               buttonLabel: 'Deletar saída',
