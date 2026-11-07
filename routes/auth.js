@@ -1,15 +1,7 @@
 const crypto = require('crypto');
 const { ROLES, SESSION_COOKIE_NAME, SESSION_DURATION_MS } = require('./constants');
 const userService = require('./user-service');
-
-function getSessionSecret() {
-  if (process.env.SESSION_SECRET) {
-    return process.env.SESSION_SECRET;
-  }
-
-  console.error('Missing SESSION_SECRET environment variable. Using an unsafe development fallback.');
-  return 'unsafe-development-session-secret';
-}
+const { getSessionSecret } = require('./security-config');
 
 function base64UrlEncode(value) {
   return Buffer.from(value, 'utf8').toString('base64url');
@@ -51,12 +43,36 @@ function parseCookies(cookieHeader) {
   }, {});
 }
 
+function normalizeSessionVersion(value) {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  const version = Number(value);
+  return Number.isSafeInteger(version) ? version : null;
+}
+
+// Uma sessão só vale enquanto a versão gravada no cookie for a versão atual do
+// usuário no banco. Logout, troca de senha, de perfil ou desativação incrementam
+// essa versão. Se a coluna ainda não existir (migration pendente), o banco
+// devolve null e a verificação é ignorada.
+function isSessionVersionCurrent(session, user) {
+  const currentVersion = normalizeSessionVersion(user.session_version);
+
+  if (currentVersion === null) {
+    return true;
+  }
+
+  return session.sessionVersion === currentVersion;
+}
+
 function createSessionToken(user) {
   const payload = base64UrlEncode(
     JSON.stringify({
       userId: user.id,
       login: user.login,
       role: user.role,
+      sessionVersion: normalizeSessionVersion(user.session_version),
       expiresAt: Date.now() + SESSION_DURATION_MS,
     })
   );
@@ -126,7 +142,7 @@ async function attachSession(req, res, next) {
   try {
     const user = await userService.findActiveUserById(session.userId);
 
-    if (!user || user.disabled) {
+    if (!user || user.disabled || !isSessionVersionCurrent(session, user)) {
       req.sessionUser = null;
       clearSessionCookie(res);
       return next();

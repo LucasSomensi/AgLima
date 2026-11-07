@@ -67,9 +67,9 @@ function renderAdminUsersPage(res, { users, message, error }) {
 
   const adminHtml = fs
     .readFileSync(adminPath, 'utf8')
-    .replace('{{ADMIN_MESSAGE}}', buildAlertHtml(message))
-    .replace('{{ADMIN_ERROR}}', buildAlertHtml(error, 'error'))
-    .replace('{{USERS_ROWS}}', rowsHtml || emptyState);
+    .replace('{{ADMIN_MESSAGE}}', () => buildAlertHtml(message))
+    .replace('{{ADMIN_ERROR}}', () => buildAlertHtml(error, 'error'))
+    .replace('{{USERS_ROWS}}', () => rowsHtml || emptyState);
 
   res.send(adminHtml);
 }
@@ -758,18 +758,18 @@ function renderAdminDashboardPage(res, { batch, readings, settings, message, err
   const dischargeForecast = getBatchDischargeForecast(batch, readings, settings);
   const dashboardHtml = fs
     .readFileSync(dashboardPath, 'utf8')
-    .replace('{{ADMIN_PANEL_MESSAGE}}', buildAlertHtml(message))
-    .replace('{{ADMIN_PANEL_ERROR}}', buildAlertHtml(error, 'error'))
-    .replace('{{BATCH_INITIAL_MOISTURE}}', escapeHtml(batchInitialMoisture))
-    .replace('{{BATCH_STATUS}}', escapeHtml(statusLabel))
-    .replace('{{BATCH_STARTED_AT}}', escapeHtml(batch ? formatDateTime(batch.started_at) : 'Nenhuma batelada ativa'))
-    .replace('{{BATCH_DISCHARGE_STARTED_AT}}', escapeHtmlWithLineBreaks(formatDischargeForecast(dischargeForecast, {
+    .replace('{{ADMIN_PANEL_MESSAGE}}', () => buildAlertHtml(message))
+    .replace('{{ADMIN_PANEL_ERROR}}', () => buildAlertHtml(error, 'error'))
+    .replace('{{BATCH_INITIAL_MOISTURE}}', () => escapeHtml(batchInitialMoisture))
+    .replace('{{BATCH_STATUS}}', () => escapeHtml(statusLabel))
+    .replace('{{BATCH_STARTED_AT}}', () => escapeHtml(batch ? formatDateTime(batch.started_at) : 'Nenhuma batelada ativa'))
+    .replace('{{BATCH_DISCHARGE_STARTED_AT}}', () => escapeHtmlWithLineBreaks(formatDischargeForecast(dischargeForecast, {
       includeForecastPrefix: true,
       immediateLabel: 'Iniciar descarga imediatamente',
     })))
-    .replace('{{BATCH_TARGET_MOISTURE}}', escapeHtml(batchTargetMoisture))
-    .replace('{{BATCH_PRODUCT}}', escapeHtml(batch ? getGrainLabel(batch.grain_type) : '-'))
-    .replace('{{READINGS_ROWS}}', readingsRows);
+    .replace('{{BATCH_TARGET_MOISTURE}}', () => escapeHtml(batchTargetMoisture))
+    .replace('{{BATCH_PRODUCT}}', () => escapeHtml(batch ? getGrainLabel(batch.grain_type) : '-'))
+    .replace('{{READINGS_ROWS}}', () => readingsRows);
 
   res.send(dashboardHtml);
 }
@@ -828,8 +828,8 @@ function renderAdminBatchesPage(res, { batches, pagination = { page: 1, totalPag
   const emptyState = '<tr><td colspan="11">Nenhuma batelada encontrada.</td></tr>';
   const batchesHtml = fs
     .readFileSync(batchesPath, 'utf8')
-    .replace('{{BATCHES_ROWS}}', rowsHtml || emptyState)
-    .replace('{{PAGINATION}}', buildPaginationHtml({
+    .replace('{{BATCHES_ROWS}}', () => rowsHtml || emptyState)
+    .replace('{{PAGINATION}}', () => buildPaginationHtml({
       ...pagination,
       basePath: '/admin/bateladas',
       ariaLabel: 'Paginação das bateladas',
@@ -843,20 +843,20 @@ function renderAdminBatchDetailPage(res, { batch, readings }) {
   const finalMoisture = batch.final_moisture ?? calculateBatchDischargeAverageMoisture(batch, readings);
   const detailHtml = fs
     .readFileSync(batchPath, 'utf8')
-    .replace('{{BATCH_NUMBER}}', escapeHtml(batch.n))
-    .replace('{{BATCH_STATUS}}', escapeHtml(formatBatchStatusLabel(batch)))
-    .replace('{{BATCH_STARTED_AT}}', escapeHtml(formatDateTime(batch.started_at)))
-    .replace('{{BATCH_DISCHARGE_STARTED_AT}}', escapeHtml(batch.discharge_started_at ? formatDateTime(batch.discharge_started_at) : '-'))
-    .replace('{{BATCH_DISCHARGE_SILO}}', escapeHtml(batch.discharge_silo_number ? `Silo ${batch.discharge_silo_number}` : '-'))
-    .replace('{{BATCH_COMPLETED_AT}}', escapeHtml(batch.completed_at ? formatDateTime(batch.completed_at) : '-'))
-    .replace('{{BATCH_TARGET_MOISTURE}}', escapeHtml(formatMoisture(batch.target_moisture)))
-    .replace('{{BATCH_PRODUCT}}', escapeHtml(getGrainLabel(batch.grain_type)))
-    .replace('{{BATCH_DURATION}}', escapeHtml(formatDurationBetween(batch.started_at, batch.completed_at)))
-    .replace('{{BATCH_DRYING_DURATION}}', escapeHtml(formatDurationBetween(batch.started_at, batch.discharge_started_at)))
-    .replace('{{BATCH_DISCHARGE_DURATION}}', escapeHtml(formatDurationBetween(batch.discharge_started_at, batch.completed_at)))
-    .replace('{{BATCH_INITIAL_MOISTURE}}', escapeHtml(formatOptionalMoisture(batch.umidade_inicial)))
-    .replace('{{BATCH_FINAL_MOISTURE}}', escapeHtml(formatOptionalMoisture(finalMoisture)))
-    .replace('{{READINGS_ROWS}}', renderReadingsRows(readings, { batch }));
+    .replace('{{BATCH_NUMBER}}', () => escapeHtml(batch.n))
+    .replace('{{BATCH_STATUS}}', () => escapeHtml(formatBatchStatusLabel(batch)))
+    .replace('{{BATCH_STARTED_AT}}', () => escapeHtml(formatDateTime(batch.started_at)))
+    .replace('{{BATCH_DISCHARGE_STARTED_AT}}', () => escapeHtml(batch.discharge_started_at ? formatDateTime(batch.discharge_started_at) : '-'))
+    .replace('{{BATCH_DISCHARGE_SILO}}', () => escapeHtml(batch.discharge_silo_number ? `Silo ${batch.discharge_silo_number}` : '-'))
+    .replace('{{BATCH_COMPLETED_AT}}', () => escapeHtml(batch.completed_at ? formatDateTime(batch.completed_at) : '-'))
+    .replace('{{BATCH_TARGET_MOISTURE}}', () => escapeHtml(formatMoisture(batch.target_moisture)))
+    .replace('{{BATCH_PRODUCT}}', () => escapeHtml(getGrainLabel(batch.grain_type)))
+    .replace('{{BATCH_DURATION}}', () => escapeHtml(formatDurationBetween(batch.started_at, batch.completed_at)))
+    .replace('{{BATCH_DRYING_DURATION}}', () => escapeHtml(formatDurationBetween(batch.started_at, batch.discharge_started_at)))
+    .replace('{{BATCH_DISCHARGE_DURATION}}', () => escapeHtml(formatDurationBetween(batch.discharge_started_at, batch.completed_at)))
+    .replace('{{BATCH_INITIAL_MOISTURE}}', () => escapeHtml(formatOptionalMoisture(batch.umidade_inicial)))
+    .replace('{{BATCH_FINAL_MOISTURE}}', () => escapeHtml(formatOptionalMoisture(finalMoisture)))
+    .replace('{{READINGS_ROWS}}', () => renderReadingsRows(readings, { batch }));
 
   res.send(detailHtml);
 }
@@ -994,13 +994,13 @@ function renderAdminContractsPage(res, { buyers, sellers, contracts, selectedBuy
     .join('') || '<tr><td colspan="8">Nenhum contrato cadastrado.</td></tr>';
   const contractsHtml = fs
     .readFileSync(contractsPath, 'utf8')
-    .replace('{{CONTRACTS_MESSAGE}}', buildAlertHtml(message))
-    .replace('{{CONTRACTS_ERROR}}', buildAlertHtml(error, 'error'))
-    .replace('{{OPEN_CONTRACTS_ACTIVE_CLASS}}', openContractsActiveClass)
-    .replace('{{ALL_CONTRACTS_ACTIVE_CLASS}}', allContractsActiveClass)
-    .replace('{{BUYERS_ROWS}}', buyerRows)
-    .replace('{{SELLERS_ROWS}}', sellerRows)
-    .replace('{{CONTRACTS_ROWS}}', contractRows);
+    .replace('{{CONTRACTS_MESSAGE}}', () => buildAlertHtml(message))
+    .replace('{{CONTRACTS_ERROR}}', () => buildAlertHtml(error, 'error'))
+    .replace('{{OPEN_CONTRACTS_ACTIVE_CLASS}}', () => openContractsActiveClass)
+    .replace('{{ALL_CONTRACTS_ACTIVE_CLASS}}', () => allContractsActiveClass)
+    .replace('{{BUYERS_ROWS}}', () => buyerRows)
+    .replace('{{SELLERS_ROWS}}', () => sellerRows)
+    .replace('{{CONTRACTS_ROWS}}', () => contractRows);
 
   res.send(contractsHtml);
 }
@@ -1050,13 +1050,13 @@ function renderConstructionPage(res, role, options = {}) {
     : '';
   const constructionHtml = fs
     .readFileSync(constructionPath, 'utf8')
-    .replace('{{CONSTRUCTION_EYEBROW}}', escapeHtml(options.eyebrow || getRoleLabel(role)))
-    .replace('{{CONSTRUCTION_TITLE}}', escapeHtml(options.title || titleByRole[role] || 'Em construção'))
+    .replace('{{CONSTRUCTION_EYEBROW}}', () => escapeHtml(options.eyebrow || getRoleLabel(role)))
+    .replace('{{CONSTRUCTION_TITLE}}', () => escapeHtml(options.title || titleByRole[role] || 'Em construção'))
     .replace(
       '{{CONSTRUCTION_DESCRIPTION}}',
-      escapeHtml(options.description || descriptionByRole[role] || 'A área interna da AgroLima estará disponível em breve.')
+      () => escapeHtml(options.description || descriptionByRole[role] || 'A área interna da AgroLima estará disponível em breve.')
     )
-    .replace('{{CONSTRUCTION_BACK_LINK}}', backLinkHtml);
+    .replace('{{CONSTRUCTION_BACK_LINK}}', () => backLinkHtml);
 
   res.send(constructionHtml);
 }

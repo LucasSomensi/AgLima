@@ -469,6 +469,7 @@ Armazena usuários autenticados do sistema.
 | `role` | `character varying` | Não | `'user'::character varying` | Perfil do usuário. A aplicação trabalha com `root`, `admin`, `client`, `weighbridge_operator` e `silo_operator`. |
 | `disabled` | `boolean` | Não | `false` | Indica se a conta está desativada. |
 | `must_change_password` | `boolean` | Não | `false` | Indica se o usuário deve trocar a senha. |
+| `session_version` | `integer` | Não | `1` | Versão das sessões web do usuário. O cookie guarda a versão vigente no login; logout, troca de senha, de perfil ou desativação a incrementam e invalidam cookies anteriores. Criada por `migrations/20261107_add_user_session_version.sql`. |
 | `created_at` | `timestamp with time zone` | Não | `now()` | Data/hora de criação do usuário. |
 | `updated_at` | `timestamp with time zone` | Não | `now()` | Data/hora da última atualização. |
 
@@ -479,7 +480,8 @@ Armazena usuários autenticados do sistema.
 | Primary key | `users_pkey` | `id` |
 | Unique | `users_login_key` | `login` |
 | Check | `users_role_check` | `role` |
-| Check / not null | constraints `users_*_not_null` | `id`, `login`, `password_hash`, `role`, `disabled`, `must_change_password`, `created_at`, `updated_at` |
+| Check / not null | constraints `users_*_not_null` | `id`, `login`, `password_hash`, `role`, `disabled`, `must_change_password`, `session_version`, `created_at`, `updated_at` |
+| Trigger | `users_revogar_sessoes_web` | `BEFORE UPDATE OF password_hash, role, disabled`: incrementa `session_version` quando um desses campos muda. |
 
 ### Perfis usados pela aplicação
 

@@ -6,6 +6,7 @@ const userService = require('./user-service');
 const { getHomePathForRole } = require('./utils');
 const { loginRateLimiter } = require('./rate-limit');
 const authLoginService = require('./auth-login-service');
+const { getClientIp } = require('./client-ip');
 
 const { LOGIN_EVENT_RESULTS } = authLoginService;
 
@@ -22,7 +23,7 @@ router.get('/login', (req, res) => {
 router.post('/login', loginRateLimiter, async (req, res) => {
   const { login, password } = req.body;
   const loginProvided = String(login || '').trim() || '(login vazio)';
-  const ipAddress = String(req.ip || '').trim() || null;
+  const ipAddress = getClientIp(req);
   const userAgent = String(req.get('user-agent') || '').trim() || null;
   let user = null;
 
@@ -91,8 +92,19 @@ router.post('/login', loginRateLimiter, async (req, res) => {
   }
 });
 
-router.post('/logout', (req, res) => {
+router.post('/logout', async (req, res) => {
   clearSessionCookie(res);
+
+  if (req.sessionUser) {
+    try {
+      // Revoga o cookie no servidor: mesmo que alguém tenha copiado o cookie,
+      // ele deixa de valer. Encerra as sessões do usuário em todos os aparelhos.
+      await userService.revokeUserSessions(req.sessionUser.userId);
+    } catch (error) {
+      console.error('Error revoking user sessions on logout:', error.message);
+    }
+  }
+
   return res.redirect('/login');
 });
 

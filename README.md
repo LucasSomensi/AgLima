@@ -26,7 +26,9 @@ Aplicação web Node.js/Express para operações da AgroLima, incluindo site pú
 | Variável | Obrigatória | Usada por | Descrição |
 | --- | --- | --- | --- |
 | `DATABASE_URL` | Sim para funcionalidades com banco | Aplicação, autenticação, painéis, `npm run create-root-user` e `npm run backfill-dryer-derived-values` | String de conexão do PostgreSQL usada pela biblioteca `pg`. |
-| `SESSION_SECRET` | Sim em produção | Autenticação | Segredo usado para assinar o cookie de sessão. Use um valor longo e aleatório; sem ele há apenas um fallback inseguro de desenvolvimento. |
+| `SESSION_SECRET` | Sim em produção | Autenticação | Segredo usado para assinar o cookie de sessão. Use um valor longo e aleatório (por exemplo, `openssl rand -base64 48`). Com `NODE_ENV=production`, o servidor não inicia sem ele ou com o valor de exemplo abaixo; fora de produção há um fallback inseguro de desenvolvimento. |
+| `CSRF_SECRET` | Não | Formulários autenticados | Segredo dos tokens CSRF. Se ausente, usa `SESSION_SECRET`. |
+| `CLIENT_IP_HEADER` | Não | Limite de tentativas e histórico de login | Cabeçalho com o IP real do cliente quando a aplicação está atrás de um proxy. No Railway (detectado por `RAILWAY_PROJECT_ID`) o padrão é `x-real-ip`, que o proxy de borda sempre sobrescreve. Defina vazio para usar apenas o IP da conexão. Só configure um cabeçalho que o seu proxy sobrescreva; caso contrário, o cliente pode falsificá-lo. |
 | `SESSION_DURATION_DAYS` | Não | Autenticação | Duração da sessão em dias. Deve ser número positivo; tem prioridade sobre `SESSION_DURATION_HOURS`. |
 | `SESSION_DURATION_HOURS` | Não | Autenticação | Alternativa para duração da sessão em horas quando `SESSION_DURATION_DAYS` não está definida. Se nenhuma duração válida for informada, o padrão é 8 horas. |
 | `MAILERSEND_API_TOKEN` | Sim para `/contato` enviar e-mail | Formulário de contato | Token da API MailerSend. Não commite este valor no Git. |
@@ -40,7 +42,7 @@ Exemplo de variáveis para Railway:
 
 ```env
 DATABASE_URL=postgresql://usuario:senha@host:5432/agrolima
-SESSION_SECRET=troque-por-uma-string-longa-e-aleatoria
+SESSION_SECRET=gere-com-openssl-rand-base64-48
 SESSION_DURATION_DAYS=30
 MAILERSEND_API_TOKEN=ms_xxxxxxxxxxxxxxxxxxxxx
 MAILERSEND_FROM_EMAIL=contato@seudominio.com
@@ -148,6 +150,8 @@ Além de `DATABASE_URL`, configure `SESSION_SECRET` e, se quiser alterar o padr�
 
 As senhas criadas pelo painel root são armazenadas como hash `bcrypt` na coluna `password_hash`; a senha em texto puro nunca é gravada no banco.
 
+Cada cookie de sessão guarda a versão de sessão do usuário (`users.session_version`, criada pela migration `migrations/20261107_add_user_session_version.sql`). Sair do sistema, trocar a senha, mudar o perfil ou desativar a conta incrementa essa versão e invalida imediatamente todos os cookies já emitidos para o usuário, em todos os aparelhos. Enquanto a migration não for aplicada, a aplicação continua funcionando, mas sem essa revogação.
+
 ## Horário do sistema
 
 As telas e formulários do sistema usam sempre o fuso de Brasília (`America/Sao_Paulo`). Campos `datetime-local` enviados pelo navegador são interpretados como horário de Brasília antes de serem salvos no PostgreSQL, e datas recuperadas do banco também são exibidas nesse mesmo fuso.
@@ -184,6 +188,7 @@ A documentação técnica e operacional do fluxo do operador de secador foi movi
 
 Os endpoints públicos de formulário têm proteções pequenas em memória para reduzir abuso sem alterar o fluxo normal de usuários legítimos:
 
+- O IP considerado é o do cliente, e não o do proxy do Railway; veja `CLIENT_IP_HEADER` na tabela de variáveis de ambiente.
 - `POST /login`: limitado por IP a 10 tentativas em uma janela de 15 minutos. Ao exceder o limite, a aplicação retorna HTTP 429 com uma mensagem genérica, sem indicar se o login existe.
 - `POST /contato`: limitado por IP a 5 envios em uma janela de 30 minutos. Requisições bloqueadas retornam HTTP 429 e não chamam a API do MailerSend.
 - O formulário de contato também valida e normaliza os campos no servidor antes do envio ao MailerSend e rejeita payloads excessivos com HTTP 413.
@@ -191,4 +196,4 @@ Os endpoints públicos de formulário têm proteções pequenas em memória para
 
 Os limites atuais usam armazenamento em memória do processo Node.js. Em ambientes com múltiplas instâncias ou réplicas, como um deploy escalado horizontalmente no Railway, a contagem é por processo e não é compartilhada entre instâncias. Para limites globais entre réplicas, substitua esse armazenamento por um backend compartilhado, como Redis.
 
-Nenhuma variável de ambiente nova é necessária para essas proteções. As variáveis `MAILERSEND_API_TOKEN`, `MAILERSEND_FROM_EMAIL` e `CONTACT_TO` continuam sendo necessárias para envios reais do formulário de contato.
+Fora do Railway, nenhuma variável de ambiente nova é necessária para essas proteções; atrás de outro proxy, configure `CLIENT_IP_HEADER`. As variáveis `MAILERSEND_API_TOKEN`, `MAILERSEND_FROM_EMAIL` e `CONTACT_TO` continuam sendo necessárias para envios reais do formulário de contato.

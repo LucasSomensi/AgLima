@@ -1,3 +1,5 @@
+const { getClientIp } = require('./client-ip');
+
 function createIpRateLimiter({ windowMs, max, message }) {
   const hitsByIp = new Map();
 
@@ -13,7 +15,7 @@ function createIpRateLimiter({ windowMs, max, message }) {
     const now = Date.now();
     prune(now);
 
-    const ip = req.ip || req.socket?.remoteAddress || req.connection?.remoteAddress || 'unknown';
+    const ip = getClientIp(req) || 'unknown';
     const current = hitsByIp.get(ip);
     const entry = current && current.resetAt > now
       ? current
