@@ -50,7 +50,7 @@ Restrições relevantes:
 - `views/weighbridge-output-form.html`: formulário de nova saída.
 - `views/weighbridge-output-detail.html`: tela de detalhes, divisão e deleção da saída.
 - `views/weighbridge-associate-output.html`: seleção de comprador e contrato para associação.
-- `views/weighbridge-output-invoice.html`: tela de informações para nota fiscal e desvinculação de contrato.
+- `views/weighbridge-output-invoice.html`: tela de informações para nota fiscal, com botão para voltar à página inicial da balança ou da administração, conforme o perfil.
 - `views/weighbridge-contracts.html`: lista de contratos com embarque pendente.
 - `views/weighbridge-contract-detail.html`: detalhe de contrato aberto com saídas associadas.
 - `public/css/styles.css`: estilos compartilhados e específicos das telas da balança.
@@ -144,6 +144,8 @@ Na mesma tela ficam as ações de divisão e deleção quando já há peso líqu
 
 Uma saída recém-criada fica pendente de peso bruto e de contrato. O operador pode iniciar a associação pela lista ou pelo detalhe da saída, em `/balanca/saidas/:id/associar`, mesmo antes de adicionar o bruto. O peso bruto pode ser adicionado pela lista ou pelo detalhe da saída quando o caminhão retornar à balança. A tela `/balanca/saidas/:id/bruto` também possui o campo `Data e hora do peso bruto`, com o mesmo padrão de `datetime-local` usado na criação da saída: o valor inicial é a data/hora atual e o operador pode ajustar antes de salvar. Ao confirmar, o backend grava `peso_bruto_kg`, `peso_bruto_adicionado_em` e `atualizado_em`.
 
+Depois de adicionar o bruto ou associar um contrato, o servidor confere os dados gravados. Se tara, bruto, peso líquido e contrato estiverem preenchidos, redireciona automaticamente para `/balanca/saidas/:id/nf`. A ordem do preenchimento não importa. Enquanto faltar algum desses dados, a operação retorna à página inicial. Salvar pela edição em `/balanca/saidas/:id` sempre retorna aos detalhes da saída, mesmo que os dados fiquem completos. A página de NF continua oferecendo o botão **Voltar** para a página inicial correspondente ao perfil.
+
 A tela de associação funciona em duas etapas:
 
 1. O operador escolhe o comprador.
@@ -167,7 +169,7 @@ No envio do formulário, `associateScaleOutputToContract` executa a associação
 - Atualiza `saidas_balanca.contrato_id`, `associado_por_user_id`, `associado_em` e `atualizado_em`.
 - Não altera `contratos.contrato_embarcado`; mesmo que a soma embarcada atinja ou ultrapasse a quantidade do contrato, a marcação de embarcado depende de ação manual de administrador.
 
-Após sucesso, o operador retorna à tela inicial com “Saída associada ao contrato com sucesso.”
+Após sucesso, o operador vê “Saída associada ao contrato com sucesso.” na tela de NF se a saída estiver completa, ou na tela inicial se ainda faltar a pesagem.
 
 > Observação: a implementação atual não rejeita uma saída cujo peso líquido seja maior que o saldo restante; nesses casos, o saldo calculado pode chegar a zero ou ficar negativo, mas o contrato não é marcado como embarcado automaticamente.
 
@@ -251,7 +253,7 @@ Após sucesso, o operador volta para `/balanca` com “Saída deletada com suces
 
 ### 10. Desvincular uma saída de contrato
 
-A ação de desvincular aparece na tela de informações NF quando a saída está associada. O formulário chama `POST /balanca/saidas/:id/desvincular-contrato`.
+A ação de desvincular aparece apenas na tela de detalhes `/balanca/saidas/:id`, quando a saída está associada. O formulário chama `POST /balanca/saidas/:id/desvincular-contrato`. A tela de informações NF oferece um botão **Voltar** para `/balanca` quando acessada pelo operador, ou `/admin` quando acessada pelo administrador.
 
 `unlinkScaleOutputFromContract` executa em transação:
 
@@ -262,7 +264,7 @@ A ação de desvincular aparece na tela de informações NF quando a saída est�
 - Atualiza `atualizado_em`.
 - Não altera o status `contrato_embarcado` do contrato que perdeu a saída; o saldo volta a ser refletido apenas pelos cálculos das consultas.
 
-Após sucesso, o operador volta para `/balanca/saidas/:id/nf` com a mensagem “Contrato desvinculado da saída com sucesso.” Como a saída fica sem contrato, a tela passa a oferecer associação novamente.
+Após sucesso, o operador volta para `/balanca/saidas/:id` com a mensagem “Contrato desvinculado da saída com sucesso.” Como a saída fica sem contrato, a tela passa a oferecer associação novamente.
 
 ### 11. Consultar contratos pendentes pela balança
 
@@ -323,9 +325,9 @@ Mensagens de sucesso exibidas após redirects de saída:
 - `saida_dividida`: “Saída dividida com sucesso.”
 - `saida_bruto_adicionado`: “Peso bruto adicionado à saída com sucesso.”
 - `saida_associada`: “Saída associada ao contrato com sucesso.”
-- `contrato_desvinculado`: “Contrato desvinculado da saída com sucesso.”, exibida na tela de informações NF após a desvinculação.
+- `contrato_desvinculado`: “Contrato desvinculado da saída com sucesso.”, exibida nos detalhes da saída após a desvinculação.
 
-As mensagens de criação, deleção, divisão e associação retornam para `/balanca`. Erros de validação de criação aparecem no próprio formulário. Erros de associação, divisão, deleção, NF e desvinculação redirecionam para a tela mais próxima da ação com a mensagem retornada pelo serviço ou uma mensagem genérica.
+As mensagens de criação, deleção e divisão retornam para `/balanca`. Após adicionar bruto ou associar contrato, a confirmação aparece na NF quando a saída estiver completa, ou na página inicial se ainda estiver pendente. A edição sempre exibe a confirmação nos detalhes da saída. Erros de validação de criação aparecem no próprio formulário. Erros de associação, divisão, deleção, NF e desvinculação redirecionam para a tela mais próxima da ação com a mensagem retornada pelo serviço ou uma mensagem genérica.
 
 ## Pontos de atenção para manutenção
 
