@@ -1,6 +1,7 @@
 const express = require('express');
 const path = require('path');
 const indexRouter = require('./routes/index');
+const { assertSecurityConfig } = require('./routes/security-config');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -38,6 +39,7 @@ app.use((req, res, next) => {
   });
 
 if (require.main === module) {
+  assertSecurityConfig();
   app.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}/`);
   });

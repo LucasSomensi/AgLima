@@ -1,22 +1,10 @@
 const crypto = require('crypto');
 const { SESSION_COOKIE_NAME } = require('./constants');
 const { parseCookies } = require('./auth');
+const { getCsrfSecret } = require('./security-config');
 
 const CSRF_TOKEN_FIELD = '_csrf';
 const CSRF_TOKEN_MAX_AGE_MS = 12 * 60 * 60 * 1000;
-
-function getCsrfSecret() {
-  if (process.env.CSRF_SECRET) {
-    return process.env.CSRF_SECRET;
-  }
-
-  if (process.env.SESSION_SECRET) {
-    return process.env.SESSION_SECRET;
-  }
-
-  console.error('Missing CSRF_SECRET/SESSION_SECRET environment variable. Using an unsafe development fallback.');
-  return 'unsafe-development-csrf-secret';
-}
 
 function sign(value) {
   return crypto.createHmac('sha256', getCsrfSecret()).update(value).digest('base64url');
@@ -87,7 +75,8 @@ function csrfProtection(req, res, next) {
   const originalSend = res.send.bind(res);
   res.send = (body) => {
     if (typeof body === 'string') {
-      body = body.replace(/{{CSRF_TOKEN}}/g, req.sessionUser ? req.csrfToken() : '');
+      const token = req.sessionUser ? req.csrfToken() : '';
+      body = body.replace(/{{CSRF_TOKEN}}/g, () => token);
     }
 
     return originalSend(body);

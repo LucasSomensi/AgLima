@@ -4,6 +4,7 @@ const { pool, ensureDatabaseConfigured } = require('./database');
 const users = require('./user-service');
 const loginEvents = require('./auth-login-service');
 const { ROLES } = require('./constants');
+const { getClientIp } = require('./client-ip');
 
 const TOKEN_TTL_SECONDS = 16 * 60 * 60;
 const ALLOWED_ROLES = [ROLES.WEIGHBRIDGE_OPERATOR, ROLES.ADMIN];
@@ -23,7 +24,7 @@ async function login(req, res) {
   const result = !user ? 'usuario_inexistente' : user.disabled ? 'usuario_desativado' : !matches ? 'senha_invalida' : 'sucesso';
   await loginEvents.recordLoginEvent({
     login: name.trim(), userId: user?.id || null, result,
-    ipAddress: req.ip || null, userAgent: `API balança: ${req.get('user-agent') || ''}`.slice(0, 500),
+    ipAddress: getClientIp(req), userAgent: `API balança: ${req.get('user-agent') || ''}`.slice(0, 500),
   });
   if (!user || user.disabled || !matches) {
     return res.status(401).json({ code: 'INVALID_CREDENTIALS', error: 'Login não autorizado.' });

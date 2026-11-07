@@ -19,11 +19,20 @@ function readTemplate(templateName) {
   return fs.readFileSync(path.join(__dirname, '../../views', templateName), 'utf8');
 }
 
+// Substitui todos os placeholders em uma única passada. A função de substituição
+// impede que sequências como `$&` ou `$'` digitadas pelo usuário sejam
+// interpretadas por String#replace, e um valor que contenha `{{OUTRO}}` não é
+// expandido novamente. Placeholders desconhecidos (como {{CSRF_TOKEN}}) ficam
+// intactos para etapas posteriores.
 function replacePlaceholders(templateHtml, placeholders = {}) {
-  return Object.entries(placeholders).reduce((html, [placeholder, value]) => {
-    const safeValue = value === null || value === undefined ? '' : String(value);
-    return html.replace(new RegExp(`{{${placeholder}}}`, 'g'), safeValue);
-  }, templateHtml);
+  return templateHtml.replace(/{{([A-Za-z0-9_]+)}}/g, (match, placeholder) => {
+    if (!Object.prototype.hasOwnProperty.call(placeholders, placeholder)) {
+      return match;
+    }
+
+    const value = placeholders[placeholder];
+    return value === null || value === undefined ? '' : String(value);
+  });
 }
 
 function renderTemplate(templateName, placeholders = {}) {
