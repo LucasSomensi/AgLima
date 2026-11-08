@@ -30,7 +30,9 @@
 
         {{DRYER_MESSAGE}}
         {{DRYER_ERROR}}
+        <div data-panel-alerts-slot>
         {{DRYER_NOTIFICATIONS}}
+        </div>
 
         <section class="dryer-status-grid" aria-label="Status da batelada atual">
           <article class="dryer-status-card">
@@ -98,6 +100,7 @@
       </section>
     </main>
     <script src="/js/dryer-pwa.js" defer></script>
+    <script src="/js/dryer-scale-weight.js" defer></script>
     <script>
       const connectionStatus = document.querySelector('[data-connection-status]');
       const connectionStatusText = document.querySelector('[data-connection-status-text]');

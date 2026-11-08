@@ -251,8 +251,25 @@ function renderDryerReadingRows(batch, readings = [], curveSettings) {
     .join('');
 }
 
-function renderUnclassifiedInputNotifications(inputs = []) {
-  if (!inputs.length) {
+function formatScaleWeight(value) {
+  return `${Number(value).toLocaleString('pt-BR', { maximumFractionDigits: 0 })} kg`;
+}
+
+function renderTruckOnScaleNotification(reading) {
+  if (!reading) {
+    return '';
+  }
+
+  return `
+            <div class="dryer-scale-notification" data-scale-weight-notification role="status">
+              <span class="dryer-scale-notification-label">Caminhão na balança</span>
+              <strong class="dryer-scale-notification-weight" data-scale-weight-value>${escapeHtml(formatScaleWeight(reading.peso_kg))}</strong>
+            </div>
+        `;
+}
+
+function renderDryerNotifications(inputs = [], truckOnScale = null) {
+  if (!inputs.length && !truckOnScale) {
     return '';
   }
 
@@ -263,8 +280,9 @@ function renderUnclassifiedInputNotifications(inputs = []) {
     .join('');
 
   return `
-        <section class="admin-section dryer-notifications" aria-label="Classificações pendentes">
-          <div class="dryer-notifications-list">
+        <section class="admin-section dryer-notifications" data-dryer-notifications aria-label="Notificações do secador">
+          <div class="dryer-notifications-list" data-dryer-notifications-list>
+            ${renderTruckOnScaleNotification(truckOnScale)}
             ${notificationButtons}
           </div>
         </section>
@@ -322,7 +340,7 @@ function renderDryerDischargeConfirmationPage(res, { lastSiloNumber = null, disc
   res.send(html);
 }
 
-function renderDryerPanelPage(res, { batch, readings, settings, message, error, unclassifiedInputs = [], lastCompletedBatch = null }) {
+function renderDryerPanelPage(res, { batch, readings, settings, message, error, unclassifiedInputs = [], lastCompletedBatch = null, truckOnScale = null }) {
   const dischargeForecast = batch?.discharge_started_at
     ? calculateDischargeForecast({ batch, readings, curveSettings: settings })
     : (getLatestPersistedForecast(readings) || calculateDischargeForecast({ batch, readings, curveSettings: settings }));
@@ -361,7 +379,7 @@ function renderDryerPanelPage(res, { batch, readings, settings, message, error, 
   const dryerHtml = renderTemplate('dryer-panel.html', {
     DRYER_MESSAGE: buildAlertHtml(message),
     DRYER_ERROR: buildAlertHtml(error, 'error'),
-    DRYER_NOTIFICATIONS: renderUnclassifiedInputNotifications(unclassifiedInputs),
+    DRYER_NOTIFICATIONS: renderDryerNotifications(unclassifiedInputs, truckOnScale),
     BATCH_STATUS: batchStatusHtml,
     BATCH_STARTED_AT: escapeHtml(startedAt),
     DISCHARGE_STARTED_AT: escapeHtmlWithLineBreaks(dischargeStartedAt),

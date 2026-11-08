@@ -2,6 +2,13 @@ const { ensureDatabaseConfigured, pool } = require('./database');
 
 const SCALE_ONE_ID = 1;
 const MAX_POSTGRES_INTEGER = 2147483647;
+const TRUCK_ON_SCALE_MIN_WEIGHT_KG = 1000;
+
+function isTruckOnScale(reading) {
+  const weight = Number(reading?.peso_kg);
+
+  return Number.isFinite(weight) && weight > TRUCK_ON_SCALE_MIN_WEIGHT_KG;
+}
 
 function buildScaleWeightPayload(body) {
   const weight = body?.peso_kg;
@@ -49,6 +56,8 @@ async function getCurrentScaleWeight(scaleId) {
 module.exports = {
   buildScaleWeightPayload,
   getCurrentScaleWeight,
+  isTruckOnScale,
   saveCurrentScaleWeight,
   SCALE_ONE_ID,
+  TRUCK_ON_SCALE_MIN_WEIGHT_KG,
 };

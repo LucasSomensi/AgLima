@@ -87,6 +87,7 @@ Campos centrais:
 ### Operador de secador
 
 - `GET /secador`: mostra o painel operacional com status, início da batelada, previsão ou horário de descarga, umidade inicial da batelada ativa, formulário de umidade, ação principal, medições da batelada ativa e, quando existirem, botões de classificação para entradas da balança sem classificação.
+- `GET /secador/balanca/peso-atual`: devolve em JSON `caminhao_na_balanca`, `peso_kg` e `atualizado_em` da balança 1. `caminhao_na_balanca` só é `true` quando o último peso recebido pela API é maior que `1000` kg; caso contrário, `peso_kg` e `atualizado_em` vêm `null`. Responde com `Cache-Control: no-store`.
 - `GET /secador/entradas/:id/classificacao`: abre o formulário mobile de classificação para uma entrada da balança ainda sem `classificado_em`.
 - `POST /secador/entradas/:id/classificacao`: valida e grava `umidade_percent`, `impureza_percent`, `graos_avariados_percent`, `classificado_por_user_id` e `classificado_em` para a entrada, usando as mesmas regras do fluxo da balança.
 - `GET /secador/bateladas/nova`: mostra a etapa de confirmação para iniciar nova batelada, com o campo editável de umidade inicial preenchido pela média das 5 últimas entradas classificadas da balança ou por `28%` quando não houver 5 entradas com umidade disponível.
@@ -125,6 +126,8 @@ O painel mostra três estados principais:
 - **Secando**: existe batelada ativa sem `discharge_started_at`. O operador pode registrar umidades, iniciar a descarga ou parar o secador.
 - **Descarregando**: existe batelada ativa com `discharge_started_at`. O operador ainda pode registrar umidades, pode parar o secador ou iniciar uma nova batelada, o que encerra a batelada atual.
 
+
+Quando há um caminhão sobre a balança (último peso recebido pela API maior que `1000` kg, regra em `isTruckOnScale` de `routes/scale-reading-service.js`), o mesmo quadro exibe, acima dos botões de classificação, uma notificação “Caminhão na balança” com o peso atual em destaque e formatação própria (`.dryer-scale-notification`). O estado inicial vem renderizado no servidor; depois `public/js/dryer-scale-weight.js` consulta `/secador/balanca/peso-atual` a cada 3 segundos (pausando com a aba oculta), atualiza o peso exibido e remove a notificação quando o peso volta a `1000` kg ou menos. Se o quadro só existia por causa do caminhão, ele também é removido. Falhas na leitura do peso não impedem o carregamento do painel.
 
 ### 2. Classificar entrada pendente da balança
 

@@ -27,6 +27,7 @@ const {
   renderDryerDischargeConfirmationPage,
   renderDryerStartBatchPage,
 } = require('./renderers/dryer-renderer');
+const { getCurrentScaleWeight, isTruckOnScale, SCALE_ONE_ID } = require('./scale-reading-service');
 const { buildRedirect, parseInitialMoisturePercent, parseMoisturePercent } = require('./utils');
 
 const router = express.Router();
@@ -36,13 +37,29 @@ function buildDryerRedirect(params) {
   return buildRedirect('/secador', params);
 }
 
+async function getTruckOnScaleReading() {
+  const reading = await getCurrentScaleWeight(SCALE_ONE_ID);
+
+  return isTruckOnScale(reading) ? reading : null;
+}
+
+async function getTruckOnScaleReadingSafely() {
+  try {
+    return await getTruckOnScaleReading();
+  } catch (error) {
+    console.error('Error loading current scale weight for dryer panel:', error.message);
+    return null;
+  }
+}
+
 router.get('/secador', canAccessDryer, async (req, res) => {
   try {
-    const [settings, batch, unclassifiedInputs, lastCompletedBatch] = await Promise.all([
+    const [settings, batch, unclassifiedInputs, lastCompletedBatch, truckOnScale] = await Promise.all([
       getDryerSettings(),
       getActiveDryerBatch(),
       listUnclassifiedScaleInputs(),
       getLastCompletedDryerBatchSummary(),
+      getTruckOnScaleReadingSafely(),
     ]);
     const readings = await listDryerMoistureReadings(batch?.id);
 
@@ -52,6 +69,7 @@ router.get('/secador', canAccessDryer, async (req, res) => {
       settings,
       unclassifiedInputs,
       lastCompletedBatch,
+      truckOnScale,
       message: req.query.entrada_classificada
         ? 'Classificação adicionada à entrada com sucesso.'
         : req.query.started
@@ -68,6 +86,23 @@ router.get('/secador', canAccessDryer, async (req, res) => {
   } catch (error) {
     console.error('Error loading dryer panel:', error.message);
     return res.status(500).send('Não foi possível carregar o painel do secador agora.');
+  }
+});
+
+router.get('/secador/balanca/peso-atual', canAccessDryer, async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+
+  try {
+    const reading = await getTruckOnScaleReading();
+
+    return res.json({
+      caminhao_na_balanca: Boolean(reading),
+      peso_kg: reading ? reading.peso_kg : null,
+      atualizado_em: reading ? reading.atualizado_em : null,
+    });
+  } catch (error) {
+    console.error('Error loading current scale weight for dryer:', error.message);
+    return res.status(500).json({ error: 'Não foi possível consultar o peso da balança.' });
   }
 });
 
