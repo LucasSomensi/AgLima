@@ -74,6 +74,55 @@ test('dryer panel renders one classification notification per pending input', ()
   assert.match(html, /href="\/secador\/entradas\/12\/classificacao">Classificar DEF4G56 09:30<\/a>/);
 });
 
+test('dryer panel shows the current scale weight when a truck is on the scale', () => {
+  const html = renderPage(renderDryerPanelPage, {
+    batch: null,
+    readings: [],
+    settings: { target_moisture: '14.5' },
+    message: '',
+    error: '',
+    unclassifiedInputs: [],
+    truckOnScale: { balanca_id: 1, peso_kg: 32450, atualizado_em: '2026-11-08T12:00:00.000Z' },
+  });
+
+  assert.match(html, /class="admin-section dryer-notifications"/);
+  assert.match(html, /data-scale-weight-notification/);
+  assert.match(html, /Caminhão na balança/);
+  assert.match(html, /data-scale-weight-value>32\.450 kg<\/strong>/);
+  assert.match(html, /src="\/js\/dryer-scale-weight\.js"/);
+});
+
+test('dryer panel lists the scale weight before pending classifications in the same frame', () => {
+  const html = renderPage(renderDryerPanelPage, {
+    batch: null,
+    readings: [],
+    settings: { target_moisture: '14.5' },
+    message: '',
+    error: '',
+    unclassifiedInputs: [pendingInput],
+    truckOnScale: { balanca_id: 1, peso_kg: 1500 },
+  });
+
+  const sections = html.match(/class="admin-section dryer-notifications"/g) || [];
+  assert.equal(sections.length, 1);
+  assert.ok(html.indexOf('data-scale-weight-notification') < html.indexOf('Classificar ABC1D23'));
+});
+
+test('dryer panel hides the scale weight notification when no truck is on the scale', () => {
+  const html = renderPage(renderDryerPanelPage, {
+    batch: null,
+    readings: [],
+    settings: { target_moisture: '14.5' },
+    message: '',
+    error: '',
+    unclassifiedInputs: [pendingInput],
+    truckOnScale: null,
+  });
+
+  assert.doesNotMatch(html, /data-scale-weight-notification/);
+  assert.match(html, /Classificar ABC1D23/);
+});
+
 test('dryer classification form posts to the dryer mobile classification route', () => {
   const html = renderPage(renderDryerInputClassificationPage, {
     input: pendingInput,

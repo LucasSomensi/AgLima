@@ -1872,6 +1872,33 @@ button:disabled,
   text-align: center;
 }
 
+.dryer-scale-notification {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border: 2px solid rgba(125, 211, 252, 0.7);
+  border-radius: 16px;
+  background: rgba(14, 64, 104, 0.72);
+}
+
+.dryer-scale-notification-label {
+  color: #e0f2fe;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.dryer-scale-notification-weight {
+  color: #fff;
+  font-size: 2rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
 .dryer-mobile-classification-form {
   display: grid;
   gap: 16px;
@@ -1917,6 +1944,12 @@ button:disabled,
     width: 100%;
     min-height: 56px;
     text-align: center;
+  }
+
+  .dryer-scale-notification {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
   }
 }
 

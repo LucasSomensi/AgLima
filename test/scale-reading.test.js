@@ -7,6 +7,7 @@ const { pool } = require('../routes/database');
 const {
   buildScaleWeightPayload,
   getCurrentScaleWeight,
+  isTruckOnScale,
   saveCurrentScaleWeight,
 } = require('../routes/scale-reading-service');
 const { requireScaleApiKey } = require('../routes/scale-api-routes');
@@ -18,6 +19,14 @@ test('scale API payload accepts non-negative integers only', () => {
   for (const peso_kg of [-1, 1.5, '28740', null, undefined, 2147483648]) {
     assert.match(buildScaleWeightPayload({ peso_kg }).error, /número inteiro/);
   }
+});
+
+test('truck is on the scale only when the current weight is above 1000 kg', () => {
+  assert.equal(isTruckOnScale(null), false);
+  assert.equal(isTruckOnScale({ peso_kg: 0 }), false);
+  assert.equal(isTruckOnScale({ peso_kg: 1000 }), false);
+  assert.equal(isTruckOnScale({ peso_kg: 1001 }), true);
+  assert.equal(isTruckOnScale({ peso_kg: 28740 }), true);
 });
 
 test('scale API key middleware accepts only the configured bearer token', (t) => {
