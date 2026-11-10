@@ -404,6 +404,7 @@ function renderScaleOutputFormPage(res, { formValues = {}, error, navigation }) 
     .replace('{{SCALE_OUTPUT_ERROR}}', () => buildAlertHtml(error, 'error'))
     .replace(/{{DATA_SAIDA}}/g, () => escapeHtml(formValues.data_saida || toDateTimeLocalValue()))
     .replace(/{{PLACA_CAMINHAO}}/g, () => escapeHtml(formValues.placa_caminhao || ''))
+    .replace(/{{NOME_MOTORISTA}}/g, () => escapeHtml(formValues.nome_motorista || ''))
     .replace('{{PRODUCT_MILHO_SELECTED}}', () => formValues.produto === 'milho' ? ' selected' : '')
     .replace('{{PRODUCT_SOJA_SELECTED}}', () => formValues.produto === 'soja' ? ' selected' : '')
     .replace(/{{PESO_TARA_KG}}/g, () => escapeHtml(formatDecimalInput(formValues.peso_tara_kg))), navigation);
@@ -700,6 +701,9 @@ function buildScaleOutputEditFormHtml(outputInfo, formValues = {}) {
               <label>Placa do veículo
                 <input class="form-control" name="placa_caminhao" type="text" value="${escapeHtml(formValues.placa_caminhao ?? outputInfo.placa_caminhao ?? '')}" placeholder="ABC1D23" maxlength="10" required>
               </label>
+              <label>Nome do motorista (opcional)
+                <input class="form-control" name="nome_motorista" type="text" value="${escapeHtml(formValues.nome_motorista ?? outputInfo.nome_motorista ?? '')}" maxlength="120" autocomplete="off">
+              </label>
               <label>Peso tara (kg)
                 <input class="form-control" name="peso_tara_kg" type="number" min="0.001" step="0.001" value="${escapeHtml(formatDecimalInput(formValues.peso_tara_kg ?? outputInfo.peso_tara_kg))}" inputmode="decimal" required>
               </label>
@@ -785,6 +789,7 @@ function renderScaleOutputDetailPage(res, { outputInfo, formValues = {}, message
     .replace(/{{SAIDA_ID}}/g, () => escapeHtml(outputInfo.saida_id))
     .replace('{{DATA_SAIDA}}', () => escapeHtml(formatDateTime(outputInfo.data_saida)))
     .replace('{{PLACA_CAMINHAO}}', () => escapeHtml(outputInfo.placa_caminhao))
+    .replace('{{NOME_MOTORISTA}}', () => escapeHtml(outputInfo.nome_motorista || '-'))
     .replace('{{PRODUTO}}', () => escapeHtml(formatProductLabel(outputInfo.produto)))
     .replace('{{PESO_TARA_KG}}', () => escapeHtml(formatRoundedKg(outputInfo.peso_tara_kg)))
     .replace('{{PESO_BRUTO_KG}}', () => escapeHtml(formatRoundedKg(outputInfo.peso_bruto_kg)))

@@ -182,6 +182,24 @@ test('weighbridge API HTTP contract', async (t) => {
     assert.equal((await request(server, 'POST', '/saidas/20/deletar', { motivo_delecao: 'Registro duplicado por erro de digitação.' })).status, 204);
   });
 
+  await t.test('output driver name is optional on create and preserved when omitted on PUT', async (st) => {
+    const created = [];
+    const updated = [];
+    st.mock.method(service, 'createScaleOutput', async (data) => { created.push(data); return { id: '20' }; });
+    st.mock.method(service, 'getScaleOutputById', async () => ({ id: '20' }));
+    st.mock.method(service, 'updateScaleOutput', async (id, data) => { updated.push(data); return { id }; });
+    assert.equal((await request(server, 'POST', '/saidas', { ...output, nome_motorista: ' João  da Silva ' })).status, 201);
+    assert.equal((await request(server, 'POST', '/saidas', { ...output, nome_motorista: null })).status, 201);
+    assert.equal((await request(server, 'POST', '/saidas', output)).status, 201);
+    assert.deepEqual(created.map((data) => data.nomeMotorista), ['João da Silva', null, undefined]);
+    assert.equal((await request(server, 'POST', '/saidas', { ...output, nome_motorista: 42 })).status, 400);
+    assert.equal((await request(server, 'POST', '/saidas', { ...output, nome_motorista: 'a'.repeat(121) })).status, 400);
+    assert.equal((await request(server, 'PUT', '/saidas/20', { ...output, peso_bruto_kg: null, nome_motorista: 'Maria' })).status, 200);
+    assert.equal((await request(server, 'PUT', '/saidas/20', { ...output, peso_bruto_kg: null, nome_motorista: null })).status, 200);
+    assert.equal((await request(server, 'PUT', '/saidas/20', { ...output, peso_bruto_kg: null })).status, 200);
+    assert.deepEqual(updated.map((data) => data.nomeMotorista), ['Maria', null, undefined]);
+  });
+
   await t.test('validation rejects coercion, spoofed actor, bad dates, weights and percentages before writes', async (st) => {
     st.mock.method(service, 'createScaleInput', () => assert.fail('must not write'));
     for (const change of [{ criado_por_user_id: 'someone' }, { placa_caminhao: {} }, { usar_tara_anterior: 'true' },

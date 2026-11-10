@@ -112,6 +112,7 @@ test('scale outputs CSV exports rows in the provided chronological order and esc
     {
       ...outputWithContract,
       data_saida: '2026-06-10T08:00:00.000Z',
+      nome_motorista: 'João da Silva',
       comprador_nome: 'Comprador "Teste", LTDA',
     },
     {
@@ -126,10 +127,10 @@ test('scale outputs CSV exports rows in the provided chronological order and esc
 
   const rows = csv.replace(/^\uFEFF/, '').split('\r\n');
 
-  assert.equal(rows[0], 'Data;Hora;Placa;Produto;Bruto kg;Tara kg;Liquido kg;Contrato;Comprador');
-  assert.match(rows[1], /^10\/06\/2026;05:00:00;ABC1D23/);
+  assert.equal(rows[0], 'Data;Hora;Placa;Motorista;Produto;Bruto kg;Tara kg;Liquido kg;Contrato;Comprador');
+  assert.match(rows[1], /^10\/06\/2026;05:00:00;ABC1D23;João da Silva;/);
   assert.match(rows[1], /;22\.345,678;10\.000;12\.345,678;Contrato #42;"Comprador ""Teste"", LTDA"$/);
-  assert.match(rows[2], /^11\/06\/2026;05:00:00;DEF4G56/);
+  assert.match(rows[2], /^11\/06\/2026;05:00:00;DEF4G56;;/);
   assert.match(rows[2], /;Pendente;$/);
 });
 
@@ -321,6 +322,39 @@ test('ticket lines render requested output weighing fields', () => {
   assert.equal(lines[18], 'Ass Vendedor: ____________________');
   assert.deepEqual(lines.slice(19, 21), [' ', ' ']);
   assert.equal(lines[21], 'Ass Comprador: ____________________');
+  assert.ok(!lines.some((line) => line.startsWith('Motorista:')));
+});
+
+test('output ticket shows the driver name after the plate when available', () => {
+  const lines = buildTicketLines({
+    saida_id: 7,
+    operador_login: 'operador-balanca',
+    placa_caminhao: 'ABC1D23',
+    nome_motorista: 'João da Silva',
+    produto: 'milho',
+    vendedor_nome_completo: 'Vendedor Completo',
+    comprador_nome_completo: 'Comprador Completo LTDA',
+    peso_tara_kg: '10000',
+    peso_bruto_kg: '42000',
+    peso_liquido_kg: '32000',
+  });
+
+  assert.deepEqual(lines.slice(5, 8), ['Placa: ABC1D23', 'Motorista: João da Silva', 'Produto: Milho']);
+});
+
+test('output ticket PDF renders with a long driver name', async () => {
+  const { buildScaleOutputTicketPdf } = require('../routes/weighbridge-ticket-pdf');
+  const pdf = await buildScaleOutputTicketPdf({
+    saida_id: 7,
+    placa_caminhao: 'ABC1D23',
+    nome_motorista: 'Motorista Com Um Nome Bem Comprido Para Testar Quebra De Linha No Ticket',
+    produto: 'soja',
+    peso_tara_kg: '10000',
+    peso_bruto_kg: '42000',
+    peso_liquido_kg: '32000',
+  });
+
+  assert.equal(pdf.subarray(0, 5).toString(), '%PDF-');
 });
 
 test('deletion reason payload normalizes and validates minimum length', () => {

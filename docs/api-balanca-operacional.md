@@ -268,10 +268,12 @@ a integridade referencial impede a exclusão (`409`). Registro inexistente: `404
 `POST /saidas`:
 
 ```json
-{"data_saida":"2026-10-14T10:00","placa_caminhao":"ABC1D23","produto":"soja","peso_tara_kg":"12000"}
+{"data_saida":"2026-10-14T10:00","placa_caminhao":"ABC1D23","nome_motorista":"João da Silva","produto":"soja","peso_tara_kg":"12000"}
 ```
 
-Data opcional; demais campos obrigatórios. Recebe `201 {"id":"456"}`.
+Data e `nome_motorista` opcionais; demais campos obrigatórios. Recebe `201 {"id":"456"}`.
+`nome_motorista` aceita texto ou `null`; espaços extras são removidos, texto em
+branco é gravado como `null` e o limite é de 120 caracteres.
 Depois, `POST /saidas/456/bruto`:
 
 ```json
@@ -297,14 +299,16 @@ automaticamente; essa finalização continua manual e administrativa.
 ### Editar, desvincular, dividir e excluir
 
 - `PUT /saidas/456`: exige `data_saida`, `placa_caminhao`, `produto`, `peso_tara_kg`
-  e `peso_bruto_kg`; este último pode ser null. Não aceita `contrato_id` nem campos
-  calculados. Mantém as mesmas regras da edição web.
+  e `peso_bruto_kg`; este último pode ser null. Aceita `nome_motorista` opcional:
+  texto define o motorista, `null` ou texto em branco remove, e omitir o campo
+  preserva o valor atual (compatível com clientes anteriores). Não aceita
+  `contrato_id` nem campos calculados. Mantém as mesmas regras da edição web.
 - `POST /saidas/456/desvincular-contrato`, corpo `{}`: exige vínculo existente e
   preserva os dados da pesagem; retorna contrato_id null e grava auditoria.
 - `POST /saidas/456/dividir`, corpo `{"peso_liquido_primeira_kg":"20000"}`: exige
   líquido calculado e valor positivo menor que o líquido original. A saída original
   fica com o primeiro peso e mantém o contrato. A nova saída recebe o restante,
-  sem contrato. A operação retorna ambos os IDs e gera auditoria agrupada. Exemplo:
+  sem contrato, com a mesma placa e o mesmo `nome_motorista`. A operação retorna ambos os IDs e gera auditoria agrupada. Exemplo:
   líquido original 30000 vira 20000 + 10000. A tara da segunda linha é o bruto
   recalculado da primeira, conforme a regra existente do sistema.
 - `POST /saidas/456/deletar`: mesmo corpo/regras de motivo da exclusão de entrada;
@@ -320,7 +324,8 @@ observações. Valores ausentes podem ser null. Os padrões são `natureza_opera
 igual a `Venda` e `cfop` igual a `5101`, como na tela. `nome_nf` usa
 `YYYY-MM-DD PLACA PRODUTO ID`. Não são incluídos recebimentos financeiros privados.
 
-`GET /saidas/456/ticket.pdf` exige bruto, líquido e contrato associado. O cliente
+`GET /saidas/456/ticket.pdf` exige bruto, líquido e contrato associado. O ticket
+inclui a linha `Motorista` quando `nome_motorista` estiver preenchido. O cliente
 deve salvar/imprimir o PDF; a API não controla a impressora local.
 
 ## 7. Respostas, erros e repetição segura

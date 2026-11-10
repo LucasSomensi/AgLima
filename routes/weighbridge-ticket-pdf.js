@@ -58,6 +58,8 @@ function buildScaleOutputTicketLines(outputInfo) {
     `Ticket: ${outputInfo.saida_id || '-'}`,
     `Operador: ${outputInfo.operador_login || '-'}`,
     `Placa: ${outputInfo.placa_caminhao || '-'}`,
+    // O motorista é opcional: a linha só aparece quando o nome foi informado.
+    ...(outputInfo.nome_motorista ? [`Motorista: ${outputInfo.nome_motorista}`] : []),
     `Produto: ${formatProductLabel(outputInfo.produto)}`,
     `Vendedor: ${outputInfo.vendedor_nome_completo || '-'}`,
     `Comprador: ${outputInfo.comprador_nome_completo || '-'}`,

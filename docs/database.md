@@ -312,6 +312,7 @@ Armazena as saídas registradas pelo operador de balança. Cada saída nasce sem
 | `id` | `bigint` | Não | `nextval('saidas_balanca_id_seq'::regclass)` | Identificador sequencial da saída. |
 | `data_saida` | `timestamp with time zone` | Não | `now()` | Data/hora da saída informada pelo operador; o formulário preenche com a data/hora atual. |
 | `placa_caminhao` | `character varying` | Não | — | Placa do caminhão, validada no padrão brasileiro antigo ou Mercosul. |
+| `nome_motorista` | `character varying(120)` | Sim | — | Nome do motorista do caminhão. Opcional: informado na criação ou na edição da saída; fica `NULL` quando em branco e nas saídas anteriores à migration `20261110_add_output_driver_name.sql`. |
 | `produto` | `USER-DEFINED` | Não | — | Tipo de produto da saída. Deve ser compatível com o tipo usado por `contratos.produto`; pela aplicação, valores aceitos: `milho` e `soja`. |
 | `peso_tara_kg` | `numeric` | Não | — | Peso tara em quilogramas lançado na criação da saída. |
 | `peso_bruto_kg` | `numeric` | Sim | — | Peso bruto em quilogramas. Fica nulo até o operador adicionar bruto pela lista de saídas e deve ser maior que a tara quando preenchido. |
@@ -334,6 +335,7 @@ Armazena as saídas registradas pelo operador de balança. Cada saída nasce sem
 | Foreign key | `saidas_balanca_associado_por_user_id_fkey` | `associado_por_user_id` → `users.id` |
 | Check | `saidas_balanca_associacao_completa_check` | `contrato_id`, `associado_por_user_id`, `associado_em` |
 | Check | `saidas_balanca_placa_caminhao_formato_check` | `placa_caminhao` |
+| Check | `saidas_balanca_nome_motorista_preenchido_check` | `nome_motorista` é `NULL` ou contém texto além de espaços |
 | Check | `saidas_balanca_peso_tara_positivo_check` | `peso_tara_kg` |
 | Check | `saidas_balanca_peso_bruto_positivo_check` | `peso_bruto_kg` |
 | Check | `saidas_balanca_peso_bruto_maior_tara_check` | `peso_bruto_kg`, `peso_tara_kg` |
@@ -344,6 +346,7 @@ Armazena as saídas registradas pelo operador de balança. Cada saída nasce sem
 - A página inicial da balança exibe as 10 saídas mais recentes usando `ORDER BY data_saida DESC, id DESC`.
 - A lista completa de saídas usa a mesma ordem cronológica reversa.
 - Saídas com `contrato_id IS NULL` exibem ação para associar comprador e contrato.
+- `nome_motorista` é preenchido opcionalmente no formulário de nova saída e na edição em `/balanca/saidas/:id`. A aplicação remove espaços extras, grava `NULL` para valores em branco e limita o texto a 120 caracteres. Ao dividir uma saída, a nova saída herda o motorista da original. A coluna foi criada por `migrations/20261110_add_output_driver_name.sql`, sem alterar os registros existentes.
 - A associação filtra contratos pelo comprador escolhido, pelo mesmo `produto` da saída e por contratos com saldo de embarque positivo.
 - Após associação, a página de detalhe da saída mostra dados necessários para emissão da nota fiscal, incluindo nomes completos de vendedor e comprador, CPF/CNPJ e inscrição estadual do comprador, preço por saca, preço por kg truncado em 8 casas decimais, observações do contrato e campos fiscais opcionais cadastrados no contrato.
 

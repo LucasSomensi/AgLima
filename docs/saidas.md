@@ -4,7 +4,7 @@ Este documento resume o contexto técnico e operacional do fluxo de saídas da b
 
 ## Objetivo do fluxo
 
-O operador de balança registra o carregamento de produto que sai da unidade, informando data/hora, placa, produto e tara; o peso bruto é adicionado depois nas listas da balança. A saída nasce sem contrato associado e, depois do lançamento, pode ser associada a um comprador/contrato com saldo disponível. A partir da associação, o sistema disponibiliza as informações necessárias para emissão de nota fiscal mantendo os saldos calculados nas listagens sem marcar automaticamente o contrato como embarcado.
+O operador de balança registra o carregamento de produto que sai da unidade, informando data/hora, placa, nome do motorista (opcional), produto e tara; o peso bruto é adicionado depois nas listas da balança. A saída nasce sem contrato associado e, depois do lançamento, pode ser associada a um comprador/contrato com saldo disponível. A partir da associação, o sistema disponibiliza as informações necessárias para emissão de nota fiscal mantendo os saldos calculados nas listagens sem marcar automaticamente o contrato como embarcado.
 
 Além do lançamento e da associação, o operador pode consultar a lista completa de saídas, abrir a tela de detalhes, dividir uma saída em duas cargas, deletar uma saída e desvincular uma saída de um contrato quando for necessário corrigir a associação.
 
@@ -16,6 +16,7 @@ Campos centrais:
 
 - `data_saida`: data/hora operacional da saída. O formulário sugere a data/hora atual, mas permite edição manual.
 - `placa_caminhao`: placa normalizada em maiúsculas, sem pontuação, validada no padrão `ABC1234` ou `ABC1D23`.
+- `nome_motorista`: nome do motorista do caminhão, opcional. Fica `NULL` quando não informado, inclusive nas saídas criadas antes da migration `migrations/20261110_add_output_driver_name.sql`.
 - `produto`: usa o tipo `public.produto_contrato`, o mesmo de `contratos.produto` e `entradas_balanca.produto`; a aplicação aceita `milho` e `soja`.
 - `peso_tara_kg`: peso tara informado na criação da saída; deve ser positivo.
 - `peso_bruto_kg`: peso bruto informado depois da criação da saída; deve ser positivo e maior que a tara.
@@ -38,6 +39,7 @@ Restrições relevantes:
 - A associação é completa: `contrato_id`, `associado_por_user_id` e `associado_em` devem estar todos preenchidos ou todos nulos.
 - O banco exige peso bruto positivo. Quando a tara é preenchida, ela deve ser positiva e menor que o peso bruto.
 - A placa deve respeitar o formato aceito pelo banco e pela aplicação.
+- O nome do motorista, quando preenchido, não pode ser vazio nem só espaços (`saidas_balanca_nome_motorista_preenchido_check`) e tem no máximo 120 caracteres.
 - A saída pode ser associada a no máximo um contrato por vez.
 
 ## Arquivos principais
@@ -94,6 +96,7 @@ Campos do formulário:
 
 - Data e hora da saída (`data_saida`), preenchida inicialmente com a data/hora atual.
 - Placa do caminhão (`placa_caminhao`).
+- Nome do motorista (`nome_motorista`), opcional.
 - Produto (`produto`), selecionado entre milho e soja.
 - Peso tara em kg (`peso_tara_kg`).
 
@@ -101,6 +104,7 @@ Ao enviar o formulário, `buildScaleOutputPayload` normaliza e valida os dados:
 
 - Data/hora precisa ser válida.
 - Placa é convertida para maiúsculas, sem caracteres não alfanuméricos, e precisa seguir `ABC1234` ou `ABC1D23`.
+- Nome do motorista tem espaços repetidos e das pontas removidos; em branco vira `NULL`; acima de 120 caracteres é rejeitado.
 - Produto precisa ser `milho` ou `soja`.
 - O peso tara aceita vírgula ou ponto decimal e precisa ser positivo e numérico.
 
@@ -127,6 +131,7 @@ Em `/balanca/saidas/:id`, a tela mostra os dados operacionais principais:
 
 - Data/hora.
 - Placa.
+- Motorista (ou `-` quando não informado).
 - Produto.
 - Peso tara.
 - Peso bruto.
@@ -210,7 +215,9 @@ O layout contém:
 - cabeçalho `Fazenda São José`;
 - número do ticket, usando `saidas_balanca.id`;
 - operador, usando `users.login` do usuário que criou a saída;
-- placa, produto, vendedor e comprador;
+- placa;
+- motorista (`nome_motorista`), logo abaixo da placa, somente quando informado — sem nome, a linha é omitida;
+- produto, vendedor e comprador;
 - tara com `peso_tara_kg` e data/hora de `data_saida`;
 - bruto com `peso_bruto_kg` e data/hora de `peso_bruto_adicionado_em`;
 - peso líquido com `peso_liquido_kg`;
@@ -230,7 +237,7 @@ A transação aplica a divisão assim:
 
 1. Mantém a saída original como a primeira saída.
 2. Atualiza o peso bruto da saída original para `peso_tara_original + peso_liquido_primeira`.
-3. Cria uma nova saída com os mesmos `data_saida`, `placa_caminhao` e `produto`.
+3. Cria uma nova saída com os mesmos `data_saida`, `placa_caminhao`, `nome_motorista` e `produto`.
 4. Na nova saída, usa como tara o novo bruto da primeira saída e como bruto o bruto original.
 5. A nova saída preserva `peso_bruto_adicionado_em` da saída original.
 6. A nova saída nasce sem contrato associado.
@@ -311,9 +318,9 @@ A divisão preserva os dados operacionais da saída original, mas altera os peso
 
 ### Correções permitidas e limitações
 
-- Não há rota de edição direta de data/hora, placa, produto ou pesos de uma saída já criada.
+- A edição em `/balanca/saidas/:id` (formulário “Editar saída”) permite corrigir data/hora, produto, placa, nome do motorista, tara e bruto. Deixar o nome do motorista em branco remove o valor (grava `NULL`).
 - Correções de associação devem ser feitas por desvinculação e nova associação.
-- Correções de lançamento operacional incorreto exigem deletar e recriar a saída, ou dividir quando o problema for separação de carga.
+- Lançamentos incorretos podem ser corrigidos pela edição; deletar e recriar a saída continua disponível, e a divisão serve para separar a carga.
 - A deleção é definitiva e usa apenas confirmação do navegador.
 
 ## Mensagens de sucesso e erro
