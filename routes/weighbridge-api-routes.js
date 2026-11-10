@@ -21,6 +21,8 @@ const conflict = (value) => {
 const inputFields = ['data_entrada', 'placa_caminhao', 'produto', 'peso_bruto_kg'];
 const inputEditFields = [...inputFields, 'peso_tara_kg', 'origem', 'umidade_percent', 'impureza_percent', 'graos_avariados_percent'];
 const outputFields = ['data_saida', 'placa_caminhao', 'produto', 'peso_tara_kg'];
+// Opcional na criação e na edição; em PUT, omitir preserva o valor atual e null limpa.
+const outputOptionalFields = ['nome_motorista'];
 const classificationFields = ['umidade_percent', 'impureza_percent', 'graos_avariados_percent'];
 const loginLimiter = createIpRateLimiter({ windowMs: 15 * 60 * 1000, max: 10,
   message: { code: 'RATE_LIMITED', error: 'Muitas tentativas de acesso. Aguarde antes de tentar novamente.' } });
@@ -114,13 +116,13 @@ router.post('/entradas/:id/deletar', wrap(async (req, res) => {
 }));
 
 router.post('/saidas', wrap(async (req, res) => {
-  const data = payload(service.buildScaleOutputPayload, fields(req, outputFields, outputFields.slice(1)));
+  const data = payload(service.buildScaleOutputPayload, fields(req, [...outputFields, ...outputOptionalFields], outputFields.slice(1)));
   const result = await service.createScaleOutput(data, req.apiUser.userId);
   res.location(`/api/v1/balanca/saidas/${result.id}`).status(201).json(result);
 }));
 router.get('/saidas/:id', wrap(async (req, res) => res.json(missing(await service.getScaleOutputDetailInfo(req.params.id)))));
 router.put('/saidas/:id', wrap(async (req, res) => {
-  const data = fields(req, [...outputFields, 'peso_bruto_kg'], outputFields);
+  const data = fields(req, [...outputFields, ...outputOptionalFields, 'peso_bruto_kg'], outputFields);
   if (!('peso_bruto_kg' in data)) throw new ApiError(400, 'INVALID_BODY', 'PUT exige peso_bruto_kg; use null se pendente.');
   const update = payload(service.buildScaleOutputEditPayload, data);
   missing(await service.getScaleOutputById(req.params.id));

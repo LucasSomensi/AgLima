@@ -1893,6 +1893,13 @@
             "maxLength": 200,
             "example": "ABC1D23"
           },
+          "nome_motorista": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 120,
+            "description": "Nome do motorista (opcional). Espaços extras são removidos; texto em branco ou null grava null.",
+            "example": "João da Silva"
+          },
           "produto": {
             "type": "string",
             "enum": [
@@ -1936,6 +1943,13 @@
             "type": "string",
             "maxLength": 200,
             "example": "ABC1D23"
+          },
+          "nome_motorista": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 120,
+            "description": "Nome do motorista (opcional). Texto define, null ou texto em branco remove e omitir preserva o valor atual.",
+            "example": "João da Silva"
           },
           "produto": {
             "type": "string",
@@ -2342,6 +2356,11 @@
           "placa_caminhao": {
             "type": "string"
           },
+          "nome_motorista": {
+            "type": "string",
+            "nullable": true,
+            "description": "Nome do motorista; null quando não informado."
+          },
           "produto": {
             "type": "string",
             "enum": [
@@ -2397,6 +2416,11 @@
           },
           "placa_caminhao": {
             "type": "string"
+          },
+          "nome_motorista": {
+            "type": "string",
+            "nullable": true,
+            "description": "Nome do motorista; null quando não informado."
           },
           "produto": {
             "type": "string",
@@ -2551,6 +2575,11 @@
           },
           "placa_caminhao": {
             "type": "string"
+          },
+          "nome_motorista": {
+            "type": "string",
+            "nullable": true,
+            "description": "Nome do motorista; null quando não informado."
           },
           "produto": {
             "type": "string",

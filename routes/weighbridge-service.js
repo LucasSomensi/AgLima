@@ -4,6 +4,7 @@ const { parseOptionalDateTime } = require('./utils');
 const PRODUCT_VALUES = ['milho', 'soja'];
 const MAX_INPUT_GROSS_WEIGHT_KG = 80000;
 const MIN_DELETE_REASON_LENGTH = 20;
+const MAX_DRIVER_NAME_LENGTH = 120;
 
 function weighbridgeError(code, message) {
   return Object.assign(new Error(message), { code });
@@ -118,11 +119,23 @@ function buildDeletionReasonPayload(body) {
   };
 }
 
+// Retorna undefined quando o campo não foi enviado (a edição preserva o valor
+// atual), null quando foi enviado em branco e o texto normalizado nos demais casos.
+function normalizeDriverName(body) {
+  if (!Object.prototype.hasOwnProperty.call(body, 'nome_motorista')) {
+    return undefined;
+  }
+
+  const driverName = normalizeText(body.nome_motorista).replace(/\s+/g, ' ');
+  return driverName || null;
+}
+
 function buildScaleOutputPayload(body) {
   const dataSaida = parseOptionalDateTime(body.data_saida);
   const placaCaminhao = normalizePlate(body.placa_caminhao);
   const produto = normalizeText(body.produto);
   const pesoTaraKg = normalizeDecimal(body.peso_tara_kg);
+  const nomeMotorista = normalizeDriverName(body);
 
   if (!dataSaida) {
     return { error: 'Informe uma data e hora de saída válidas.' };
@@ -140,12 +153,17 @@ function buildScaleOutputPayload(body) {
     return { error: 'Informe um peso tara válido.' };
   }
 
+  if (nomeMotorista && nomeMotorista.length > MAX_DRIVER_NAME_LENGTH) {
+    return { error: `O nome do motorista pode ter no máximo ${MAX_DRIVER_NAME_LENGTH} caracteres.` };
+  }
+
   return {
     payload: {
       dataSaida,
       placaCaminhao,
       produto,
       pesoTaraKg,
+      nomeMotorista,
     },
   };
 }
@@ -201,12 +219,13 @@ async function createScaleOutput(payload, userId) {
         placa_caminhao,
         produto,
         peso_tara_kg,
-        criado_por_user_id
+        criado_por_user_id,
+        nome_motorista
       )
-      VALUES ($1, $2, $3, $4, $5)
+      VALUES ($1, $2, $3, $4, $5, $6)
       RETURNING id
     `,
-    [payload.dataSaida, payload.placaCaminhao, payload.produto, payload.pesoTaraKg, userId]
+    [payload.dataSaida, payload.placaCaminhao, payload.produto, payload.pesoTaraKg, userId, payload.nomeMotorista ?? null]
   );
 
   return result.rows[0];
@@ -819,6 +838,7 @@ async function updateScaleOutput(outputId, payload, user) {
               WHEN $6::numeric IS NOT DISTINCT FROM peso_bruto_kg THEN peso_bruto_adicionado_em
               ELSE now()
             END,
+            nome_motorista = CASE WHEN $7::boolean THEN $8::varchar ELSE nome_motorista END,
             atualizado_em = now()
         WHERE id = $1
           AND ($6::numeric IS NULL OR $6::numeric > $5::numeric)
@@ -831,6 +851,8 @@ async function updateScaleOutput(outputId, payload, user) {
         payload.produto,
         payload.pesoTaraKg,
         payload.pesoBrutoKg,
+        payload.nomeMotorista !== undefined,
+        payload.nomeMotorista ?? null,
       ]
     );
     const updatedOutput = result.rows[0] || null;
@@ -966,6 +988,7 @@ async function listScaleOutputs(options = {}) {
       SELECT s.id,
              s.data_saida,
              s.placa_caminhao,
+             s.nome_motorista,
              s.produto,
              s.peso_tara_kg,
              s.peso_bruto_kg,
@@ -994,6 +1017,7 @@ async function getScaleOutputById(id) {
       SELECT id,
              data_saida,
              placa_caminhao,
+             nome_motorista,
              produto,
              peso_tara_kg,
              peso_bruto_kg,
@@ -1324,9 +1348,10 @@ async function splitScaleOutput(outputId, firstNetWeightKg, user) {
           produto,
           peso_tara_kg,
           peso_bruto_kg,
-          criado_por_user_id
+          criado_por_user_id,
+          nome_motorista
         )
-        VALUES ($1, $2, $3, $4, $5, $6)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
         RETURNING *
       `,
       [
@@ -1336,6 +1361,7 @@ async function splitScaleOutput(outputId, firstNetWeightKg, user) {
         firstGrossWeight,
         originalGrossWeight,
         getAuditActor(user).userId,
+        output.nome_motorista ?? null,
       ]
     );
 
@@ -1474,6 +1500,7 @@ async function getContractDetailForWeighbridge(contractId) {
       SELECT id,
              data_saida,
              placa_caminhao,
+             nome_motorista,
              produto,
              peso_tara_kg,
              peso_bruto_kg,
@@ -1499,6 +1526,7 @@ async function getScaleOutputDetailInfo(outputId) {
       SELECT s.id AS saida_id,
              s.data_saida,
              s.placa_caminhao,
+             s.nome_motorista,
              s.produto,
              s.peso_tara_kg,
              s.peso_bruto_kg,
@@ -1539,6 +1567,7 @@ async function getScaleOutputDetailInfo(outputId) {
       GROUP BY s.id,
                s.data_saida,
                s.placa_caminhao,
+               s.nome_motorista,
                s.produto,
                s.peso_tara_kg,
                s.peso_bruto_kg,

@@ -167,6 +167,7 @@
  saidas_balanca              | saidas_balanca_criado_por_user_id_not_null                     | CHECK           |                               | saidas_balanca              | criado_por_user_id
  saidas_balanca              | saidas_balanca_data_saida_not_null                             | CHECK           |                               | saidas_balanca              | data_saida
  saidas_balanca              | saidas_balanca_id_not_null                                     | CHECK           |                               | saidas_balanca              | id
+ saidas_balanca              | saidas_balanca_nome_motorista_preenchido_check                 | CHECK           |                               | saidas_balanca              | nome_motorista
  saidas_balanca              | saidas_balanca_peso_bruto_maior_tara_check                     | CHECK           |                               | saidas_balanca              | peso_bruto_kg
  saidas_balanca              | saidas_balanca_peso_bruto_maior_tara_check                     | CHECK           |                               | saidas_balanca              | peso_tara_kg
  saidas_balanca              | saidas_balanca_peso_bruto_positivo_check                       | CHECK           |                               | saidas_balanca              | peso_bruto_kg

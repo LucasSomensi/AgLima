@@ -33,7 +33,7 @@ function dateTime(value, field) {
 function fields(req, allowed, required) {
   const value = body(req, allowed, required);
   for (const [key, item] of Object.entries(value)) {
-    if (item === null && !required?.includes(key) && ['peso_tara_kg', 'peso_bruto_kg', 'origem', 'umidade_percent', 'impureza_percent', 'graos_avariados_percent'].includes(key)) continue;
+    if (item === null && !required?.includes(key) && ['peso_tara_kg', 'peso_bruto_kg', 'origem', 'nome_motorista', 'umidade_percent', 'impureza_percent', 'graos_avariados_percent'].includes(key)) continue;
     if (['data_entrada', 'data_saida', 'peso_bruto_adicionado_em'].includes(key)) {
       dateTime(item, key);
     } else if (key === 'usar_tara_anterior') {
