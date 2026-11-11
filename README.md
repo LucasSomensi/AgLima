@@ -68,6 +68,7 @@ A aplicação usa PostgreSQL. Consulte a documentação complementar antes de cr
 - `docs/database.md`: visão geral do modelo de dados e orientações de schema.
 - `docs/columns.txt`: inventário consolidado de colunas esperadas.
 - `docs/constraints.txt`: constraints, chaves e índices esperados.
+- `docs/acesso-banco.md`: acesso local ao banco com o usuário de leitura para consultas e análises.
 
 ## Como adicionar uma nova tela
 
