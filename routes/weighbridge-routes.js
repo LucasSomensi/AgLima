@@ -54,12 +54,22 @@ const {
   renderScaleOutputInvoicePage,
   renderScaleOutputGrossFormPage,
   renderScaleOutputsListPage,
+  renderScalePhotosPage,
   renderWeighbridgeHomePage,
 } = require('./renderers/weighbridge-renderer');
-const { buildRedirect, paginateItems } = require('./utils');
+const { buildRedirect, paginateItems, toDateTimeLocalValue } = require('./utils');
 const { buildScaleInputsCsv, buildScaleOutputsCsv } = require('./weighbridge-csv');
 const { buildScaleInputTicketPdf, buildScaleOutputTicketPdf } = require('./weighbridge-ticket-pdf');
 const { getCurrentScaleWeight, SCALE_ONE_ID } = require('./scale-reading-service');
+const {
+  createWeightCapture,
+  getAutomaticRetentionDays,
+  getPhotoById,
+  linkCaptureToRecord,
+  listAutomaticPhotosByDay,
+  listLinkedPhotos,
+} = require('./scale-photo-service');
+const { resolvePhotoPath } = require('./scale-photo-storage');
 const { getContractReceipts } = require('./receipt-service');
 
 const router = express.Router();
@@ -76,6 +86,40 @@ async function buildOutputCompletionRedirect(outputId, params) {
     && output.peso_bruto_kg != null
     && output.peso_liquido_kg != null;
   return buildRedirect(isComplete ? `/balanca/saidas/${outputId}/nf` : '/balanca', params);
+}
+
+// Confirma a foto temporária criada pelo botão "usar peso da balança". Falhas
+// aqui nunca desfazem o lançamento: no pior caso o peso fica sem foto e a
+// captura temporária é descartada pela limpeza periódica.
+async function linkWeightPhoto(req, { entradaId = null, saidaId = null, tipoPeso, pesoKg }) {
+  const captureId = String(req.body?.foto_captura_id || '').trim();
+
+  if (!captureId) {
+    return null;
+  }
+
+  try {
+    return await linkCaptureToRecord({
+      captureId,
+      userId: req.sessionUser.userId,
+      entradaId,
+      saidaId,
+      tipoPeso,
+      pesoKg,
+    });
+  } catch (error) {
+    console.error('Error linking scale photo:', error.code || error.message);
+    return null;
+  }
+}
+
+async function loadLinkedPhotos(filter) {
+  try {
+    return await listLinkedPhotos(filter);
+  } catch (error) {
+    console.error('Error loading scale photos:', error.code || error.message);
+    return [];
+  }
 }
 
 function getWeighbridgeNavigation(req) {
@@ -186,6 +230,100 @@ router.get('/balanca/balancas/1/peso-atual', canAccessWeighbridge, async (req, r
   }
 });
 
+// Botão "usar peso da balança" dos formulários de bruto e tara: devolve o peso
+// atual e, quando há foto para esse peso, uma captura temporária que só é
+// confirmada ao salvar o lançamento com o mesmo peso.
+router.post('/balanca/balancas/1/peso-atual/captura', canAccessWeighbridge, async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+
+  try {
+    let result;
+
+    try {
+      result = await createWeightCapture(SCALE_ONE_ID, req.sessionUser.userId);
+    } catch (photoError) {
+      // Problema com fotos (volume, migration) não pode impedir o uso do peso.
+      console.error('Error capturing scale photo:', photoError.code || photoError.message);
+      result = { reading: await getCurrentScaleWeight(SCALE_ONE_ID), capture: null };
+    }
+
+    if (!result.reading) {
+      return res.status(404).json({ error: 'A balança 1 ainda não enviou nenhum peso.' });
+    }
+
+    return res.json({
+      balanca_id: result.reading.balanca_id,
+      peso_kg: result.reading.peso_kg,
+      atualizado_em: result.reading.atualizado_em,
+      foto: result.capture
+        ? {
+          captura_id: result.capture.id,
+          url: `/balanca/fotos/${result.capture.id}`,
+          contingencia: result.capture.contingencia,
+        }
+        : null,
+    });
+  } catch (error) {
+    console.error('Error loading current scale weight:', error.message);
+    return res.status(500).json({ error: 'Não foi possível consultar o peso da balança.' });
+  }
+});
+
+router.get('/balanca/fotos', canAccessWeighbridge, async (req, res) => {
+  const requestedDay = String(req.query.data || '');
+  const day = /^\d{4}-\d{2}-\d{2}$/.test(requestedDay) && !Number.isNaN(Date.parse(`${requestedDay}T12:00:00Z`))
+    ? requestedDay
+    : toDateTimeLocalValue(new Date()).slice(0, 10);
+
+  try {
+    const photos = await listAutomaticPhotosByDay(day);
+    return renderScalePhotosPage(res, {
+      day,
+      photos,
+      retentionDays: getAutomaticRetentionDays(),
+      navigation: getWeighbridgeNavigation(req),
+    });
+  } catch (error) {
+    console.error('Error loading automatic scale photos:', error.code || error.message);
+    return renderScalePhotosPage(res, {
+      day,
+      photos: [],
+      error: 'Não foi possível carregar as fotos agora.',
+      navigation: getWeighbridgeNavigation(req),
+    });
+  }
+});
+
+router.get('/balanca/fotos/:id', canAccessWeighbridge, async (req, res) => {
+  try {
+    const photo = await getPhotoById(req.params.id);
+
+    if (!photo) {
+      return res.status(404).send('Foto não encontrada.');
+    }
+
+    const filePath = resolvePhotoPath(photo.arquivo);
+
+    return res.sendFile(filePath, {
+      dotfiles: 'deny',
+      headers: {
+        'Content-Type': 'image/jpeg',
+        'Content-Disposition': `inline; filename="balanca-${photo.id}.jpg"`,
+        'Cache-Control': 'private, max-age=86400, immutable',
+        'X-Content-Type-Options': 'nosniff',
+      },
+    }, (error) => {
+      if (error && !res.headersSent) {
+        console.error('Error sending scale photo:', error.code || error.message);
+        res.status(404).send('Foto não encontrada.');
+      }
+    });
+  } catch (error) {
+    console.error('Error loading scale photo:', error.code || error.message);
+    return res.status(500).send('Não foi possível carregar a foto agora.');
+  }
+});
+
 router.get('/balanca/entradas', canAccessWeighbridge, async (req, res) => {
   try {
     const allInputs = await listScaleInputs();
@@ -243,7 +381,8 @@ router.post('/balanca/entradas', canAccessWeighbridge, async (req, res) => {
   }
 
   try {
-    await createScaleInput(payload, req.sessionUser.userId);
+    const createdInput = await createScaleInput(payload, req.sessionUser.userId);
+    await linkWeightPhoto(req, { entradaId: createdInput.id, tipoPeso: 'bruto', pesoKg: payload.pesoBrutoKg });
     return res.redirect(buildWeighbridgeRedirect({ entrada_criada: '1' }));
   } catch (error) {
     console.error('Error creating scale input:', error.message);
@@ -298,8 +437,11 @@ router.get('/balanca/entradas/:id', canAccessWeighbridge, async (req, res) => {
       return res.redirect(buildWeighbridgeRedirect({ error: 'Entrada não encontrada.' }));
     }
 
+    const photos = await loadLinkedPhotos({ entradaId: input.id });
+
     return renderScaleInputDetailPage(res, {
       input,
+      photos,
       message: req.query.entrada_editada ? 'Entrada atualizada com sucesso.' : '',
       error: req.query.error || '',
       navigation: getWeighbridgeNavigation(req),
@@ -422,6 +564,7 @@ router.post('/balanca/entradas/:id/tara', canAccessWeighbridge, async (req, res)
       });
     }
 
+    await linkWeightPhoto(req, { entradaId: updatedInput.id, tipoPeso: 'tara', pesoKg: payload.pesoTaraKg });
     return res.redirect(buildWeighbridgeRedirect({ entrada_tara_adicionada: '1' }));
   } catch (error) {
     console.error('Error adding input tare:', error.message);
@@ -637,7 +780,8 @@ router.post('/balanca/saidas', canAccessWeighbridge, async (req, res) => {
   }
 
   try {
-    await createScaleOutput(payload, req.sessionUser.userId);
+    const createdOutput = await createScaleOutput(payload, req.sessionUser.userId);
+    await linkWeightPhoto(req, { saidaId: createdOutput.id, tipoPeso: 'tara', pesoKg: payload.pesoTaraKg });
     return res.redirect(buildWeighbridgeRedirect({ saida_criada: '1' }));
   } catch (error) {
     console.error('Error creating scale output:', error.message);
@@ -704,6 +848,7 @@ router.post('/balanca/saidas/:id/bruto', canAccessWeighbridge, async (req, res) 
       });
     }
 
+    await linkWeightPhoto(req, { saidaId: updatedOutput.id, tipoPeso: 'bruto', pesoKg: payload.pesoBrutoKg });
     return res.redirect(await buildOutputCompletionRedirect(req.params.id, { saida_bruto_adicionado: '1' }));
   } catch (error) {
     console.error('Error adding scale output gross:', error.message);
@@ -912,8 +1057,11 @@ router.get('/balanca/saidas/:id', canAccessWeighbridge, async (req, res) => {
       return res.redirect(buildWeighbridgeRedirect({ error: 'Saída não encontrada.' }));
     }
 
+    const photos = await loadLinkedPhotos({ saidaId: outputInfo.saida_id });
+
     return renderScaleOutputDetailPage(res, {
       outputInfo,
+      photos,
       message: req.query.saida_editada ? 'Saída atualizada com sucesso.'
         : req.query.contrato_desvinculado ? 'Contrato desvinculado da saída com sucesso.' : '',
       error: req.query.error || '',

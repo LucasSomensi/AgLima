@@ -2,6 +2,7 @@ const express = require('express');
 const path = require('path');
 const indexRouter = require('./routes/index');
 const { assertSecurityConfig } = require('./routes/security-config');
+const { startScalePhotoMaintenance } = require('./routes/scale-photo-maintenance');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -24,7 +25,7 @@ app.use((error, req, res, next) => {
         : error.status === 415 ? 415 : 500;
     res.setHeader('Cache-Control', 'no-store');
     return res.status(status).json({ code: status === 413 ? 'PAYLOAD_TOO_LARGE' : status === 400 ? 'INVALID_JSON' : status === 415 ? 'UNSUPPORTED_MEDIA_TYPE' : 'INTERNAL_ERROR',
-      error: status === 413 ? 'A requisição excede 100 KB.' : status === 400 ? 'JSON inválido.' : status === 415 ? 'Codificação do corpo não suportada.' : 'Não foi possível concluir a operação.' });
+      error: status === 413 ? (req.is('image/jpeg') ? 'A foto excede 8 MB.' : 'A requisição excede 100 KB.') : status === 400 ? 'JSON inválido.' : status === 415 ? 'Codificação do corpo não suportada.' : 'Não foi possível concluir a operação.' });
   }
   if (error && error.type === 'entity.too.large') {
     return res.status(413).send('A requisição excede o tamanho permitido.');
@@ -43,6 +44,7 @@ if (require.main === module) {
   app.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}/`);
   });
+  startScalePhotoMaintenance();
 }
 
 module.exports = app;

@@ -1570,6 +1570,62 @@ button:disabled,
   font-size: 0.86rem;
 }
 
+.weighbridge-weight-photo:not([hidden]) {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--green-100);
+  font-size: 0.86rem;
+}
+
+.weighbridge-weight-photo img {
+  width: 96px;
+  height: 64px;
+  object-fit: cover;
+  border: 1px solid rgba(234, 246, 238, 0.24);
+  border-radius: 8px;
+}
+
+.weighbridge-photos-link {
+  margin: -12px 0 26px;
+}
+
+.scale-photos-filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.scale-photo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.scale-photo {
+  margin: 0;
+  padding: 10px;
+  border: 1px solid rgba(234, 246, 238, 0.16);
+  border-radius: 16px;
+  background: rgba(5, 48, 25, 0.28);
+}
+
+.scale-photo img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 10px;
+}
+
+.scale-photo figcaption {
+  margin-top: 8px;
+  color: var(--green-100);
+  font-size: 0.86rem;
+}
+
 @media (max-width: 720px) {
   .weighbridge-actions {
     grid-template-columns: 1fr;

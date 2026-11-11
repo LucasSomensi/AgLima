@@ -11,6 +11,9 @@ const {
 const { buildAlertHtml, buildPaginationHtml } = require('./template-utils');
 const { canCopyInputReport, buildInputClipboardReport, buildScaleOutputInvoiceName } = require('../weighbridge-reports');
 
+const CAPTURE_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const PHOTO_WEIGHT_TYPE_LABELS = { bruto: 'Peso bruto', tara: 'Tara' };
+
 const DEFAULT_INVOICE_OPERATION_NATURE = 'Venda';
 const DEFAULT_INVOICE_CFOP = '5101';
 
@@ -230,6 +233,59 @@ function buildYardRows(inputs, outputs) {
   }).join('');
 }
 
+// Mantém a captura da foto quando o formulário volta com erro de validação.
+function getCaptureIdValue(formValues = {}) {
+  const value = String(formValues.foto_captura_id || '');
+  return CAPTURE_ID_PATTERN.test(value) ? value : '';
+}
+
+function buildScalePhotoFigureHtml(photo, { showWeightType = true } = {}) {
+  const url = `/balanca/fotos/${encodeURIComponent(photo.id)}`;
+  const details = [
+    showWeightType && photo.tipo_peso ? PHOTO_WEIGHT_TYPE_LABELS[photo.tipo_peso] : null,
+    formatKg(photo.peso_kg),
+    formatDateTime(photo.capturada_em),
+    photo.contingencia ? 'câmera indisponível' : null,
+    photo.status === 'substituida' ? 'substituída por peso maior' : null,
+  ].filter(Boolean).join(' · ');
+
+  return `<figure class="scale-photo">
+            <a href="${escapeHtml(url)}" target="_blank" rel="noopener">
+              <img src="${escapeHtml(url)}" alt="${escapeHtml(`Foto da balança: ${details}`)}" loading="lazy">
+            </a>
+            <figcaption>${escapeHtml(details)}</figcaption>
+          </figure>`;
+}
+
+function buildScalePhotosSectionHtml(photos = []) {
+  if (!photos.length) {
+    return '';
+  }
+
+  return `<section class="admin-section">
+          <h2>Fotos da balança</h2>
+          <div class="scale-photo-grid">
+          ${photos.map((photo) => buildScalePhotoFigureHtml(photo)).join('')}
+          </div>
+        </section>`;
+}
+
+function renderScalePhotosPage(res, { day, photos = [], retentionDays = 365, error, navigation }) {
+  const pagePath = path.join(__dirname, '../../views/weighbridge-photos.html');
+  const photosHtml = photos.length
+    ? `<div class="scale-photo-grid">${photos.map((photo) => buildScalePhotoFigureHtml(photo, { showWeightType: false })).join('')}</div>`
+    : '<p class="admin-muted">Nenhuma foto automática nesta data.</p>';
+  const html = applyWeighbridgeNavigation(fs
+    .readFileSync(pagePath, 'utf8')
+    .replace('{{SCALE_PHOTOS_ERROR}}', () => buildAlertHtml(error, 'error'))
+    .replace(/{{FOTOS_DATA}}/g, () => escapeHtml(day))
+    .replace('{{FOTOS_TOTAL}}', () => escapeHtml(`${photos.length} foto${photos.length === 1 ? '' : 's'}`))
+    .replace('{{FOTOS_RETENCAO}}', () => escapeHtml(retentionDays))
+    .replace('{{SCALE_PHOTOS}}', () => photosHtml), navigation);
+
+  res.send(html);
+}
+
 function renderWeighbridgeHomePage(res, { inputs = [], outputs = [], yardInputs = [], yardOutputs = [], message, error }) {
   const pagePath = path.join(__dirname, '../../views/weighbridge-home.html');
   const yardRows = buildYardRows(yardInputs, yardOutputs);
@@ -407,7 +463,8 @@ function renderScaleOutputFormPage(res, { formValues = {}, error, navigation }) 
     .replace(/{{NOME_MOTORISTA}}/g, () => escapeHtml(formValues.nome_motorista || ''))
     .replace('{{PRODUCT_MILHO_SELECTED}}', () => formValues.produto === 'milho' ? ' selected' : '')
     .replace('{{PRODUCT_SOJA_SELECTED}}', () => formValues.produto === 'soja' ? ' selected' : '')
-    .replace(/{{PESO_TARA_KG}}/g, () => escapeHtml(formatDecimalInput(formValues.peso_tara_kg))), navigation);
+    .replace(/{{PESO_TARA_KG}}/g, () => escapeHtml(formatDecimalInput(formValues.peso_tara_kg)))
+    .replace(/{{FOTO_CAPTURA_ID}}/g, () => escapeHtml(getCaptureIdValue(formValues))), navigation);
 
   res.send(html);
 }
@@ -421,7 +478,8 @@ function renderScaleOutputGrossFormPage(res, { output, formValues = {}, error, n
     .replace(/{{SAIDA_ID}}/g, () => escapeHtml(output.id))
     .replace('{{OUTPUT_SUMMARY}}', () => escapeHtml(`${formatDateTime(output.data_saida)} · ${output.placa_caminhao} · ${formatProductLabel(output.produto)} · tara ${formatKg(output.peso_tara_kg)}`))
     .replace(/{{PESO_BRUTO_KG}}/g, () => escapeHtml(formatDecimalInput(formValues.peso_bruto_kg)))
-    .replace(/{{PESO_BRUTO_ADICIONADO_EM}}/g, () => escapeHtml(formValues.peso_bruto_adicionado_em || toDateTimeLocalValue())), navigation);
+    .replace(/{{PESO_BRUTO_ADICIONADO_EM}}/g, () => escapeHtml(formValues.peso_bruto_adicionado_em || toDateTimeLocalValue()))
+    .replace(/{{FOTO_CAPTURA_ID}}/g, () => escapeHtml(getCaptureIdValue(formValues))), navigation);
 
   res.send(html);
 }
@@ -447,7 +505,8 @@ function renderScaleInputFormPage(res, { formValues = {}, plateSuggestions = [],
     .replace('{{PRODUCT_WAS_CHANGED}}', () => formValues.produto ? 'true' : 'false')
     .replace(/{{PESO_BRUTO_KG}}/g, () => escapeHtml(formatDecimalInput(formValues.peso_bruto_kg)))
     .replace('{{USAR_TARA_ANTERIOR_CHECKED}}', () => formValues.usar_tara_anterior ? ' checked' : '')
-    .replace('{{PLATE_SUGGESTIONS}}', () => suggestions), navigation);
+    .replace('{{PLATE_SUGGESTIONS}}', () => suggestions)
+    .replace(/{{FOTO_CAPTURA_ID}}/g, () => escapeHtml(getCaptureIdValue(formValues))), navigation);
 
   res.send(html);
 }
@@ -459,7 +518,8 @@ function renderScaleInputTareFormPage(res, { input, formValues = {}, error, navi
     .replace('{{SCALE_INPUT_ERROR}}', () => buildAlertHtml(error, 'error'))
     .replace(/{{ENTRADA_ID}}/g, () => escapeHtml(input.id))
     .replace('{{INPUT_SUMMARY}}', () => escapeHtml(`${formatDateTime(input.data_entrada)} · ${input.placa_caminhao} · bruto ${formatKg(input.peso_bruto_kg)}`))
-    .replace(/{{PESO_TARA_KG}}/g, () => escapeHtml(formatDecimalInput(formValues.peso_tara_kg))), navigation);
+    .replace(/{{PESO_TARA_KG}}/g, () => escapeHtml(formatDecimalInput(formValues.peso_tara_kg)))
+    .replace(/{{FOTO_CAPTURA_ID}}/g, () => escapeHtml(getCaptureIdValue(formValues))), navigation);
 
   res.send(html);
 }
@@ -490,7 +550,7 @@ function renderScaleInputOriginFormPage(res, { input, formValues = {}, error, na
   res.send(html);
 }
 
-function renderScaleInputDetailPage(res, { input, formValues = {}, message, error, navigation }) {
+function renderScaleInputDetailPage(res, { input, photos = [], formValues = {}, message, error, navigation }) {
   const pagePath = path.join(__dirname, '../../views/weighbridge-input-detail.html');
   const dataEntradaValue = formValues.data_entrada ?? toDateTimeLocalValue(input.data_entrada);
   const selectedProduct = formValues.produto || input.produto;
@@ -498,6 +558,7 @@ function renderScaleInputDetailPage(res, { input, formValues = {}, message, erro
     .readFileSync(pagePath, 'utf8')
     .replace('{{SCALE_INPUT_MESSAGE}}', () => buildAlertHtml(message))
     .replace('{{SCALE_INPUT_ERROR}}', () => buildAlertHtml(error, 'error'))
+    .replace('{{SCALE_PHOTOS_SECTION}}', () => buildScalePhotosSectionHtml(photos))
     .replace(/{{ENTRADA_ID}}/g, () => escapeHtml(input.id))
     .replace('{{DATA_ENTRADA_FORMATTED}}', () => escapeHtml(formatDateTime(input.data_entrada)))
     .replace('{{PRODUTO}}', () => escapeHtml(formatProductLabel(input.produto)))
@@ -780,7 +841,7 @@ ${buildDeletionReasonFormHtml({
   `;
 }
 
-function renderScaleOutputDetailPage(res, { outputInfo, formValues = {}, message, error, navigation }) {
+function renderScaleOutputDetailPage(res, { outputInfo, photos = [], formValues = {}, message, error, navigation }) {
   const pagePath = path.join(__dirname, '../../views/weighbridge-output-detail.html');
   const html = applyWeighbridgeNavigation(fs
     .readFileSync(pagePath, 'utf8')
@@ -795,6 +856,7 @@ function renderScaleOutputDetailPage(res, { outputInfo, formValues = {}, message
     .replace('{{PESO_BRUTO_KG}}', () => escapeHtml(formatRoundedKg(outputInfo.peso_bruto_kg)))
     .replace(/{{PESO_LIQUIDO_KG}}/g, () => escapeHtml(formatRoundedKg(outputInfo.peso_liquido_kg)))
     .replace('{{INVOICE_INFO_LINK}}', () => buildScaleOutputInvoiceLinkHtml(outputInfo))
+    .replace('{{SCALE_PHOTOS_SECTION}}', () => buildScalePhotosSectionHtml(photos))
     .replace('{{OUTPUT_EDIT_FORM}}', () => buildScaleOutputEditFormHtml(outputInfo, formValues))
     .replace('{{OUTPUT_ACTIONS_SECTION}}', () => buildScaleOutputActionsHtml(outputInfo)), navigation);
 
@@ -834,5 +896,6 @@ module.exports = {
   renderScaleOutputGrossFormPage,
   renderScaleOutputInvoicePage,
   renderScaleOutputsListPage,
+  renderScalePhotosPage,
   renderWeighbridgeHomePage,
 };

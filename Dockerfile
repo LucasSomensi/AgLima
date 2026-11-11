@@ -19,7 +19,12 @@ COPY views ./views
 COPY public ./public
 COPY scripts ./scripts
 COPY migrations ./migrations
+COPY docker-entrypoint.sh ./docker-entrypoint.sh
+RUN chmod 755 /app/docker-entrypoint.sh
 ENV NODE_ENV=production
 ENV PG_DUMP_PATH=/usr/lib/postgresql/18/bin/pg_dump
-USER node
+ENV FOTOS_DIR=/app/fotos
+# Sem "USER node": o entrypoint ajusta o dono do volume de fotos e troca para
+# o usuário node (setpriv) antes de iniciar a aplicação.
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
 CMD ["node", "app.js"]
