@@ -2,6 +2,8 @@
 
 Este documento descreve a **API do equipamento**, para o programa Python que lê a porta serial e publica o peso da **balança 1**. Esse endpoint continua compatível com a integração existente.
 
+Para enviar **fotos da câmera** junto com o peso e as fotos automáticas de cada pesagem, veja a seção [Fotos da câmera](#fotos-da-câmera) e o guia de implementação [autoweight-fotos.md](autoweight-fotos.md).
+
 Para executar todas as ações do operador (entradas, saídas, classificação, contratos, relatórios e exclusões), consulte a [API operacional v1](api-balanca-operacional.md) e a [especificação OpenAPI](api-balanca.openapi.json). A chave `api_key` **não** autoriza essas operações: use o login e o token de operador descritos no novo guia.
 
 ## Visão geral do fluxo
@@ -105,7 +107,7 @@ Todas as respostas conhecidas da API são JSON e possuem a propriedade `error`.
 | --- | --- | --- |
 | `400 Bad Request` | `peso_kg` ausente, texto, fracionário, negativo ou acima do limite | `{"error":"peso_kg deve ser um número inteiro entre 0 e 2147483647."}` |
 | `401 Unauthorized` | Cabeçalho ausente, esquema diferente de Bearer ou chave incorreta | `{"error":"Chave de API inválida ou ausente."}` |
-| `413 Payload Too Large` | Corpo excedeu o limite global de 100 KB | `{"code":"PAYLOAD_TOO_LARGE","error":"A requisição excede 100 KB."}` |
+| `413 Payload Too Large` | Corpo excedeu o limite global de 100 KB (8 MB nos endpoints de foto) | `{"code":"PAYLOAD_TOO_LARGE","error":"A requisição excede 100 KB."}` |
 | `503 Service Unavailable` | Variável `api_key` ausente no Railway | `{"error":"API da balança não configurada."}` |
 | `500 Internal Server Error` | Falha inesperada ao gravar no banco | `{"error":"Não foi possível salvar o peso da balança."}` |
 
@@ -154,15 +156,67 @@ def publicar_peso(peso_kg: int) -> dict:
     return response.json()
 ```
 
-## Endpoint usado pelo navegador
+## Fotos da câmera
 
-Para completude, o frontend consulta:
+A mesma chave `api_key` autoriza dois endpoints binários. Ambos recebem o JPEG como corpo (`Content-Type: image/jpeg`, até 8 MB) e os metadados em cabeçalhos. O limite global de 100 KB não se aplica a eles.
+
+### Peso com foto
 
 ```http
-GET /balanca/balancas/1/peso-atual
+POST /api/balancas/1/peso-com-foto
+Authorization: Bearer VALOR_DA_API_KEY
+Content-Type: image/jpeg
+X-Peso-Kg: 28740
+
+<bytes do JPEG>
 ```
 
-Esse endpoint **não deve ser usado pelo programa Python**. Ele requer a sessão normal de um operador de balança ou administrador. Retorna `200` com a mesma estrutura da resposta de publicação, `404` quando nenhum peso foi recebido, ou `500` em uma falha de banco. A resposta usa `Cache-Control: no-store` para que cada clique consulte o valor atual.
+Faz o mesmo que `POST /api/balancas/1/peso` e também guarda a foto como **foto do peso atual**. A resposta é a mesma, com `"foto": true`. O servidor mantém só a foto mais recente (a anterior é apagada). Um peso enviado depois por `POST /api/balancas/1/peso`, sem foto, deixa a foto antiga inválida: o botão do formulário nunca anexa uma foto de outro peso.
+
+### Fotos automáticas
+
+```http
+PUT /api/balancas/1/fotos/automaticas/{chave}
+Authorization: Bearer VALOR_DA_API_KEY
+Content-Type: image/jpeg
+X-Peso-Kg: 28740
+X-Capturada-Em: 2026-11-11T10:00:00.123-03:00
+X-Substitui: chave-da-foto-anterior   (opcional)
+
+<bytes do JPEG>
+```
+
+Grava a foto tirada ao final de uma pesagem. A `{chave}` (`^[A-Za-z0-9._-]{1,120}$`) torna o envio idempotente: `201` grava, e `200` indica que a chave já tinha sido recebida e nada mudou. `X-Capturada-Em` precisa de fuso horário. `X-Substitui` marca a foto anterior do mesmo caminhão como substituída por um peso maior. Fotos automáticas ficam guardadas por 365 dias (`FOTOS_RETENCAO_AUTOMATICAS_DIAS`).
+
+### Erros específicos
+
+| HTTP | Situação |
+| --- | --- |
+| `400` | `X-Peso-Kg`, `X-Capturada-Em`, `X-Substitui` ou chave inválidos, ou corpo que não é um JPEG completo |
+| `413` | Foto acima de 8 MB (`{"code":"PAYLOAD_TOO_LARGE","error":"A foto excede 8 MB."}`) |
+| `415` | `Content-Type` diferente de `image/jpeg` |
+| `507` | Sem espaço no volume de fotos |
+| `500` | Falha ao gravar o arquivo ou o banco |
+
+O comportamento esperado do AutoWeight em cada caso está em [autoweight-fotos.md](autoweight-fotos.md).
+
+## Endpoints usados pelo navegador
+
+Para completude, o frontend usa os endpoints abaixo. **Nenhum deles deve ser usado pelo programa do equipamento.** Todos exigem a sessão normal de um operador de balança ou administrador.
+
+```http
+GET  /balanca/balancas/1/peso-atual
+POST /balanca/balancas/1/peso-atual/captura
+GET  /balanca/fotos/{id}
+GET  /balanca/fotos?data=AAAA-MM-DD
+```
+
+- `GET /balanca/balancas/1/peso-atual` retorna `200` com a mesma estrutura da resposta de publicação, `404` quando nenhum peso foi recebido ou `500` em falha de banco. É usado pelo painel do secador.
+- `POST /balanca/balancas/1/peso-atual/captura` (com token CSRF) é o botão "usar peso da balança" dos formulários de peso bruto e tara. Devolve o peso atual e, quando existe foto para esse peso, `foto: {captura_id, url, contingencia}`. A foto é copiada como **captura temporária** do operador, válida por 60 minutos. Ao salvar o lançamento, ela é vinculada à entrada ou saída apenas se o peso salvo for exatamente o peso lido. Um peso digitado ou alterado fica sem foto. Capturas não confirmadas (formulário cancelado ou abandonado) são apagadas pela limpeza periódica.
+- `GET /balanca/fotos/{id}` devolve o JPEG com `Cache-Control: private`.
+- `GET /balanca/fotos?data=` lista as fotos automáticas do dia.
+
+As consultas usam `Cache-Control: no-store` para que cada clique leia o valor atual.
 
 ## Checklist para o cliente Python
 

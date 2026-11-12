@@ -1524,6 +1524,190 @@
           }
         }
       }
+    },
+    "/api/balancas/1/peso-com-foto": {
+      "post": {
+        "summary": "Publicar peso do equipamento com a foto da câmera",
+        "description": "Substitui o peso atual e a foto que o acompanha. O botão de peso dos formulários anexa esta foto ao lançamento. Um envio posterior para /api/balancas/1/peso (sem foto) invalida a foto anterior.",
+        "operationId": "publish_scale_weight_with_photo",
+        "security": [
+          {
+            "scaleDeviceKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Peso-Kg",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9]{1,10}$",
+              "example": "28740"
+            },
+            "description": "Peso inteiro em kg, de 0 a 2147483647."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "image/jpeg": {
+              "schema": {
+                "type": "string",
+                "format": "binary",
+                "maxLength": 8388608
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Peso e foto substituídos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WeightWithPhoto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Erro legado: objeto com error; erros do parser também têm code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/balancas/1/fotos/automaticas/{chave}": {
+      "put": {
+        "summary": "Enviar foto automática do AutoWeight (idempotente)",
+        "description": "Grava a foto tirada ao final de uma pesagem. Reenviar a mesma chave devolve 200 com a foto já gravada, sem duplicar.",
+        "operationId": "upload_automatic_scale_photo",
+        "security": [
+          {
+            "scaleDeviceKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "chave",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._-]{1,120}$",
+              "example": "2026-11-11-10-00-00-123456-28740kg"
+            },
+            "description": "Identificador único da foto no AutoWeight (o nome do arquivo sem .jpg)."
+          },
+          {
+            "name": "X-Peso-Kg",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9]{1,10}$",
+              "example": "28740"
+            },
+            "description": "Peso inteiro em kg, de 0 a 2147483647."
+          },
+          {
+            "name": "X-Capturada-Em",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "example": "2026-11-11T10:00:00.123-03:00"
+            },
+            "description": "Data/hora da foto em ISO 8601 com fuso. Não pode estar mais de 5 minutos no futuro."
+          },
+          {
+            "name": "X-Substitui",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._-]{1,120}$"
+            },
+            "description": "Chave da foto anterior do mesmo caminhão, substituída por um peso maior."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "image/jpeg": {
+              "schema": {
+                "type": "string",
+                "format": "binary",
+                "maxLength": 8388608
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Foto gravada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutomaticPhoto"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Chave já recebida antes; nada foi alterado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutomaticPhoto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Erro legado: objeto com error; erros do parser também têm code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -3116,6 +3300,76 @@
         },
         "required": [
           "texto"
+        ],
+        "additionalProperties": false
+      },
+      "WeightWithPhoto": {
+        "type": "object",
+        "properties": {
+          "balanca_id": {
+            "type": "integer"
+          },
+          "peso_kg": {
+            "type": "integer"
+          },
+          "atualizado_em": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "foto": {
+            "type": "boolean",
+            "const": true
+          }
+        },
+        "required": [
+          "balanca_id",
+          "peso_kg",
+          "atualizado_em",
+          "foto"
+        ],
+        "additionalProperties": false
+      },
+      "AutomaticPhoto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "chave": {
+            "type": "string"
+          },
+          "peso_kg": {
+            "type": "integer"
+          },
+          "capturada_em": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "recebida_em": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "contingencia": {
+            "type": "boolean",
+            "description": "Verdadeiro quando o arquivo é a imagem de câmera indisponível do AutoWeight."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "recebida",
+              "substituida"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "chave",
+          "peso_kg",
+          "capturada_em",
+          "recebida_em",
+          "contingencia",
+          "status"
         ],
         "additionalProperties": false
       }

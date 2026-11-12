@@ -36,6 +36,8 @@ Aplicação web Node.js/Express para operações da AgroLima, incluindo site pú
 | `MAILERSEND_FROM_NAME` | Não | Formulário de contato | Nome exibido do remetente. Padrão: `AgroLima`. |
 | `CONTACT_TO` | Sim para `/contato` enviar e-mail | Formulário de contato | Endereço que recebe as mensagens do formulário de contato. |
 | `CONTACT_TO_NAME` | Não | Formulário de contato | Nome exibido do destinatário. Padrão: `AgroLima`. |
+| `FOTOS_DIR` | Não | Fotos da balança | Pasta do volume de fotos. Padrão: `/app/fotos` (já definido no Dockerfile). No Railway, monte o volume nesse caminho. |
+| `FOTOS_RETENCAO_AUTOMATICAS_DIAS` | Não | Fotos da balança | Dias que as fotos automáticas do AutoWeight ficam guardadas. Padrão: `365`. Fotos anexadas a entradas e saídas não expiram. |
 | `ROOT_PASSWORD` | Sim apenas no `npm run create-root-user` | Inicialização do root | Senha inicial criptografada e armazenada para o login `root`. Não commite este valor no Git. |
 
 Exemplo de variáveis para Railway:
@@ -60,6 +62,23 @@ Depois de alterar variáveis no Railway, faça redeploy ou reinicie o serviço p
 - [API operacional v1](docs/api-balanca-operacional.md): todas as ações do operador,
   autenticação por usuário, exemplos, implantação e regras de repetição.
 - [OpenAPI](docs/api-balanca.openapi.json): contrato importável em clientes de API.
+- [Fotos no AutoWeight](docs/autoweight-fotos.md): o que o programa da balança precisa
+  implementar para enviar peso com foto e as fotos automáticas.
+
+### Fotos da balança
+
+As fotos da câmera ficam num volume do Railway montado em `/app/fotos` (`FOTOS_DIR`); o
+banco guarda só os metadados (`balanca_fotos`). Para ativar:
+
+1. Aplique `migrations/20261111_add_scale_photos.sql` no banco.
+2. Monte o volume em `/app/fotos`. O container inicia como root apenas para ajustar o dono
+   do volume (`docker-entrypoint.sh`) e executa a aplicação como `node`. No log de
+   inicialização aparece `Fotos da balança: gravando em /app/fotos (uid 1000).` ou o erro
+   de permissão.
+3. Atualize o AutoWeight conforme [docs/autoweight-fotos.md](docs/autoweight-fotos.md).
+
+Sem a migration ou sem o volume, o botão de peso continua preenchendo o peso normalmente,
+só que sem foto.
 
 ## Banco de dados
 

@@ -14,6 +14,7 @@ Este documento descreve o schema `public` do banco PostgreSQL usado pela aplica�
   - [`contratos`](#contratos)
   - [`armazenamento_recalibracoes`](#armazenamento_recalibracoes)
   - [`balancas_pesos_atuais`](#balancas_pesos_atuais)
+  - [`balanca_fotos`](#balanca_fotos)
   - [`entradas_balanca`](#entradas_balanca)
   - [`saidas_balanca`](#saidas_balanca)
   - [`auditoria_acoes`](#auditoria_acoes)
@@ -46,6 +47,9 @@ Este documento descreve o schema `public` do banco PostgreSQL usado pela aplica�
 | `dryer_moisture_readings` | `batch_id` | `dryer_batches` | `id` | Vincula medições de umidade a uma batelada. |
 | `dryer_moisture_readings` | `measured_by_user_id` | `users` | `id` | Registra o usuário que lançou a medição. |
 | `dryer_settings` | `updated_by_user_id` | `users` | `id` | Registra o usuário que atualizou a configuração do secador. |
+| `balanca_fotos` | `entrada_id` | `entradas_balanca` | `id` | Foto vinculada a uma entrada (`ON DELETE SET NULL`: a foto continua guardada se a entrada for excluída). |
+| `balanca_fotos` | `saida_id` | `saidas_balanca` | `id` | Foto vinculada a uma saída (`ON DELETE SET NULL`). |
+| `balanca_fotos` | `criada_por_user_id` | `users` | `id` | Operador que usou o botão de peso da balança e gerou a captura. |
 
 ---
 
@@ -60,6 +64,8 @@ Armazena somente a leitura estável mais recente enviada por cada balança integ
 | `balanca_id` | `integer` | Não | — | Identificador da balança. É a chave primária; atualmente a aplicação usa o valor `1`. |
 | `peso_kg` | `integer` | Não | — | Último peso estável recebido, em quilogramas inteiros. Aceita zero e não aceita valores negativos. |
 | `atualizado_em` | `timestamp with time zone` | Não | `now()` | Data/hora do servidor PostgreSQL em que o peso foi inserido ou substituído. |
+| `foto_arquivo` | `text` | Sim | — | Caminho relativo (dentro de `FOTOS_DIR`, pasta `atual/`) da foto recebida por `POST /api/balancas/1/peso-com-foto`. |
+| `foto_atualizado_em` | `timestamp with time zone` | Sim | — | Valor de `atualizado_em` do peso que acompanhou a foto. A foto só vale para o peso atual quando os dois são iguais; um peso posterior enviado sem foto a invalida. |
 
 ### Restrições
 
@@ -75,7 +81,41 @@ Armazena somente a leitura estável mais recente enviada por cada balança integ
 - `GET /balanca/balancas/1/peso-atual` consulta essa linha para um operador autenticado, sem consumir nem apagar o valor.
 - Os botões dos formulários de peso bruto e tara só fazem a consulta quando clicados. O operador ainda pode digitar ou editar o peso manualmente.
 - A tabela representa estado atual, não um histórico nem um lançamento de entrada. Os pesos confirmados continuam armazenados em `entradas_balanca`.
-- A estrutura é criada por `migrations/20260908_add_current_scale_weights.sql`.
+- A estrutura é criada por `migrations/20260908_add_current_scale_weights.sql`. As colunas de foto vêm de `migrations/20261111_add_scale_photos.sql`.
+
+---
+
+## `balanca_fotos`
+
+Metadados das fotos da câmera da balança. Os bytes ficam no volume indicado por `FOTOS_DIR` (padrão `/app/fotos`), nunca no banco. Criada por `migrations/20261111_add_scale_photos.sql`.
+
+### Colunas
+
+| Coluna | Tipo | Nulo? | Default | Descrição |
+| --- | --- | --- | --- | --- |
+| `id` | `uuid` | Não | `gen_random_uuid()` | Identificador; usado em `/balanca/fotos/{id}` e como token da captura. |
+| `balanca_id` | `integer` | Não | `1` | Balança de origem. |
+| `origem` | `text` | Não | — | `automatica` (enviada pelo AutoWeight ao final da pesagem) ou `lancamento` (botão de peso nos formulários). |
+| `status` | `text` | Não | — | `recebida` ou `substituida` (automáticas); `temporaria` ou `vinculada` (lançamentos). |
+| `arquivo` | `text` | Não | — | Caminho relativo único, gerado pelo servidor: `automaticas/AAAA/MM/<uuid>.jpg` ou `capturas/AAAA/MM/<uuid>.jpg`. |
+| `tamanho_bytes` | `integer` | Não | — | Tamanho do JPEG. |
+| `sha256` | `text` | Não | — | Hash hexadecimal do arquivo. |
+| `peso_kg` | `integer` | Não | — | Peso associado à foto. |
+| `capturada_em` | `timestamp with time zone` | Não | — | Momento da foto: `X-Capturada-Em` nas automáticas; momento em que o peso com foto chegou nas capturas. |
+| `recebida_em` | `timestamp with time zone` | Não | `now()` | Momento em que o servidor gravou a linha. |
+| `contingencia` | `boolean` | Não | `false` | Verdadeiro quando o JPEG é a imagem de câmera indisponível do AutoWeight. |
+| `chave_cliente` | `text` | Sim | — | Chave única enviada pelo AutoWeight (só automáticas); garante envio idempotente. |
+| `entrada_id` / `saida_id` | `bigint` | Sim | — | Lançamento ao qual a captura foi vinculada. Viram `NULL` se o lançamento for excluído. |
+| `tipo_peso` | `text` | Sim | — | `bruto` ou `tara` (capturas vinculadas). |
+| `criada_por_user_id` | `uuid` | Sim | — | Operador que gerou a captura. |
+| `expira_em` | `timestamp with time zone` | Sim | — | Validade da captura temporária (60 minutos). |
+| `vinculada_em` | `timestamp with time zone` | Sim | — | Momento em que o lançamento foi salvo com a captura. |
+
+### Ciclo de vida
+
+- **Automáticas:** `PUT /api/balancas/1/fotos/automaticas/{chave}` cria a linha como `recebida`; `X-Substitui` marca a foto anterior do mesmo caminhão como `substituida`. São apagadas (linha e arquivo) depois de `FOTOS_RETENCAO_AUTOMATICAS_DIAS` (padrão 365).
+- **Lançamentos:** o botão de peso copia a foto do peso atual para `capturas/` e cria a linha `temporaria`. Ao salvar entrada ou saída com o mesmo peso, o mesmo operador e dentro da validade, ela vira `vinculada`. Capturas vencidas são apagadas pela limpeza periódica; vinculadas nunca são apagadas automaticamente, nem quando o lançamento é excluído.
+- A limpeza roda 1 minuto depois de o servidor iniciar e depois a cada 6 horas.
 
 ---
 
