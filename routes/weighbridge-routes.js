@@ -57,17 +57,19 @@ const {
   renderScalePhotosPage,
   renderWeighbridgeHomePage,
 } = require('./renderers/weighbridge-renderer');
-const { buildRedirect, paginateItems, toDateTimeLocalValue } = require('./utils');
+const { buildRedirect, formatDateTime, paginateItems, toDateTimeLocalValue } = require('./utils');
 const { buildScaleInputsCsv, buildScaleOutputsCsv } = require('./weighbridge-csv');
 const { buildScaleInputTicketPdf, buildScaleOutputTicketPdf } = require('./weighbridge-ticket-pdf');
 const { getCurrentScaleWeight, SCALE_ONE_ID } = require('./scale-reading-service');
 const {
+  createCaptureFromAutomaticPhoto,
   createWeightCapture,
   getAutomaticRetentionDays,
   getPhotoById,
   linkCaptureToRecord,
   listAutomaticPhotosByDay,
   listLinkedPhotos,
+  listRecentAutomaticPhotos,
 } = require('./scale-photo-service');
 const { resolvePhotoPath } = require('./scale-photo-storage');
 const { getContractReceipts } = require('./receipt-service');
@@ -291,6 +293,67 @@ router.get('/balanca/fotos', canAccessWeighbridge, async (req, res) => {
       error: 'Não foi possível carregar as fotos agora.',
       navigation: getWeighbridgeNavigation(req),
     });
+  }
+});
+
+function describePhotoUse(use) {
+  const weightType = use.tipo_peso === 'tara' ? 'tara' : 'peso bruto';
+  return use.entrada_id
+    ? `entrada #${use.entrada_id} (${weightType})`
+    : `saída #${use.saida_id} (${weightType})`;
+}
+
+// Lista do botão "usar foto automática". Precisa ficar antes de
+// /balanca/fotos/:id, que também casaria com este caminho.
+router.get('/balanca/fotos/automaticas/recentes', canAccessWeighbridge, async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+
+  try {
+    const photos = await listRecentAutomaticPhotos(SCALE_ONE_ID);
+    return res.json({
+      fotos: photos.map((photo) => ({
+        id: photo.id,
+        url: `/balanca/fotos/${photo.id}`,
+        peso_kg: photo.peso_kg,
+        capturada_em: photo.capturada_em,
+        capturada_em_texto: formatDateTime(photo.capturada_em),
+        contingencia: photo.contingencia,
+        substituida: photo.status === 'substituida',
+        usos: (photo.usos || []).map(describePhotoUse),
+      })),
+    });
+  } catch (error) {
+    console.error('Error listing recent automatic scale photos:', error.code || error.message);
+    return res.status(500).json({ error: 'Não foi possível carregar as fotos automáticas agora.' });
+  }
+});
+
+// Copia a foto automática escolhida para uma captura temporária, que é
+// vinculada ao salvar o lançamento com o mesmo peso (como no botão de peso).
+router.post('/balanca/fotos/automaticas/:id/captura', canAccessWeighbridge, async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+
+  try {
+    const result = await createCaptureFromAutomaticPhoto(SCALE_ONE_ID, req.params.id, req.sessionUser.userId);
+
+    if (!result) {
+      return res.status(404).json({ error: 'Esta foto automática não está mais disponível. Escolha outra.' });
+    }
+
+    return res.json({
+      balanca_id: SCALE_ONE_ID,
+      peso_kg: result.capture.peso_kg,
+      capturada_em: result.capture.capturada_em,
+      capturada_em_texto: formatDateTime(result.capture.capturada_em),
+      foto: {
+        captura_id: result.capture.id,
+        url: `/balanca/fotos/${result.capture.id}`,
+        contingencia: result.capture.contingencia,
+      },
+    });
+  } catch (error) {
+    console.error('Error capturing automatic scale photo:', error.code || error.message);
+    return res.status(500).json({ error: 'Não foi possível usar esta foto agora.' });
   }
 });
 

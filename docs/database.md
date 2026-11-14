@@ -50,6 +50,7 @@ Este documento descreve o schema `public` do banco PostgreSQL usado pela aplica�
 | `balanca_fotos` | `entrada_id` | `entradas_balanca` | `id` | Foto vinculada a uma entrada (`ON DELETE SET NULL`: a foto continua guardada se a entrada for excluída). |
 | `balanca_fotos` | `saida_id` | `saidas_balanca` | `id` | Foto vinculada a uma saída (`ON DELETE SET NULL`). |
 | `balanca_fotos` | `criada_por_user_id` | `users` | `id` | Operador que usou o botão de peso da balança e gerou a captura. |
+| `balanca_fotos` | `foto_origem_id` | `balanca_fotos` | `id` | Foto automática de onde a captura foi copiada (`ON DELETE SET NULL`: a cópia continua guardada quando a automática é apagada pela retenção). |
 
 ---
 
@@ -110,11 +111,12 @@ Metadados das fotos da câmera da balança. Os bytes ficam no volume indicado po
 | `criada_por_user_id` | `uuid` | Sim | — | Operador que gerou a captura. |
 | `expira_em` | `timestamp with time zone` | Sim | — | Validade da captura temporária (60 minutos). |
 | `vinculada_em` | `timestamp with time zone` | Sim | — | Momento em que o lançamento foi salvo com a captura. |
+| `foto_origem_id` | `uuid` | Sim | — | Foto automática que foi copiada para esta captura (botão "usar foto automática"). `NULL` nas capturas do botão de peso atual. Criada por `migrations/20261114_add_scale_photo_source.sql`. |
 
 ### Ciclo de vida
 
 - **Automáticas:** `PUT /api/balancas/1/fotos/automaticas/{chave}` cria a linha como `recebida`; `X-Substitui` marca a foto anterior do mesmo caminhão como `substituida`. São apagadas (linha e arquivo) depois de `FOTOS_RETENCAO_AUTOMATICAS_DIAS` (padrão 365).
-- **Lançamentos:** o botão de peso copia a foto do peso atual para `capturas/` e cria a linha `temporaria`. Ao salvar entrada ou saída com o mesmo peso, o mesmo operador e dentro da validade, ela vira `vinculada`. Capturas vencidas são apagadas pela limpeza periódica; vinculadas nunca são apagadas automaticamente, nem quando o lançamento é excluído.
+- **Lançamentos:** o botão de peso copia a foto do peso atual para `capturas/` e cria a linha `temporaria`. O botão "usar foto automática" faz o mesmo com uma das 20 fotos automáticas mais recentes (inclusive substituídas), usando o peso e o horário dessa foto e gravando `foto_origem_id`; a mesma foto automática pode ser usada em vários lançamentos. Ao salvar entrada ou saída com o mesmo peso, o mesmo operador e dentro da validade, ela vira `vinculada`. Capturas vencidas são apagadas pela limpeza periódica; vinculadas nunca são apagadas automaticamente, nem quando o lançamento é excluído.
 - A limpeza roda 1 minuto depois de o servidor iniciar e depois a cada 6 horas.
 
 ---

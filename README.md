@@ -70,7 +70,8 @@ Depois de alterar variáveis no Railway, faça redeploy ou reinicie o serviço p
 As fotos da câmera ficam num volume do Railway montado em `/app/fotos` (`FOTOS_DIR`); o
 banco guarda só os metadados (`balanca_fotos`). Para ativar:
 
-1. Aplique `migrations/20261111_add_scale_photos.sql` no banco.
+1. Aplique `migrations/20261111_add_scale_photos.sql` e
+   `migrations/20261114_add_scale_photo_source.sql` no banco.
 2. Monte o volume em `/app/fotos`. O container inicia como root apenas para ajustar o dono
    do volume (`docker-entrypoint.sh`) e executa a aplicação como `node`. No log de
    inicialização aparece `Fotos da balança: gravando em /app/fotos (uid 1000).` ou o erro
@@ -79,6 +80,12 @@ banco guarda só os metadados (`balanca_fotos`). Para ativar:
 
 Sem a migration ou sem o volume, o botão de peso continua preenchendo o peso normalmente,
 só que sem foto.
+
+Nos formulários de bruto e tara, ao lado do botão de peso, o botão "usar foto automática"
+(relógio com seta) abre as 20 últimas fotos automáticas. A escolhida preenche o peso com o
+peso daquela foto e é anexada ao lançamento. Fotos já usadas aparecem com aviso, mas podem
+ser usadas de novo (por exemplo, a mesma tara em várias viagens). Esse botão precisa da
+migration `20261114_add_scale_photo_source.sql`.
 
 ## Banco de dados
 
