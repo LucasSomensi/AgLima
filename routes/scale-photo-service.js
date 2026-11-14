@@ -3,6 +3,7 @@ const { APP_TIME_ZONE } = require('./constants');
 const storage = require('./scale-photo-storage');
 
 const CAPTURE_TTL_MINUTES = 60;
+const RECENT_AUTOMATIC_PHOTOS_LIMIT = 20;
 const DEFAULT_AUTOMATIC_RETENTION_DAYS = 365;
 const CLEANUP_BATCH_SIZE = 500;
 const MAX_POSTGRES_INTEGER = 2147483647;
@@ -268,37 +269,148 @@ async function createWeightCapture(scaleId, userId) {
       throw error;
     }
 
-    try {
-      const result = await pool.query(
-        `
-          INSERT INTO balanca_fotos (
-            balanca_id, origem, status, arquivo, tamanho_bytes, sha256, peso_kg,
-            capturada_em, contingencia, criada_por_user_id, expira_em
-          )
-          VALUES ($1, 'lancamento', 'temporaria', $2, $3, $4, $5, $6, $7, $8,
-                  now() + make_interval(mins => $9))
-          RETURNING ${PHOTO_COLUMNS}
-        `,
-        [
-          scaleId,
-          relativePath,
-          buffer.length,
-          storage.sha256(buffer),
-          weight.peso_kg,
-          weight.atualizado_em,
-          storage.isContingencyPhoto(buffer),
-          userId,
-          CAPTURE_TTL_MINUTES,
-        ]
-      );
-      return { reading: weight, capture: result.rows[0] };
-    } catch (error) {
-      await storage.deletePhotoFile(relativePath);
-      throw error;
-    }
+    const capture = await insertTemporaryCapture({
+      scaleId,
+      relativePath,
+      buffer,
+      pesoKg: weight.peso_kg,
+      capturadaEm: weight.atualizado_em,
+      userId,
+    });
+    return { reading: weight, capture };
   }
 
   return { reading: null, capture: null };
+}
+
+// Grava a linha da captura temporária de um arquivo já copiado para
+// "capturas/"; se o banco falhar, o arquivo é removido. A coluna
+// foto_origem_id só entra quando há foto de origem, para o botão de peso
+// atual continuar funcionando num banco ainda sem a migration dessa coluna.
+async function insertTemporaryCapture({ scaleId, relativePath, buffer, pesoKg, capturadaEm, userId, sourcePhotoId = null }) {
+  const sourceColumn = sourcePhotoId ? ', foto_origem_id' : '';
+  const sourceValue = sourcePhotoId ? ', $10' : '';
+  const values = [
+    scaleId,
+    relativePath,
+    buffer.length,
+    storage.sha256(buffer),
+    pesoKg,
+    capturadaEm,
+    storage.isContingencyPhoto(buffer),
+    userId,
+    CAPTURE_TTL_MINUTES,
+  ];
+
+  if (sourcePhotoId) {
+    values.push(sourcePhotoId);
+  }
+
+  try {
+    const result = await pool.query(
+      `
+        INSERT INTO balanca_fotos (
+          balanca_id, origem, status, arquivo, tamanho_bytes, sha256, peso_kg,
+          capturada_em, contingencia, criada_por_user_id, expira_em${sourceColumn}
+        )
+        VALUES ($1, 'lancamento', 'temporaria', $2, $3, $4, $5, $6, $7, $8,
+                now() + make_interval(mins => $9)${sourceValue})
+        RETURNING ${PHOTO_COLUMNS}
+      `,
+      values
+    );
+    return result.rows[0];
+  } catch (error) {
+    await storage.deletePhotoFile(relativePath);
+    throw error;
+  }
+}
+
+// Últimas fotos automáticas, das mais novas para as mais antigas, sem limite
+// de data. Para cada uma, lista os lançamentos em que ela já foi usada: a
+// mesma foto pode ser usada de novo (por exemplo, a tara de um caminhão
+// repetida em várias viagens), mas o operador vê o aviso antes de escolher.
+async function listRecentAutomaticPhotos(scaleId, limit = RECENT_AUTOMATIC_PHOTOS_LIMIT) {
+  ensureDatabaseConfigured();
+
+  const result = await pool.query(
+    `
+      SELECT f.id, f.status, f.peso_kg, f.capturada_em, f.contingencia,
+             COALESCE(
+               json_agg(
+                 json_build_object('entrada_id', c.entrada_id, 'saida_id', c.saida_id, 'tipo_peso', c.tipo_peso)
+                 ORDER BY c.vinculada_em
+               ) FILTER (WHERE c.id IS NOT NULL),
+               '[]'::json
+             ) AS usos
+      FROM (
+        SELECT id, status, peso_kg, capturada_em, contingencia
+        FROM balanca_fotos
+        WHERE origem = 'automatica'
+          AND balanca_id = $1
+        ORDER BY capturada_em DESC
+        LIMIT $2
+      ) f
+      LEFT JOIN balanca_fotos c
+        ON c.foto_origem_id = f.id
+       AND c.status = 'vinculada'
+       AND (c.entrada_id IS NOT NULL OR c.saida_id IS NOT NULL)
+      GROUP BY f.id, f.status, f.peso_kg, f.capturada_em, f.contingencia
+      ORDER BY f.capturada_em DESC
+    `,
+    [scaleId, limit]
+  );
+  return result.rows;
+}
+
+// Usado pelo botão "usar foto automática": copia a foto automática escolhida
+// para uma captura temporária com o peso e o horário dessa foto. A partir daí
+// o fluxo é o mesmo do botão de peso atual (vincula ao salvar com o mesmo peso).
+// Devolve null quando a foto não existe, não é automática ou o arquivo já foi
+// apagado pela retenção.
+async function createCaptureFromAutomaticPhoto(scaleId, photoId, userId) {
+  if (!isUuid(photoId)) {
+    return null;
+  }
+
+  ensureDatabaseConfigured();
+
+  const result = await pool.query(
+    `
+      SELECT ${PHOTO_COLUMNS}
+      FROM balanca_fotos
+      WHERE id = $1
+        AND origem = 'automatica'
+        AND balanca_id = $2
+    `,
+    [photoId, scaleId]
+  );
+  const source = result.rows[0];
+
+  if (!source) {
+    return null;
+  }
+
+  const relativePath = storage.buildStoredPhotoPath('capturas', new Date());
+  let buffer;
+
+  try {
+    buffer = await storage.copyPhoto(source.arquivo, relativePath);
+  } catch (error) {
+    if (error.code === 'ENOENT') return null;
+    throw error;
+  }
+
+  const capture = await insertTemporaryCapture({
+    scaleId,
+    relativePath,
+    buffer,
+    pesoKg: source.peso_kg,
+    capturadaEm: source.capturada_em,
+    userId,
+    sourcePhotoId: source.id,
+  });
+  return { source, capture };
 }
 
 // Confirma a foto temporária quando o lançamento é salvo. Só vincula se a
@@ -440,6 +552,7 @@ module.exports = {
   buildWeightWithPhotoPayload,
   CAPTURE_TTL_MINUTES,
   cleanupScalePhotos,
+  createCaptureFromAutomaticPhoto,
   createWeightCapture,
   getAutomaticRetentionDays,
   getPhotoById,
@@ -447,7 +560,9 @@ module.exports = {
   linkCaptureToRecord,
   listAutomaticPhotosByDay,
   listLinkedPhotos,
+  listRecentAutomaticPhotos,
   parseCapturedAtHeader,
+  RECENT_AUTOMATIC_PHOTOS_LIMIT,
   parseWeightHeader,
   saveAutomaticPhoto,
   saveCurrentWeightWithPhoto,

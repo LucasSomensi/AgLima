@@ -241,7 +241,80 @@ test('button capture copies the photo that came with the current weight', async 
   assert.equal(insert.values[5], atualizadoEm);
   assert.equal(insert.values[7], 'user-1');
   assert.equal(insert.values[8], photoService.CAPTURE_TTL_MINUTES);
+  // Sem foto de origem, a coluna nova fica de fora: o botão de peso continua
+  // funcionando num banco ainda sem a migration de foto_origem_id.
+  assert.doesNotMatch(insert.sql, /foto_origem_id/);
+  assert.equal(insert.values.length, 9);
   assert.deepEqual(fs.readFileSync(path.join(dir, insert.values[1])), jpeg('caminhao'));
+});
+
+test('automatic photo capture copies the chosen photo with its own weight and time', async (t) => {
+  const dir = usePhotosDir(t);
+  const capturadaEm = new Date('2026-11-10T18:05:00Z');
+  const arquivo = storage.buildStoredPhotoPath('automaticas', capturadaEm);
+  await storage.writePhotoAtomically(arquivo, jpeg('tara antiga'));
+  const calls = [];
+  t.mock.method(pool, 'query', async (sql, values) => {
+    calls.push({ sql, values });
+    if (/^\s*SELECT/.test(sql)) {
+      return { rows: [{ id: PHOTO_ID, origem: 'automatica', arquivo, peso_kg: 15320, capturada_em: capturadaEm, contingencia: false }] };
+    }
+    return { rows: [{ id: CAPTURE_ID, peso_kg: values[4], capturada_em: values[5], contingencia: values[6] }] };
+  });
+
+  const result = await photoService.createCaptureFromAutomaticPhoto(1, PHOTO_ID, 'user-1');
+
+  assert.equal(result.capture.id, CAPTURE_ID);
+  assert.match(calls[0].sql, /origem = 'automatica'/);
+  assert.deepEqual(calls[0].values, [PHOTO_ID, 1]);
+  const insert = calls[1];
+  assert.match(insert.sql, /'lancamento', 'temporaria'/);
+  assert.match(insert.sql, /foto_origem_id/);
+  assert.equal(insert.values[4], 15320);
+  assert.equal(insert.values[5], capturadaEm);
+  assert.equal(insert.values[7], 'user-1');
+  assert.equal(insert.values[9], PHOTO_ID);
+  assert.match(insert.values[1], /^capturas\//);
+  assert.deepEqual(fs.readFileSync(path.join(dir, insert.values[1])), jpeg('tara antiga'));
+  assert.ok(fs.existsSync(path.join(dir, arquivo)), 'a foto automática continua no lugar');
+});
+
+test('automatic photo capture returns null for unknown ids and files already deleted', async (t) => {
+  const dir = usePhotosDir(t);
+  let queries = 0;
+  let rows = [];
+  t.mock.method(pool, 'query', async () => {
+    queries += 1;
+    return { rows };
+  });
+
+  assert.equal(await photoService.createCaptureFromAutomaticPhoto(1, 'nao-e-uuid', 'user-1'), null);
+  assert.equal(queries, 0);
+
+  assert.equal(await photoService.createCaptureFromAutomaticPhoto(1, PHOTO_ID, 'user-1'), null);
+  assert.equal(queries, 1);
+
+  rows = [{ id: PHOTO_ID, origem: 'automatica', arquivo: storage.buildStoredPhotoPath('automaticas'), peso_kg: 1, capturada_em: new Date() }];
+  assert.equal(await photoService.createCaptureFromAutomaticPhoto(1, PHOTO_ID, 'user-1'), null);
+  assert.equal(queries, 2);
+  assert.deepEqual(listFiles(dir), []);
+});
+
+test('recent automatic photos are the last 20, with no date limit, and show where they were used', async (t) => {
+  let call;
+  t.mock.method(pool, 'query', async (sql, values) => {
+    call = { sql, values };
+    return { rows: [] };
+  });
+
+  await photoService.listRecentAutomaticPhotos(1);
+
+  assert.deepEqual(call.values, [1, 20]);
+  assert.match(call.sql, /ORDER BY capturada_em DESC\s+LIMIT \$2/);
+  assert.doesNotMatch(call.sql, /now\(\)|interval/i);
+  assert.doesNotMatch(call.sql, /status = 'recebida'/, 'substituídas também aparecem');
+  assert.match(call.sql, /c\.foto_origem_id = f\.id/);
+  assert.match(call.sql, /c\.status = 'vinculada'/);
 });
 
 test('button capture returns only the weight when there is no photo for it', async (t) => {
@@ -558,7 +631,101 @@ test('photos are served only to weighbridge users, as private JPEG', async (t) =
   assert.ok(fs.existsSync(path.join(dir, arquivo)));
 });
 
+test('automatic photo picker lists recent photos as JSON with their previous uses', async (t) => {
+  const { cookie } = operatorSession(t);
+  t.mock.method(pool, 'query', async () => ({
+    rows: [
+      {
+        id: PHOTO_ID,
+        status: 'substituida',
+        peso_kg: 15320,
+        capturada_em: new Date('2026-11-10T18:05:00Z'),
+        contingencia: false,
+        usos: [{ entrada_id: 12, saida_id: null, tipo_peso: 'tara' }, { entrada_id: null, saida_id: 4, tipo_peso: 'bruto' }],
+      },
+    ],
+  }));
+  const app = require('../app');
+  const server = app.listen(0);
+  t.after(() => server.close());
+
+  const anonymous = await request(server, { path: '/balanca/fotos/automaticas/recentes' });
+  assert.notEqual(anonymous.statusCode, 200);
+
+  const response = await request(server, { path: '/balanca/fotos/automaticas/recentes', headers: { Cookie: cookie } });
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.headers['cache-control'], 'no-store');
+  assert.deepEqual(JSON.parse(response.text), {
+    fotos: [{
+      id: PHOTO_ID,
+      url: `/balanca/fotos/${PHOTO_ID}`,
+      peso_kg: 15320,
+      capturada_em: '2026-11-10T18:05:00.000Z',
+      capturada_em_texto: '10/11/2026, 15:05',
+      contingencia: false,
+      substituida: true,
+      usos: ['entrada #12 (tara)', 'saída #4 (peso bruto)'],
+    }],
+  });
+});
+
+test('choosing an automatic photo creates a temporary capture with that photo weight', async (t) => {
+  const dir = usePhotosDir(t);
+  const capturadaEm = new Date('2026-11-10T18:05:00Z');
+  const arquivo = storage.buildStoredPhotoPath('automaticas', capturadaEm);
+  await storage.writePhotoAtomically(arquivo, jpeg());
+  const { cookie, csrf } = operatorSession(t);
+  t.mock.method(pool, 'query', async (sql, values) => {
+    if (/^\s*SELECT/.test(sql)) {
+      return { rows: values[0] === PHOTO_ID ? [{ id: PHOTO_ID, arquivo, peso_kg: 15320, capturada_em: capturadaEm }] : [] };
+    }
+    return { rows: [{ id: CAPTURE_ID, peso_kg: values[4], capturada_em: values[5], contingencia: values[6] }] };
+  });
+  const app = require('../app');
+  const server = app.listen(0);
+  t.after(() => server.close());
+  const post = (photoId, body) => request(server, {
+    method: 'POST',
+    path: `/balanca/fotos/automaticas/${photoId}/captura`,
+    headers: { Cookie: cookie, 'Content-Type': 'application/json' },
+    body,
+  });
+
+  assert.equal((await post(PHOTO_ID, '{}')).statusCode, 403);
+
+  const missing = await post(CAPTURE_ID, JSON.stringify({ _csrf: csrf }));
+  assert.equal(missing.statusCode, 404);
+  assert.match(JSON.parse(missing.text).error, /não está mais disponível/);
+
+  const response = await post(PHOTO_ID, JSON.stringify({ _csrf: csrf }));
+  assert.equal(response.statusCode, 200);
+  assert.deepEqual(JSON.parse(response.text), {
+    balanca_id: 1,
+    peso_kg: 15320,
+    capturada_em: '2026-11-10T18:05:00.000Z',
+    capturada_em_texto: '10/11/2026, 15:05',
+    foto: { captura_id: CAPTURE_ID, url: `/balanca/fotos/${CAPTURE_ID}`, contingencia: false },
+  });
+  assert.equal(listFiles(path.join(dir, 'capturas')).length, 1);
+});
+
 // --- Telas --------------------------------------------------------------------------
+
+test('every weight form has both the scale weight and the automatic photo buttons', () => {
+  const forms = {
+    'weighbridge-input-form.html': 'peso_bruto_kg',
+    'weighbridge-input-tare-form.html': 'peso_tara_kg',
+    'weighbridge-output-form.html': 'peso_tara_kg',
+    'weighbridge-output-gross-form.html': 'peso_bruto_kg',
+  };
+
+  for (const [file, target] of Object.entries(forms)) {
+    const html = fs.readFileSync(path.join(__dirname, '../views', file), 'utf8');
+    assert.match(html, new RegExp(`data-scale-weight-target="${target}"`), file);
+    assert.match(html, new RegExp(`data-scale-photo-pick-target="${target}"`), file);
+    assert.match(html, /\/js\/weighbridge-scale-weight\.js/, file);
+  }
+});
 
 test('weight forms keep a valid capture id after a validation error', () => {
   const input = { id: 9, data_entrada: '2026-11-11T12:00:00Z', placa_caminhao: 'ABC1D23', peso_bruto_kg: '40000' };
@@ -599,4 +766,8 @@ test('photos migration keeps photos when entries and outputs are deleted', () =>
   assert.match(sql, /saida_id bigint REFERENCES public\.saidas_balanca\(id\) ON DELETE SET NULL/);
   assert.match(sql, /ADD COLUMN IF NOT EXISTS foto_atualizado_em/);
   assert.match(sql, /chave_cliente text UNIQUE/);
+
+  const source = fs.readFileSync(path.join(__dirname, '../migrations/20261114_add_scale_photo_source.sql'), 'utf8');
+  assert.match(source, /ADD COLUMN IF NOT EXISTS foto_origem_id uuid\s+REFERENCES public\.balanca_fotos\(id\) ON DELETE SET NULL/);
+  assert.match(source, /foto_origem_id IS NULL OR origem = 'lancamento'/);
 });

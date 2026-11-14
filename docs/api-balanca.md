@@ -207,12 +207,16 @@ Para completude, o frontend usa os endpoints abaixo. **Nenhum deles deve ser usa
 ```http
 GET  /balanca/balancas/1/peso-atual
 POST /balanca/balancas/1/peso-atual/captura
+GET  /balanca/fotos/automaticas/recentes
+POST /balanca/fotos/automaticas/{id}/captura
 GET  /balanca/fotos/{id}
 GET  /balanca/fotos?data=AAAA-MM-DD
 ```
 
 - `GET /balanca/balancas/1/peso-atual` retorna `200` com a mesma estrutura da resposta de publicação, `404` quando nenhum peso foi recebido ou `500` em falha de banco. É usado pelo painel do secador.
 - `POST /balanca/balancas/1/peso-atual/captura` (com token CSRF) é o botão "usar peso da balança" dos formulários de peso bruto e tara. Devolve o peso atual e, quando existe foto para esse peso, `foto: {captura_id, url, contingencia}`. A foto é copiada como **captura temporária** do operador, válida por 60 minutos. Ao salvar o lançamento, ela é vinculada à entrada ou saída apenas se o peso salvo for exatamente o peso lido. Um peso digitado ou alterado fica sem foto. Capturas não confirmadas (formulário cancelado ou abandonado) são apagadas pela limpeza periódica.
+- `GET /balanca/fotos/automaticas/recentes` lista as 20 fotos automáticas mais recentes, sem limite de data e inclusive as substituídas por peso maior: `{fotos: [{id, url, peso_kg, capturada_em, capturada_em_texto, contingencia, substituida, usos}]}`. `usos` descreve os lançamentos em que a foto já foi anexada (por exemplo `"entrada #12 (tara)"`). É a lista do botão "usar foto automática".
+- `POST /balanca/fotos/automaticas/{id}/captura` (com token CSRF) copia a foto automática escolhida como captura temporária, com o peso e o horário daquela foto, e devolve `{balanca_id, peso_kg, capturada_em, capturada_em_texto, foto: {captura_id, url, contingencia}}`. A vinculação ao salvar segue as mesmas regras do botão de peso. Devolve `404` se a foto não existe mais. A mesma foto pode ser usada em vários lançamentos.
 - `GET /balanca/fotos/{id}` devolve o JPEG com `Cache-Control: private`.
 - `GET /balanca/fotos?data=` lista as fotos automáticas do dia.
 
