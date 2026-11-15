@@ -59,6 +59,17 @@
             </span>
             <span class="admin-module-label">Adicionar saída</span>
           </a>
+          <a class="admin-module-card weighbridge-action-card" href="/balanca/avulsas/nova">
+            <span class="weighbridge-action-icon" aria-hidden="true">
+              <svg viewBox="0 0 48 48" focusable="false" role="img">
+                <path d="M18 17a6 6 0 0 1 12 0" />
+                <path d="M13 17h22l5 24H8z" />
+                <path d="M19 29h10" />
+                <path d="M24 24v10" />
+              </svg>
+            </span>
+            <span class="admin-module-label">Pesagem avulsa</span>
+          </a>
           <a class="admin-module-card weighbridge-action-card" href="/balanca/contratos">
             <span class="weighbridge-action-icon" aria-hidden="true">
               <svg viewBox="0 0 48 48" focusable="false" role="img">
@@ -145,6 +156,31 @@
               </thead>
               <tbody>
                 {{SCALE_OUTPUT_ROWS}}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="admin-section" aria-labelledby="recent-standalone-title">
+          <div class="admin-section-header">
+            <h2 id="recent-standalone-title">Últimas 10 pesagens avulsas</h2>
+            <a class="btn-secondary-action" href="/balanca/avulsas">Ver lista completa</a>
+          </div>
+          <div class="admin-table-wrapper">
+            <table class="admin-table weighbridge-table">
+              <thead>
+                <tr>
+                  <th>Data/hora</th>
+                  <th>Placa</th>
+                  <th>Produto</th>
+                  <th>Pesagem 1</th>
+                  <th>Pesagem 2</th>
+                  <th>Líquido</th>
+                  <th>Ação</th>
+                </tr>
+              </thead>
+              <tbody>
+                {{STANDALONE_ROWS}}
               </tbody>
             </table>
           </div>

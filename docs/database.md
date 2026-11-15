@@ -17,6 +17,7 @@ Este documento descreve o schema `public` do banco PostgreSQL usado pela aplica�
   - [`balanca_fotos`](#balanca_fotos)
   - [`entradas_balanca`](#entradas_balanca)
   - [`saidas_balanca`](#saidas_balanca)
+  - [`pesagens_avulsas`](#pesagens_avulsas)
   - [`auditoria_acoes`](#auditoria_acoes)
   - [`auth_login_events`](#auth_login_events)
   - [`users`](#users)
@@ -49,6 +50,9 @@ Este documento descreve o schema `public` do banco PostgreSQL usado pela aplica�
 | `dryer_settings` | `updated_by_user_id` | `users` | `id` | Registra o usuário que atualizou a configuração do secador. |
 | `balanca_fotos` | `entrada_id` | `entradas_balanca` | `id` | Foto vinculada a uma entrada (`ON DELETE SET NULL`: a foto continua guardada se a entrada for excluída). |
 | `balanca_fotos` | `saida_id` | `saidas_balanca` | `id` | Foto vinculada a uma saída (`ON DELETE SET NULL`). |
+| `balanca_fotos` | `pesagem_avulsa_id` | `pesagens_avulsas` | `id` | Foto vinculada a uma pesagem avulsa (`ON DELETE SET NULL`). |
+| `pesagens_avulsas` | `criado_por_user_id` | `users` | `id` | Operador que lançou a pesagem 1. |
+| `pesagens_avulsas` | `pesagem_2_por_user_id` | `users` | `id` | Operador que lançou a pesagem 2. |
 | `balanca_fotos` | `criada_por_user_id` | `users` | `id` | Operador que usou o botão de peso da balança e gerou a captura. |
 | `balanca_fotos` | `foto_origem_id` | `balanca_fotos` | `id` | Foto automática de onde a captura foi copiada (`ON DELETE SET NULL`: a cópia continua guardada quando a automática é apagada pela retenção). |
 
@@ -107,7 +111,8 @@ Metadados das fotos da câmera da balança. Os bytes ficam no volume indicado po
 | `contingencia` | `boolean` | Não | `false` | Verdadeiro quando o JPEG é a imagem de câmera indisponível do AutoWeight. |
 | `chave_cliente` | `text` | Sim | — | Chave única enviada pelo AutoWeight (só automáticas); garante envio idempotente. |
 | `entrada_id` / `saida_id` | `bigint` | Sim | — | Lançamento ao qual a captura foi vinculada. Viram `NULL` se o lançamento for excluído. |
-| `tipo_peso` | `text` | Sim | — | `bruto` ou `tara` (capturas vinculadas). |
+| `pesagem_avulsa_id` | `bigint` | Sim | — | Pesagem avulsa à qual a captura foi vinculada. Vira `NULL` se a pesagem for excluída. Criada por `migrations/20261114_add_standalone_weighings.sql`. |
+| `tipo_peso` | `text` | Sim | — | `bruto` ou `tara` nas entradas e saídas; `pesagem_1` ou `pesagem_2` nas pesagens avulsas (capturas vinculadas). |
 | `criada_por_user_id` | `uuid` | Sim | — | Operador que gerou a captura. |
 | `expira_em` | `timestamp with time zone` | Sim | — | Validade da captura temporária (60 minutos). |
 | `vinculada_em` | `timestamp with time zone` | Sim | — | Momento em que o lançamento foi salvo com a captura. |
@@ -118,6 +123,21 @@ Metadados das fotos da câmera da balança. Os bytes ficam no volume indicado po
 - **Automáticas:** `PUT /api/balancas/1/fotos/automaticas/{chave}` cria a linha como `recebida`; `X-Substitui` marca a foto anterior do mesmo caminhão como `substituida`. São apagadas (linha e arquivo) depois de `FOTOS_RETENCAO_AUTOMATICAS_DIAS` (padrão 365).
 - **Lançamentos:** o botão de peso copia a foto do peso atual para `capturas/` e cria a linha `temporaria`. O botão "usar foto automática" faz o mesmo com uma das 20 fotos automáticas mais recentes (inclusive substituídas), usando o peso e o horário dessa foto e gravando `foto_origem_id`; a mesma foto automática pode ser usada em vários lançamentos. Ao salvar entrada ou saída com o mesmo peso, o mesmo operador e dentro da validade, ela vira `vinculada`. Capturas vencidas são apagadas pela limpeza periódica; vinculadas nunca são apagadas automaticamente, nem quando o lançamento é excluído.
 - A limpeza roda 1 minuto depois de o servidor iniciar e depois a cada 6 horas.
+
+### Restrições
+
+As constraints abaixo foram criadas por `20261111_add_scale_photos.sql` e
+recriadas por `20261114_add_standalone_weighings.sql` para incluir as pesagens
+avulsas:
+
+| Nome | Regra |
+| --- | --- |
+| `balanca_fotos_tipo_peso_check` | `tipo_peso` em `bruto`, `tara`, `pesagem_1`, `pesagem_2`. |
+| `balanca_fotos_tipo_peso_registro_check` | Com `pesagem_avulsa_id`, só `pesagem_1`/`pesagem_2`; com `entrada_id` ou `saida_id`, só `bruto`/`tara`. Olha só a coluna preenchida, para continuar válida depois do `ON DELETE SET NULL`. |
+| `balanca_fotos_automatica_check` | Fotos automáticas não têm vínculo com lançamento nem `tipo_peso`. |
+| `balanca_fotos_temporaria_check` | Capturas temporárias têm validade e ainda não têm vínculo nem `tipo_peso`. |
+| `balanca_fotos_um_registro_check` | `num_nonnulls(entrada_id, saida_id, pesagem_avulsa_id) <= 1`. |
+| `balanca_fotos_lancamento_check`, `balanca_fotos_vinculada_check`, `balanca_fotos_origem_lancamento_check` | Inalteradas. |
 
 ---
 
@@ -395,6 +415,73 @@ Armazena as saídas registradas pelo operador de balança. Cada saída nasce sem
 ---
 
 
+## `pesagens_avulsas`
+
+Pesagens da balança que não são entrada nem saída de soja/milho (calcário, adubo,
+areia, conferência de veículo etc.). Ficam separadas para não entrar em saldos de
+armazenagem, contratos e relatórios de entradas e saídas. Criada por
+`migrations/20261114_add_standalone_weighings.sql`. Fluxo completo em
+[pesagens-avulsas.md](pesagens-avulsas.md).
+
+Não há ordem fixa entre as pesagens (o veículo pode chegar cheio ou vazio): por isso
+os pesos se chamam pesagem 1 e pesagem 2, e o peso líquido é a diferença absoluta.
+
+### Colunas
+
+| Coluna | Tipo | Nulo? | Default | Descrição |
+| --- | --- | --- | --- | --- |
+| `id` | `bigint` | Não | identity | Identificador sequencial; é o número do ticket. |
+| `placa_caminhao` | `character varying(10)` | Sim | — | Placa em maiúsculas, sem pontuação. Opcional e sem padrão fixo. |
+| `nome_motorista` | `character varying(120)` | Sim | — | Nome do motorista, opcional. |
+| `produto` | `character varying(120)` | Sim | — | Texto livre opcional com o que foi pesado. Não usa o tipo `produto_contrato`. |
+| `vendedor` | `character varying(120)` | Sim | — | Texto livre opcional. Não referencia `vendedores`. |
+| `comprador` | `character varying(120)` | Sim | — | Texto livre opcional. Não referencia `compradores`. |
+| `comentario` | `text` | Sim | — | Anotação livre do operador, informada na pesagem 1; até 1000 caracteres, com quebras de linha. |
+| `pesagem_1_kg` | `numeric` | Não | — | Primeira pesagem, em kg. |
+| `pesagem_1_em` | `timestamp with time zone` | Não | `now()` | Data/hora da pesagem 1 informada pelo operador. |
+| `pesagem_2_kg` | `numeric` | Sim | — | Segunda pesagem, em kg. `NULL` enquanto o veículo está no pátio. |
+| `pesagem_2_em` | `timestamp with time zone` | Sim | — | Data/hora da pesagem 2. Preenchida junto com `pesagem_2_kg`. |
+| `peso_liquido_kg` | `numeric` | Sim | gerada | `abs(pesagem_2_kg - pesagem_1_kg)`. `NULL` enquanto falta a pesagem 2. |
+| `criado_por_user_id` | `uuid` | Não | — | Operador que lançou a pesagem 1; aparece como "Operador" no ticket. FK para `users.id`. |
+| `pesagem_2_por_user_id` | `uuid` | Sim | — | Operador que lançou a pesagem 2. FK para `users.id`. |
+| `criado_em` | `timestamp with time zone` | Não | `now()` | Data/hora de criação do registro. |
+| `atualizado_em` | `timestamp with time zone` | Não | `now()` | Data/hora da última atualização. |
+
+### Restrições
+
+| Tipo | Nome | Coluna(s) / regra |
+| --- | --- | --- |
+| Primary key | `pesagens_avulsas_pkey` | `id` |
+| Foreign key | `pesagens_avulsas_criado_por_user_id_fkey` | `criado_por_user_id` → `users.id` |
+| Foreign key | `pesagens_avulsas_pesagem_2_por_user_id_fkey` | `pesagem_2_por_user_id` → `users.id` |
+| Check | `pesagens_avulsas_pesagem_1_positiva_check` | `pesagem_1_kg > 0` |
+| Check | `pesagens_avulsas_pesagem_2_positiva_check` | `pesagem_2_kg` nulo ou positivo |
+| Check | `pesagens_avulsas_pesagem_2_completa_check` | `pesagem_2_kg` e `pesagem_2_em` ambos nulos ou ambos preenchidos |
+| Check | `pesagens_avulsas_placa_formato_check` | `placa_caminhao` nula ou `^[A-Z0-9]{1,10}$` |
+| Check | `pesagens_avulsas_{nome_motorista,produto,vendedor,comprador}_preenchido_check` | Nulo ou com texto além de espaços |
+| Check | `pesagens_avulsas_comentario_check` | Nulo ou com texto além de espaços e até 1000 caracteres |
+
+### Índices
+
+| Nome | Definição | Uso |
+| --- | --- | --- |
+| `pesagens_avulsas_pesagem_1_em_idx` | `(pesagem_1_em DESC, id DESC)` | Listas e últimas 10 da página inicial. |
+| `pesagens_avulsas_pendentes_idx` | `(pesagem_1_em, id) WHERE pesagem_2_kg IS NULL` | Pátio da balança. |
+
+### Uso pela aplicação
+
+- A página inicial da balança mostra as 10 pesagens avulsas mais recentes e coloca as
+  que não têm pesagem 2 no pátio. Se a tabela ainda não existir, a página inicial
+  carrega sem essa seção.
+- A aplicação grava `NULL` para textos em branco, remove espaços repetidos dos campos
+  de uma linha e preserva as quebras de linha do comentário.
+- Adicionar a pesagem 2 e editar gravam `editar_pesagem_avulsa` em `auditoria_acoes`;
+  deletar grava `deletar_pesagem_avulsa` com o motivo e a linha removida.
+- Excluir uma pesagem não apaga suas fotos: `balanca_fotos.pesagem_avulsa_id` vira `NULL`.
+
+---
+
+
 ## `auditoria_acoes`
 
 Registra ações sensíveis executadas por usuários em entidades operacionais da balança. A tabela foi desenhada para ser flexível: novos tipos de ação podem ser gravados em `tipo_acao` sem criar novo enum ou alterar constraints de domínio. Os snapshots em `jsonb` guardam o estado anterior e posterior necessário para auditoria e eventual reversão manual.
@@ -405,7 +492,7 @@ Registra ações sensíveis executadas por usuários em entidades operacionais d
 | --- | --- | --- | --- | --- |
 | `id` | `bigint` | Não | identity | Identificador sequencial da ação auditada. |
 | `tipo_acao` | `text` | Não | — | Tipo lógico da ação, como `editar_entrada`, `deletar_saida`, `desvincular_contrato_saida` ou `dividir_saida`. |
-| `entidade_tipo` | `text` | Não | — | Entidade afetada pela ação, como `entradas_balanca` ou `saidas_balanca`. |
+| `entidade_tipo` | `text` | Não | — | Entidade afetada pela ação, como `entradas_balanca`, `saidas_balanca` ou `pesagens_avulsas`. |
 | `entidade_id` | `text` | Não | — | Identificador da entidade afetada, armazenado como texto para manter compatibilidade com identificadores futuros. |
 | `usuario_id` | `uuid` | Não | — | Usuário responsável pela ação. FK para `users.id`. |
 | `usuario_login` | `text` | Sim | — | Snapshot do login do usuário no momento da ação. |

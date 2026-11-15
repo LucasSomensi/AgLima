@@ -1,5 +1,6 @@
 const express = require('express');
 const service = require('./weighbridge-service');
+const standalone = require('./standalone-weighing-service');
 const auth = require('./weighbridge-api-auth');
 const scale = require('./scale-reading-service');
 const csv = require('./weighbridge-csv');
@@ -24,6 +25,10 @@ const outputFields = ['data_saida', 'placa_caminhao', 'produto', 'peso_tara_kg']
 // Opcional na criação e na edição; em PUT, omitir preserva o valor atual e null limpa.
 const outputOptionalFields = ['nome_motorista'];
 const classificationFields = ['umidade_percent', 'impureza_percent', 'graos_avariados_percent'];
+// Pesagens avulsas: só a pesagem 1 é obrigatória; os campos de texto são livres.
+const standaloneTextFields = ['placa_caminhao', 'nome_motorista', 'produto', 'vendedor', 'comprador', 'comentario'];
+const standaloneFields = ['pesagem_1_em', 'pesagem_1_kg', ...standaloneTextFields];
+const standaloneEditFields = [...standaloneFields, 'pesagem_2_kg', 'pesagem_2_em'];
 const loginLimiter = createIpRateLimiter({ windowMs: 15 * 60 * 1000, max: 10,
   message: { code: 'RATE_LIMITED', error: 'Muitas tentativas de acesso. Aguarde antes de tentar novamente.' } });
 
@@ -180,6 +185,45 @@ for (const input of [true, false]) {
     res.type('application/pdf').attachment(`ticket-${input ? 'entrada' : 'saida'}-${req.params.id}.pdf`).send(content);
   }));
 }
+router.get('/avulsas.csv', wrap(async (req, res) => {
+  const rows = await standalone.listStandaloneWeighings({ order: 'asc' });
+  res.type('text/csv').attachment('pesagens-avulsas-balanca.csv').send(csv.buildStandaloneWeighingsCsv(rows));
+}));
+router.get('/avulsas', wrap(async (req, res) => {
+  const page = pagination(req.query);
+  const filter = req.query.pendentes;
+  if (filter !== undefined && filter !== 'true') throw new ApiError(400, 'INVALID_QUERY', 'pendentes aceita apenas true.');
+  res.json(paged(await standalone.listStandaloneWeighings({ ...page.options, pendingOnly: filter === 'true' }), page));
+}));
+router.post('/avulsas', wrap(async (req, res) => {
+  const data = payload(standalone.buildStandaloneWeighingPayload, fields(req, standaloneFields, ['pesagem_1_kg']));
+  const result = await standalone.createStandaloneWeighing(data, req.apiUser.userId);
+  res.location(`/api/v1/balanca/avulsas/${result.id}`).status(201).json(result);
+}));
+router.get('/avulsas/:id', wrap(async (req, res) => res.json(missing(await standalone.getStandaloneWeighingById(req.params.id)))));
+router.put('/avulsas/:id', wrap(async (req, res) => {
+  const data = fields(req, standaloneEditFields, ['pesagem_1_em', 'pesagem_1_kg']);
+  // Como nas entradas, PUT exige todos os campos: omitir não preserva, use null para limpar.
+  for (const key of standaloneEditFields) if (!(key in data)) throw new ApiError(400, 'INVALID_BODY', `PUT exige o campo ${key}; use null para limpar.`);
+  const update = payload(standalone.buildStandaloneWeighingEditPayload, data);
+  res.json(missing(await standalone.updateStandaloneWeighing(req.params.id, update, req.apiUser)));
+}));
+router.post('/avulsas/:id/pesagem-2', wrap(async (req, res) => {
+  const data = payload(standalone.buildStandaloneWeighingSecondPayload, fields(req, ['pesagem_2_kg', 'pesagem_2_em'], ['pesagem_2_kg']));
+  missing(await standalone.getStandaloneWeighingById(req.params.id));
+  res.json(conflict(await standalone.addStandaloneWeighingSecond(req.params.id, data, req.apiUser)));
+}));
+router.post('/avulsas/:id/deletar', wrap(async (req, res) => {
+  const data = payload(service.buildDeletionReasonPayload, fields(req, ['motivo_delecao'], ['motivo_delecao']));
+  await standalone.deleteStandaloneWeighing(req.params.id, req.apiUser, data.motivoDelecao);
+  res.status(204).end();
+}));
+router.get('/avulsas/:id/ticket.pdf', wrap(async (req, res) => {
+  const info = missing(await standalone.getStandaloneWeighingById(req.params.id));
+  if (!standalone.isStandaloneWeighingComplete(info)) throw new ApiError(409, 'STATE_CONFLICT', 'Lance a pesagem 2 antes de gerar o ticket.');
+  res.type('application/pdf').attachment(`ticket-pesagem-avulsa-${req.params.id}.pdf`).send(await pdf.buildStandaloneWeighingTicketPdf(info));
+}));
+
 router.get('/contratos', wrap(async (req, res) => {
   if (req.query.filtro !== undefined && req.query.filtro !== 'nao-embarcados') throw new ApiError(400, 'INVALID_QUERY', 'A API operacional lista somente contratos não embarcados com saldo positivo.');
   const page = pagination(req.query);

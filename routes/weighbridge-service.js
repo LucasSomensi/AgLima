@@ -1624,8 +1624,13 @@ module.exports = {
   listUnclassifiedScaleInputs,
   listScaleInputs,
   listScaleOutputs,
+  MAX_DRIVER_NAME_LENGTH,
+  normalizeDecimal,
+  normalizeText,
+  recordAuditAction,
   splitScaleOutput,
   unlinkScaleOutputFromContract,
   updateScaleInput,
   updateScaleOutput,
+  weighbridgeError,
 };

@@ -65,6 +65,19 @@ Depois de alterar variáveis no Railway, faça redeploy ou reinicie o serviço p
 - [Fotos no AutoWeight](docs/autoweight-fotos.md): o que o programa da balança precisa
   implementar para enviar peso com foto e as fotos automáticas.
 
+### Pesagens avulsas
+
+Além de entradas e saídas, a balança registra **pesagens avulsas** em `/balanca/avulsas`:
+qualquer pesagem que não é soja ou milho entrando ou saindo e que não deve poluir essas
+listas, os saldos ou os contratos. O operador lança a pesagem 1 e depois a pesagem 2,
+sem ordem fixa entre elas (o líquido é a diferença absoluta). Produto, vendedor,
+comprador, placa e motorista são texto livre opcional, e há um campo de comentário. Os
+botões de peso da balança e de foto automática funcionam nas duas pesagens, e o ticket
+em PDF usa o layout do ticket de saída.
+
+Para ativar, aplique `migrations/20261114_add_standalone_weighings.sql` depois das
+migrations de fotos. Detalhes em [docs/pesagens-avulsas.md](docs/pesagens-avulsas.md).
+
 ### Fotos da balança
 
 As fotos da câmera ficam num volume do Railway montado em `/app/fotos` (`FOTOS_DIR`); o
@@ -81,7 +94,7 @@ banco guarda só os metadados (`balanca_fotos`). Para ativar:
 Sem a migration ou sem o volume, o botão de peso continua preenchendo o peso normalmente,
 só que sem foto.
 
-Nos formulários de bruto e tara, ao lado do botão de peso, o botão "usar foto automática"
+Nos formulários de bruto e tara (e nas pesagens 1 e 2 das pesagens avulsas), ao lado do botão de peso, o botão "usar foto automática"
 (relógio com seta) abre as 20 últimas fotos automáticas. A escolhida preenche o peso com o
 peso daquela foto e é anexada ao lançamento. Fotos já usadas aparecem com aviso, mas podem
 ser usadas de novo (por exemplo, a mesma tara em várias viagens). Esse botão precisa da
@@ -171,7 +184,7 @@ O script imprime uma linha por batelada processada e um resumo final com quantid
 
 ## Login e gerenciamento de usuários
 
-O `/login` autentica usuários salvos na tabela `users` do PostgreSQL usando `DATABASE_URL`. O usuário com `role = 'root'` é redirecionado para `/admin/usuarios`, onde pode adicionar e remover outros usuários do sistema. Usuários com `role = 'admin'` são redirecionados para `/admin`, onde acompanham a batelada atual, alteram a umidade alvo e consultam bateladas anteriores. Usuários com `role = 'silo_operator'` são redirecionados para `/secador`. Usuários com `role = 'weighbridge_operator'` são redirecionados para `/balanca`, onde registram saídas e associam carregamentos a contratos. O perfil `client` ainda é redirecionado para página em construção em `/area-interna`.
+O `/login` autentica usuários salvos na tabela `users` do PostgreSQL usando `DATABASE_URL`. O usuário com `role = 'root'` é redirecionado para `/admin/usuarios`, onde pode adicionar e remover outros usuários do sistema. Usuários com `role = 'admin'` são redirecionados para `/admin`, onde acompanham a batelada atual, alteram a umidade alvo e consultam bateladas anteriores. Usuários com `role = 'silo_operator'` são redirecionados para `/secador`. Usuários com `role = 'weighbridge_operator'` são redirecionados para `/balanca`, onde registram entradas, saídas e pesagens avulsas e associam carregamentos a contratos. O perfil `client` ainda é redirecionado para página em construção em `/area-interna`.
 
 Além de `DATABASE_URL`, configure `SESSION_SECRET` e, se quiser alterar o padrão de 8 horas, `SESSION_DURATION_DAYS` ou `SESSION_DURATION_HOURS`, conforme a tabela consolidada de variáveis de ambiente.
 

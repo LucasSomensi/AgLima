@@ -66,11 +66,11 @@ const {
   createWeightCapture,
   getAutomaticRetentionDays,
   getPhotoById,
-  linkCaptureToRecord,
   listAutomaticPhotosByDay,
-  listLinkedPhotos,
   listRecentAutomaticPhotos,
 } = require('./scale-photo-service');
+const { getWeighbridgeNavigation, linkWeightPhoto, loadLinkedPhotos } = require('./weighbridge-route-helpers');
+const { listStandaloneWeighings } = require('./standalone-weighing-service');
 const { resolvePhotoPath } = require('./scale-photo-storage');
 const { getContractReceipts } = require('./receipt-service');
 
@@ -90,52 +90,16 @@ async function buildOutputCompletionRedirect(outputId, params) {
   return buildRedirect(isComplete ? `/balanca/saidas/${outputId}/nf` : '/balanca', params);
 }
 
-// Confirma a foto temporária criada pelo botão "usar peso da balança". Falhas
-// aqui nunca desfazem o lançamento: no pior caso o peso fica sem foto e a
-// captura temporária é descartada pela limpeza periódica.
-async function linkWeightPhoto(req, { entradaId = null, saidaId = null, tipoPeso, pesoKg }) {
-  const captureId = String(req.body?.foto_captura_id || '').trim();
-
-  if (!captureId) {
-    return null;
-  }
-
+// As pesagens avulsas não podem derrubar a página inicial (por exemplo, antes
+// de aplicar a migration da tabela): sem elas, a balança segue com entradas e
+// saídas normalmente.
+async function loadStandaloneWeighingsForHome(options) {
   try {
-    return await linkCaptureToRecord({
-      captureId,
-      userId: req.sessionUser.userId,
-      entradaId,
-      saidaId,
-      tipoPeso,
-      pesoKg,
-    });
+    return await listStandaloneWeighings(options);
   } catch (error) {
-    console.error('Error linking scale photo:', error.code || error.message);
-    return null;
-  }
-}
-
-async function loadLinkedPhotos(filter) {
-  try {
-    return await listLinkedPhotos(filter);
-  } catch (error) {
-    console.error('Error loading scale photos:', error.code || error.message);
+    console.error('Error loading standalone weighings for home:', error.code || error.message);
     return [];
   }
-}
-
-function getWeighbridgeNavigation(req) {
-  if (req.sessionUser?.role === ROLES.ADMIN) {
-    return {
-      homeHref: '/admin',
-      homeLabel: '← Voltar à administração',
-    };
-  }
-
-  return {
-    homeHref: '/balanca',
-    homeLabel: '← Voltar à balança',
-  };
 }
 
 router.get('/balanca', canAccessWeighbridge, async (req, res) => {
@@ -144,11 +108,13 @@ router.get('/balanca', canAccessWeighbridge, async (req, res) => {
   }
 
   try {
-    const [inputs, outputs, yardInputs, yardOutputs] = await Promise.all([
+    const [inputs, outputs, yardInputs, yardOutputs, standaloneWeighings, yardStandaloneWeighings] = await Promise.all([
       listScaleInputs({ limit: 10 }),
       listScaleOutputs({ limit: 10 }),
       listScaleInputs({ pendingOnly: true, order: 'asc' }),
       listScaleOutputs({ pendingOnly: true, order: 'asc' }),
+      loadStandaloneWeighingsForHome({ limit: 10 }),
+      loadStandaloneWeighingsForHome({ pendingOnly: true, order: 'asc' }),
     ]);
 
     return renderWeighbridgeHomePage(res, {
@@ -156,7 +122,15 @@ router.get('/balanca', canAccessWeighbridge, async (req, res) => {
       outputs,
       yardInputs,
       yardOutputs,
-      message: req.query.entrada_criada
+      standaloneWeighings,
+      yardStandaloneWeighings,
+      message: req.query.avulsa_criada
+        ? 'Pesagem avulsa adicionada com sucesso.'
+        : req.query.avulsa_pesagem_2_adicionada
+          ? 'Pesagem 2 adicionada à pesagem avulsa com sucesso.'
+          : req.query.avulsa_deletada
+          ? 'Pesagem avulsa deletada com sucesso.'
+          : req.query.entrada_criada
         ? 'Entrada adicionada com sucesso.'
         : req.query.entrada_editada
           ? 'Entrada atualizada com sucesso.'
@@ -296,11 +270,25 @@ router.get('/balanca/fotos', canAccessWeighbridge, async (req, res) => {
   }
 });
 
+const PHOTO_USE_WEIGHT_LABELS = {
+  bruto: 'peso bruto',
+  tara: 'tara',
+  pesagem_1: 'pesagem 1',
+  pesagem_2: 'pesagem 2',
+};
+
 function describePhotoUse(use) {
-  const weightType = use.tipo_peso === 'tara' ? 'tara' : 'peso bruto';
-  return use.entrada_id
-    ? `entrada #${use.entrada_id} (${weightType})`
-    : `saída #${use.saida_id} (${weightType})`;
+  const weightType = PHOTO_USE_WEIGHT_LABELS[use.tipo_peso] || 'peso bruto';
+
+  if (use.entrada_id) {
+    return `entrada #${use.entrada_id} (${weightType})`;
+  }
+
+  if (use.pesagem_avulsa_id) {
+    return `pesagem avulsa #${use.pesagem_avulsa_id} (${weightType})`;
+  }
+
+  return `saída #${use.saida_id} (${weightType})`;
 }
 
 // Lista do botão "usar foto automática". Precisa ficar antes de

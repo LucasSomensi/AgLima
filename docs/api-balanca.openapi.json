@@ -1369,6 +1369,366 @@
         }
       }
     },
+    "/api/v1/balanca/avulsas": {
+      "get": {
+        "summary": "Listar pesagens avulsas",
+        "operationId": "get_avulsas",
+        "responses": {
+          "200": {
+            "description": "Sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandalonePage"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Erro. Ver tabela de códigos no guia: 400/401/403/404/409/413/415/429/500/503.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "pagina",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000000,
+              "default": 1
+            }
+          },
+          {
+            "name": "limite",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            }
+          },
+          {
+            "name": "pendentes",
+            "in": "query",
+            "description": "true lista só as pesagens que ainda aguardam a pesagem 2 (pátio). A ordem continua das mais novas para as mais antigas.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true"
+              ]
+            }
+          }
+        ]
+      },
+      "post": {
+        "summary": "Criar pesagem avulsa (pesagem 1)",
+        "operationId": "post_avulsas",
+        "responses": {
+          "201": {
+            "description": "Sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IdResult"
+                }
+              }
+            },
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Caminho do registro criado."
+              }
+            }
+          },
+          "default": {
+            "description": "Erro. Ver tabela de códigos no guia: 400/401/403/404/409/413/415/429/500/503.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StandaloneCreate"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/balanca/avulsas/{id}": {
+      "get": {
+        "summary": "Consultar pesagem avulsa",
+        "operationId": "get_avulsas_id",
+        "responses": {
+          "200": {
+            "description": "Sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandaloneDetail"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Erro. Ver tabela de códigos no guia: 400/401/403/404/409/413/415/429/500/503.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]{0,18}$",
+              "description": "Inteiro positivo até 9223372036854775807; prefira string para precisão.",
+              "example": "123"
+            }
+          }
+        ]
+      },
+      "put": {
+        "summary": "Substituir campos editáveis da pesagem avulsa",
+        "operationId": "put_avulsas_id",
+        "responses": {
+          "200": {
+            "description": "Sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IdResult"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Erro. Ver tabela de códigos no guia: 400/401/403/404/409/413/415/429/500/503.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StandaloneEdit"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]{0,18}$",
+              "description": "Inteiro positivo até 9223372036854775807; prefira string para precisão.",
+              "example": "123"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/balanca/avulsas/{id}/pesagem-2": {
+      "post": {
+        "summary": "Adicionar pesagem 2",
+        "operationId": "post_avulsas_id_pesagem_2",
+        "responses": {
+          "200": {
+            "description": "Sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IdResult"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Erro. Ver tabela de códigos no guia: 400/401/403/404/409/413/415/429/500/503.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StandaloneSecond"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]{0,18}$",
+              "description": "Inteiro positivo até 9223372036854775807; prefira string para precisão.",
+              "example": "123"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/balanca/avulsas/{id}/deletar": {
+      "post": {
+        "summary": "Excluir pesagem avulsa com motivo",
+        "operationId": "post_avulsas_id_deletar",
+        "responses": {
+          "204": {
+            "description": "Concluído, sem corpo."
+          },
+          "default": {
+            "description": "Erro. Ver tabela de códigos no guia: 400/401/403/404/409/413/415/429/500/503.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Deletion"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]{0,18}$",
+              "description": "Inteiro positivo até 9223372036854775807; prefira string para precisão.",
+              "example": "123"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/balanca/avulsas/{id}/ticket.pdf": {
+      "get": {
+        "summary": "Baixar ticket de pesagem avulsa",
+        "operationId": "get_avulsas_id_ticket_pdf",
+        "responses": {
+          "200": {
+            "description": "Sucesso",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Erro. Ver tabela de códigos no guia: 400/401/403/404/409/413/415/429/500/503.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]{0,18}$",
+              "description": "Inteiro positivo até 9223372036854775807; prefira string para precisão.",
+              "example": "123"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/balanca/avulsas.csv": {
+      "get": {
+        "summary": "Exportar pesagens avulsas em CSV",
+        "operationId": "get_avulsas_csv",
+        "responses": {
+          "200": {
+            "description": "Sucesso",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Erro. Ver tabela de códigos no guia: 400/401/403/404/409/413/415/429/500/503.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/balanca/contratos": {
       "get": {
         "summary": "Listar contratos com saldo não embarcado",
@@ -3370,6 +3730,353 @@
           "recebida_em",
           "contingencia",
           "status"
+        ],
+        "additionalProperties": false
+      },
+      "StandaloneCreate": {
+        "type": "object",
+        "properties": {
+          "pesagem_1_em": {
+            "type": "string",
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}(:[0-9]{2})?$",
+            "description": "Data/hora da pesagem 1 em Brasília, sem offset/Z. Omissão usa now().",
+            "example": "2026-10-14T09:30"
+          },
+          "pesagem_1_kg": {
+            "oneOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": true,
+                "minimum": 0,
+                "maximum": 999999999.999
+              },
+              {
+                "type": "string",
+                "pattern": "^[0-9]{1,9}(\\.[0-9]{1,3})?$"
+              }
+            ],
+            "description": "Kg positivo, até 3 casas decimais, sem separador de milhares."
+          },
+          "placa_caminhao": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 200,
+            "description": "Opcional e sem padrão fixo. Maiúsculas, sem pontuação; após normalizar, até 10 letras/números. Em branco ou null grava null.",
+            "example": "ABC1D23"
+          },
+          "nome_motorista": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 120,
+            "description": "Opcional. Espaços extras são removidos; em branco ou null grava null.",
+            "example": "João da Silva"
+          },
+          "produto": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 120,
+            "description": "Texto livre opcional com o que foi pesado.",
+            "example": "Calcário"
+          },
+          "vendedor": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 120,
+            "description": "Texto livre opcional.",
+            "example": "Fazenda Vizinha"
+          },
+          "comprador": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 120,
+            "description": "Texto livre opcional.",
+            "example": "Cooperativa"
+          },
+          "comentario": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 2000,
+            "description": "Anotação livre, até 1000 caracteres após remover espaços das pontas. Quebras de linha são preservadas.",
+            "example": "Caminhão de calcário para o talhão 3."
+          }
+        },
+        "required": [
+          "pesagem_1_kg"
+        ],
+        "additionalProperties": false
+      },
+      "StandaloneEdit": {
+        "type": "object",
+        "description": "PUT substitui tudo: todos os campos são obrigatórios na requisição; use null para limpar. pesagem_2_kg null devolve a pesagem para o pátio.",
+        "properties": {
+          "pesagem_1_em": {
+            "type": "string",
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}(:[0-9]{2})?$",
+            "description": "Data/hora da pesagem 1 em Brasília, sem offset/Z.",
+            "example": "2026-10-14T09:30"
+          },
+          "pesagem_1_kg": {
+            "oneOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": true,
+                "minimum": 0,
+                "maximum": 999999999.999
+              },
+              {
+                "type": "string",
+                "pattern": "^[0-9]{1,9}(\\.[0-9]{1,3})?$"
+              }
+            ],
+            "description": "Kg positivo, até 3 casas decimais, sem separador de milhares."
+          },
+          "pesagem_2_kg": {
+            "anyOf": [
+              {
+                "oneOf": [
+                  {
+                    "type": "number",
+                    "exclusiveMinimum": true,
+                    "minimum": 0,
+                    "maximum": 999999999.999
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9]{1,9}(\\.[0-9]{1,3})?$"
+                  }
+                ],
+                "description": "Kg positivo, até 3 casas decimais, sem separador de milhares."
+              },
+              {
+                "type": "string",
+                "nullable": true,
+                "enum": [
+                  null
+                ]
+              }
+            ]
+          },
+          "pesagem_2_em": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}(:[0-9]{2})?$",
+                "description": "Data/hora da pesagem 2 em Brasília, sem offset/Z. Omissão usa now().",
+                "example": "2026-10-14T09:30"
+              },
+              {
+                "type": "string",
+                "nullable": true,
+                "enum": [
+                  null
+                ]
+              }
+            ],
+            "description": "Data/hora da pesagem 2. Com pesagem_2_kg preenchida, null usa now()."
+          },
+          "placa_caminhao": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 200,
+            "description": "Opcional e sem padrão fixo. Maiúsculas, sem pontuação; após normalizar, até 10 letras/números. Em branco ou null grava null.",
+            "example": "ABC1D23"
+          },
+          "nome_motorista": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 120,
+            "description": "Opcional. Espaços extras são removidos; em branco ou null grava null.",
+            "example": "João da Silva"
+          },
+          "produto": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 120,
+            "description": "Texto livre opcional com o que foi pesado.",
+            "example": "Calcário"
+          },
+          "vendedor": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 120,
+            "description": "Texto livre opcional.",
+            "example": "Fazenda Vizinha"
+          },
+          "comprador": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 120,
+            "description": "Texto livre opcional.",
+            "example": "Cooperativa"
+          },
+          "comentario": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 2000,
+            "description": "Anotação livre, até 1000 caracteres após remover espaços das pontas. Quebras de linha são preservadas.",
+            "example": "Caminhão de calcário para o talhão 3."
+          }
+        },
+        "required": [
+          "pesagem_1_em",
+          "pesagem_1_kg",
+          "pesagem_2_kg",
+          "pesagem_2_em",
+          "placa_caminhao",
+          "nome_motorista",
+          "produto",
+          "vendedor",
+          "comprador",
+          "comentario"
+        ],
+        "additionalProperties": false
+      },
+      "StandaloneSecond": {
+        "type": "object",
+        "properties": {
+          "pesagem_2_kg": {
+            "oneOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": true,
+                "minimum": 0,
+                "maximum": 999999999.999
+              },
+              {
+                "type": "string",
+                "pattern": "^[0-9]{1,9}(\\.[0-9]{1,3})?$"
+              }
+            ],
+            "description": "Kg positivo, até 3 casas decimais, sem separador de milhares."
+          },
+          "pesagem_2_em": {
+            "type": "string",
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}(:[0-9]{2})?$",
+            "description": "Data/hora da pesagem 2 em Brasília, sem offset/Z. Omissão usa now().",
+            "example": "2026-10-14T09:30"
+          }
+        },
+        "required": [
+          "pesagem_2_kg"
+        ],
+        "additionalProperties": false
+      },
+      "Standalone": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[1-9][0-9]{0,18}$",
+            "description": "Inteiro positivo até 9223372036854775807; prefira string para precisão.",
+            "example": "123"
+          },
+          "placa_caminhao": {
+            "type": "string",
+            "nullable": true
+          },
+          "nome_motorista": {
+            "type": "string",
+            "nullable": true
+          },
+          "produto": {
+            "type": "string",
+            "nullable": true
+          },
+          "vendedor": {
+            "type": "string",
+            "nullable": true
+          },
+          "comprador": {
+            "type": "string",
+            "nullable": true
+          },
+          "comentario": {
+            "type": "string",
+            "nullable": true
+          },
+          "pesagem_1_kg": {
+            "type": "string",
+            "description": "Decimal PostgreSQL representado como texto, com ponto."
+          },
+          "pesagem_1_em": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "pesagem_2_kg": {
+            "type": "string",
+            "description": "Decimal PostgreSQL representado como texto, com ponto.",
+            "nullable": true
+          },
+          "pesagem_2_em": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "peso_liquido_kg": {
+            "type": "string",
+            "description": "Diferença absoluta entre as pesagens, calculada pelo banco; null enquanto falta a pesagem 2.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": true
+      },
+      "StandaloneDetail": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Standalone"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "criado_em": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "atualizado_em": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "operador_login": {
+                "type": "string",
+                "nullable": true,
+                "description": "Login de quem lançou a pesagem 1 (sai no ticket)."
+              },
+              "pesagem_2_operador_login": {
+                "type": "string",
+                "nullable": true,
+                "description": "Login de quem lançou a pesagem 2."
+              }
+            }
+          }
+        ]
+      },
+      "StandalonePage": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Standalone"
+            }
+          },
+          "pagina": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "limite": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "tem_proxima": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "items",
+          "pagina",
+          "limite",
+          "tem_proxima"
         ],
         "additionalProperties": false
       }

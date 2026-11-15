@@ -8,6 +8,10 @@ O operador de balança registra o carregamento de produto que sai da unidade, in
 
 Além do lançamento e da associação, o operador pode consultar a lista completa de saídas, abrir a tela de detalhes, dividir uma saída em duas cargas, deletar uma saída e desvincular uma saída de um contrato quando for necessário corrigir a associação.
 
+Pesagens que não são saída de soja ou milho não devem ser lançadas aqui: use as
+[pesagens avulsas](pesagens-avulsas.md), que ficam numa tabela própria e não afetam
+saldos nem contratos.
+
 ## Banco de dados
 
 A tabela principal do fluxo é `saidas_balanca`.

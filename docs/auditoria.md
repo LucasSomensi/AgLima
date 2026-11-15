@@ -14,7 +14,7 @@ A estratégia principal é manter a tabela flexível: `tipo_acao`, `entidade_tip
 | --- | --- |
 | `id` | Identificador sequencial da auditoria. |
 | `tipo_acao` | Nome lógico da ação registrada. |
-| `entidade_tipo` | Tabela ou domínio funcional afetado, como `entradas_balanca` ou `saidas_balanca`. |
+| `entidade_tipo` | Tabela ou domínio funcional afetado, como `entradas_balanca`, `saidas_balanca` ou `pesagens_avulsas`. |
 | `entidade_id` | Identificador da entidade afetada, em texto para aceitar formatos futuros. |
 | `usuario_id` | Usuário responsável pela ação. FK para `users.id`. |
 | `usuario_login` | Snapshot opcional do login no momento da ação. |
@@ -34,6 +34,8 @@ A estratégia principal é manter a tabela flexível: `tipo_acao`, `entidade_tip
 | `deletar_saida` | Ao deletar uma saída. O motivo obrigatório informado pelo operador é salvo em `detalhes.motivo_delecao`. | `saidas_balanca` |
 | `desvincular_contrato_saida` | Ao remover o vínculo entre uma saída e um contrato. | `saidas_balanca` |
 | `dividir_saida` | Ao dividir uma saída em duas linhas. | `saidas_balanca` |
+| `editar_pesagem_avulsa` | Ao adicionar a pesagem 2 de uma pesagem avulsa (`detalhes.campo_editado = 'pesagem_2_kg'`) e ao salvar a edição completa. | `pesagens_avulsas` |
+| `deletar_pesagem_avulsa` | Ao deletar uma pesagem avulsa. O motivo obrigatório é salvo em `detalhes.motivo_delecao`. | `pesagens_avulsas` |
 
 > A edição geral de saída também registra `editar_saida`. Divisão de entradas não
 > está implementada. A [API operacional](api-balanca-operacional.md) reutiliza esses

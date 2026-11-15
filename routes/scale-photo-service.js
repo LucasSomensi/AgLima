@@ -330,6 +330,8 @@ async function insertTemporaryCapture({ scaleId, relativePath, buffer, pesoKg, c
 // de data. Para cada uma, lista os lançamentos em que ela já foi usada: a
 // mesma foto pode ser usada de novo (por exemplo, a tara de um caminhão
 // repetida em várias viagens), mas o operador vê o aviso antes de escolher.
+// pesagem_avulsa_id é lido via to_jsonb para a consulta continuar funcionando
+// num banco ainda sem a migration das pesagens avulsas.
 async function listRecentAutomaticPhotos(scaleId, limit = RECENT_AUTOMATIC_PHOTOS_LIMIT) {
   ensureDatabaseConfigured();
 
@@ -338,7 +340,12 @@ async function listRecentAutomaticPhotos(scaleId, limit = RECENT_AUTOMATIC_PHOTO
       SELECT f.id, f.status, f.peso_kg, f.capturada_em, f.contingencia,
              COALESCE(
                json_agg(
-                 json_build_object('entrada_id', c.entrada_id, 'saida_id', c.saida_id, 'tipo_peso', c.tipo_peso)
+                 json_build_object(
+                   'entrada_id', c.entrada_id,
+                   'saida_id', c.saida_id,
+                   'pesagem_avulsa_id', to_jsonb(c) -> 'pesagem_avulsa_id',
+                   'tipo_peso', c.tipo_peso
+                 )
                  ORDER BY c.vinculada_em
                ) FILTER (WHERE c.id IS NOT NULL),
                '[]'::json
@@ -354,7 +361,7 @@ async function listRecentAutomaticPhotos(scaleId, limit = RECENT_AUTOMATIC_PHOTO
       LEFT JOIN balanca_fotos c
         ON c.foto_origem_id = f.id
        AND c.status = 'vinculada'
-       AND (c.entrada_id IS NOT NULL OR c.saida_id IS NOT NULL)
+       AND (c.entrada_id IS NOT NULL OR c.saida_id IS NOT NULL OR to_jsonb(c) ->> 'pesagem_avulsa_id' IS NOT NULL)
       GROUP BY f.id, f.status, f.peso_kg, f.capturada_em, f.contingencia
       ORDER BY f.capturada_em DESC
     `,
@@ -413,22 +420,43 @@ async function createCaptureFromAutomaticPhoto(scaleId, photoId, userId) {
   return { source, capture };
 }
 
+const RECORD_WEIGHT_TYPES = {
+  entrada: ['bruto', 'tara'],
+  saida: ['bruto', 'tara'],
+  pesagemAvulsa: ['pesagem_1', 'pesagem_2'],
+};
+
 // Confirma a foto temporária quando o lançamento é salvo. Só vincula se a
 // captura é do mesmo operador, ainda não venceu e o peso salvo é exatamente o
 // peso que veio da balança: peso digitado ou alterado fica sem foto.
-async function linkCaptureToRecord({ captureId, userId, entradaId = null, saidaId = null, tipoPeso, pesoKg }) {
-  if (!isUuid(captureId) || (!entradaId && !saidaId) || !['bruto', 'tara'].includes(tipoPeso)) {
+// Entradas e saídas usam bruto/tara; pesagens avulsas usam pesagem_1/pesagem_2.
+// A coluna pesagem_avulsa_id só entra na query das pesagens avulsas, para
+// entradas e saídas continuarem ganhando foto num banco ainda sem essa coluna.
+async function linkCaptureToRecord({
+  captureId, userId, entradaId = null, saidaId = null, pesagemAvulsaId = null, tipoPeso, pesoKg,
+}) {
+  const records = Object.entries({ entrada: entradaId, saida: saidaId, pesagemAvulsa: pesagemAvulsaId })
+    .filter(([, id]) => id);
+
+  if (!isUuid(captureId) || records.length !== 1 || !RECORD_WEIGHT_TYPES[records[0][0]].includes(tipoPeso)) {
     return null;
   }
 
   ensureDatabaseConfigured();
+
+  const isStandalone = Boolean(pesagemAvulsaId);
+  const values = [captureId, userId, entradaId, saidaId, tipoPeso, String(pesoKg)];
+
+  if (isStandalone) {
+    values.push(pesagemAvulsaId);
+  }
 
   const result = await pool.query(
     `
       UPDATE balanca_fotos
       SET status = 'vinculada',
           entrada_id = $3,
-          saida_id = $4,
+          saida_id = $4,${isStandalone ? '\n          pesagem_avulsa_id = $7,' : ''}
           tipo_peso = $5,
           vinculada_em = now(),
           expira_em = NULL
@@ -440,7 +468,7 @@ async function linkCaptureToRecord({ captureId, userId, entradaId = null, saidaI
         AND peso_kg = $6::numeric
       RETURNING id
     `,
-    [captureId, userId, entradaId, saidaId, tipoPeso, String(pesoKg)]
+    values
   );
 
   return result.rows[0] || null;
@@ -457,11 +485,12 @@ async function getPhotoById(photoId) {
   return result.rows[0] || null;
 }
 
-async function listLinkedPhotos({ entradaId = null, saidaId = null }) {
+async function listLinkedPhotos({ entradaId = null, saidaId = null, pesagemAvulsaId = null }) {
   ensureDatabaseConfigured();
 
-  const column = entradaId ? 'entrada_id' : 'saida_id';
-  const id = entradaId || saidaId;
+  const [column, id] = entradaId ? ['entrada_id', entradaId]
+    : saidaId ? ['saida_id', saidaId]
+      : ['pesagem_avulsa_id', pesagemAvulsaId];
 
   if (!id) {
     return [];

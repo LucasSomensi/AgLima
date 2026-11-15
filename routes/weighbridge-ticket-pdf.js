@@ -80,6 +80,38 @@ function buildScaleOutputTicketLines(outputInfo) {
   ];
 }
 
+// Mesmo layout do ticket de saída, trocando tara/bruto por pesagem 1 e 2. Os
+// campos descritivos são livres e opcionais: em branco aparecem como "-",
+// exceto o motorista, que (como na saída) só aparece quando informado.
+function buildStandaloneWeighingTicketLines(weighing) {
+  return [
+    '------------------------------',
+    'Fazenda São José',
+    ' ',
+    `Pesagem avulsa: ${weighing.id || '-'}`,
+    `Operador: ${weighing.operador_login || '-'}`,
+    `Placa: ${weighing.placa_caminhao || '-'}`,
+    ...(weighing.nome_motorista ? [`Motorista: ${weighing.nome_motorista}`] : []),
+    `Produto: ${weighing.produto || '-'}`,
+    `Vendedor: ${weighing.vendedor || '-'}`,
+    `Comprador: ${weighing.comprador || '-'}`,
+    ' ',
+    ' ',
+    ' ',
+    `Pesagem 1: ${formatTicketWeight(weighing.pesagem_1_kg)} ${formatTicketDateTime(weighing.pesagem_1_em)}`,
+    `Pesagem 2: ${formatTicketWeight(weighing.pesagem_2_kg)} ${formatTicketDateTime(weighing.pesagem_2_em)}`,
+    `PLiq: ${formatTicketWeight(weighing.peso_liquido_kg)}`,
+    ' ',
+    ' ',
+    ' ',
+    'Ass Vendedor: ____________________',
+    ' ',
+    ' ',
+    'Ass Comprador: ____________________',
+    '---------------------------------',
+  ];
+}
+
 function buildScaleInputTicketLines(inputInfo) {
   const tareLabel = inputInfo.tara_usada_de_entrada_id ? 'Tara anterior' : 'Tara';
   const tareDate = inputInfo.tara_usada_de_entrada_id
@@ -162,7 +194,13 @@ function buildScaleInputTicketPdf(inputInfo) {
   return buildThermalTicketPdf(buildScaleInputTicketLines(inputInfo));
 }
 
+function buildStandaloneWeighingTicketPdf(weighing) {
+  return buildThermalTicketPdf(buildStandaloneWeighingTicketLines(weighing));
+}
+
 module.exports = {
+  buildStandaloneWeighingTicketLines,
+  buildStandaloneWeighingTicketPdf,
   buildScaleInputTicketLines,
   buildScaleInputTicketPdf,
   buildScaleOutputTicketPdf,
