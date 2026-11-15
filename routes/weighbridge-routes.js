@@ -206,6 +206,12 @@ router.get('/balanca/balancas/1/peso-atual', canAccessWeighbridge, async (req, r
   }
 });
 
+// Horário da foto no formato do campo datetime-local (fuso de Brasília). Os
+// formulários usam este valor para preencher a data e hora da pesagem.
+function toPhotoDateTimeLocal(value) {
+  return value ? toDateTimeLocalValue(value) || null : null;
+}
+
 // Botão "usar peso da balança" dos formulários de bruto e tara: devolve o peso
 // atual e, quando há foto para esse peso, uma captura temporária que só é
 // confirmada ao salvar o lançamento com o mesmo peso.
@@ -236,6 +242,7 @@ router.post('/balanca/balancas/1/peso-atual/captura', canAccessWeighbridge, asyn
           captura_id: result.capture.id,
           url: `/balanca/fotos/${result.capture.id}`,
           contingencia: result.capture.contingencia,
+          capturada_em_local: toPhotoDateTimeLocal(result.capture.capturada_em),
         }
         : null,
     });
@@ -337,6 +344,7 @@ router.post('/balanca/fotos/automaticas/:id/captura', canAccessWeighbridge, asyn
         captura_id: result.capture.id,
         url: `/balanca/fotos/${result.capture.id}`,
         contingencia: result.capture.contingencia,
+        capturada_em_local: toPhotoDateTimeLocal(result.capture.capturada_em),
       },
     });
   } catch (error) {
