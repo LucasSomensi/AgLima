@@ -499,7 +499,7 @@ test('weight button returns the current weight with a temporary photo capture', 
     if (/FROM balancas_pesos_atuais/.test(sql)) {
       return { rows: [{ balanca_id: 1, peso_kg: 31250, atualizado_em: '2026-11-11T13:00:00.000Z', foto_arquivo: current }] };
     }
-    return { rows: [{ id: CAPTURE_ID, contingencia: values[6] }] };
+    return { rows: [{ id: CAPTURE_ID, capturada_em: values[5], contingencia: values[6] }] };
   });
   const app = require('../app');
   const server = app.listen(0);
@@ -523,7 +523,12 @@ test('weight button returns the current weight with a temporary photo capture', 
     balanca_id: 1,
     peso_kg: 31250,
     atualizado_em: '2026-11-11T13:00:00.000Z',
-    foto: { captura_id: CAPTURE_ID, url: `/balanca/fotos/${CAPTURE_ID}`, contingencia: false },
+    foto: {
+      captura_id: CAPTURE_ID,
+      url: `/balanca/fotos/${CAPTURE_ID}`,
+      contingencia: false,
+      capturada_em_local: '2026-11-11T10:00',
+    },
   });
   assert.equal(listFiles(path.join(dir, 'capturas')).length, 1);
 });
@@ -704,7 +709,12 @@ test('choosing an automatic photo creates a temporary capture with that photo we
     peso_kg: 15320,
     capturada_em: '2026-11-10T18:05:00.000Z',
     capturada_em_texto: '10/11/2026, 15:05',
-    foto: { captura_id: CAPTURE_ID, url: `/balanca/fotos/${CAPTURE_ID}`, contingencia: false },
+    foto: {
+      captura_id: CAPTURE_ID,
+      url: `/balanca/fotos/${CAPTURE_ID}`,
+      contingencia: false,
+      capturada_em_local: '2026-11-10T15:05',
+    },
   });
   assert.equal(listFiles(path.join(dir, 'capturas')).length, 1);
 });

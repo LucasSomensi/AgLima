@@ -25,6 +25,7 @@
       input,
       feedback: label?.querySelector('.weighbridge-weight-feedback') || null,
       captureInput: form?.querySelector('[data-scale-photo-capture]') || null,
+      dateTimeInput: form?.querySelector('[data-scale-photo-datetime]') || null,
       preview: label?.querySelector('[data-scale-photo-preview]') || null,
       getCsrfToken: () => form?.querySelector('input[name="_csrf"]')?.value || '',
     };
@@ -109,6 +110,15 @@
           ? 'Câmera indisponível no momento da foto: foi anexada a imagem de contingência.'
           : caption
       );
+
+      // A data e hora da pesagem passa a ser o horário da foto anexada. O
+      // evento "input" mantém em dia quem depende do campo (por exemplo, o
+      // produto padrão da entrada, que segue o mês da data).
+      if (field.dateTimeInput && result.foto.capturada_em_local) {
+        field.dateTimeInput.value = result.foto.capturada_em_local;
+        field.dateTimeInput.dispatchEvent(new Event('input', { bubbles: true }));
+        field.dateTimeInput.dispatchEvent(new Event('change', { bubbles: true }));
+      }
     }
 
     field.input.dispatchEvent(new Event('input', { bubbles: true }));
