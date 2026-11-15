@@ -8,11 +8,16 @@ const {
   formatPlainDecimal,
   toDateTimeLocalValue,
 } = require('../utils');
-const { buildAlertHtml, buildPaginationHtml } = require('./template-utils');
+const { buildAlertHtml, buildPaginationHtml, renderTemplate } = require('./template-utils');
 const { canCopyInputReport, buildInputClipboardReport, buildScaleOutputInvoiceName } = require('../weighbridge-reports');
 
 const CAPTURE_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const PHOTO_WEIGHT_TYPE_LABELS = { bruto: 'Peso bruto', tara: 'Tara' };
+const PHOTO_WEIGHT_TYPE_LABELS = {
+  bruto: 'Peso bruto',
+  tara: 'Tara',
+  pesagem_1: 'Pesagem 1',
+  pesagem_2: 'Pesagem 2',
+};
 
 const DEFAULT_INVOICE_OPERATION_NATURE = 'Venda';
 const DEFAULT_INVOICE_CFOP = '5101';
@@ -198,13 +203,36 @@ function buildScaleOutputRows(outputs, { showAllLink = false } = {}) {
     .join('') || `<tr><td colspan="8">${showAllLink ? 'Nenhuma saída cadastrada.' : 'Nenhuma saída recente cadastrada.'}</td></tr>`;
 }
 
-function buildYardRows(inputs, outputs) {
+// Pesagem avulsa no pátio: aguarda a pesagem 2. As colunas de bruto e tara
+// não se aplicam (não há ordem entre as pesagens), então a pesagem 1 ocupa as
+// duas.
+function buildStandaloneYardRow(item) {
+  const href = `/balanca/avulsas/${encodeURIComponent(item.id)}`;
+
+  return `<tr>
+      <td>Avulsa</td>
+      <td><a class="admin-table-link" href="${escapeHtml(href)}">${escapeHtml(item.placa_caminhao || 'Sem placa')}</a></td>
+      <td>${escapeHtml(formatDateTime(item.pesagem_1_em))}</td>
+      <td>${escapeHtml(item.produto || '-')}</td>
+      <td colspan="2">Pesagem 1: ${escapeHtml(formatKg(item.pesagem_1_kg))}</td>
+      <td><div class="weighbridge-yard-actions"><a class="btn-secondary-action" href="${escapeHtml(`${href}/pesagem-2`)}">Adicionar pesagem 2</a></div></td>
+    </tr>`;
+}
+
+function buildYardRows(inputs, outputs, standaloneWeighings = []) {
   const movements = [
     ...inputs.map((item) => ({ item, type: 'entradas', label: 'Entrada', date: item.data_entrada })),
     ...outputs.map((item) => ({ item, type: 'saidas', label: 'Saída', date: item.data_saida })),
+    ...standaloneWeighings
+      .filter((item) => item.pesagem_2_kg === null || item.pesagem_2_kg === undefined)
+      .map((item) => ({ item, type: 'avulsas', date: item.pesagem_1_em })),
   ].sort((a, b) => new Date(a.date) - new Date(b.date));
 
   return movements.map(({ item, type, label, date }) => {
+    if (type === 'avulsas') {
+      return buildStandaloneYardRow(item);
+    }
+
     const href = `/balanca/${type}/${encodeURIComponent(item.id)}`;
     const actions = [];
     const addAction = (suffix, text) => actions.push(`<a class="btn-secondary-action" href="${escapeHtml(href + suffix)}">${text}</a>`);
@@ -286,9 +314,18 @@ function renderScalePhotosPage(res, { day, photos = [], retentionDays = 365, err
   res.send(html);
 }
 
-function renderWeighbridgeHomePage(res, { inputs = [], outputs = [], yardInputs = [], yardOutputs = [], message, error }) {
+function renderWeighbridgeHomePage(res, {
+  inputs = [],
+  outputs = [],
+  yardInputs = [],
+  yardOutputs = [],
+  standaloneWeighings = [],
+  yardStandaloneWeighings = [],
+  message,
+  error,
+}) {
   const pagePath = path.join(__dirname, '../../views/weighbridge-home.html');
-  const yardRows = buildYardRows(yardInputs, yardOutputs);
+  const yardRows = buildYardRows(yardInputs, yardOutputs, yardStandaloneWeighings);
   const html = fs
     .readFileSync(pagePath, 'utf8')
     .replace(/<!-- YARD_START -->([\s\S]*?)<!-- YARD_END -->/, (_, section) => yardRows ? section : '')
@@ -296,7 +333,8 @@ function renderWeighbridgeHomePage(res, { inputs = [], outputs = [], yardInputs 
     .replace('{{WEIGHBRIDGE_ERROR}}', () => buildAlertHtml(error, 'error'))
     .replace('{{YARD_ROWS}}', () => yardRows)
     .replace('{{SCALE_INPUT_ROWS}}', () => buildScaleInputRows(inputs))
-    .replace('{{SCALE_OUTPUT_ROWS}}', () => buildScaleOutputRows(outputs));
+    .replace('{{SCALE_OUTPUT_ROWS}}', () => buildScaleOutputRows(outputs))
+    .replace('{{STANDALONE_ROWS}}', () => buildStandaloneWeighingRows(standaloneWeighings));
 
   res.send(html);
 }
@@ -879,9 +917,228 @@ function renderScaleOutputInvoicePage(res, { outputInfo, message, error, navigat
   res.send(html);
 }
 
+// --- Pesagens avulsas ---------------------------------------------------------
+
+// Substitui também a navegação na mesma passada, para que texto livre digitado
+// pelo operador (comentário, produto...) nunca seja expandido como placeholder.
+function renderWeighbridgeTemplate(templateName, placeholders, navigation = {}) {
+  return renderTemplate(templateName, {
+    WEIGHBRIDGE_HOME_HREF: escapeHtml(navigation.homeHref || '/balanca'),
+    WEIGHBRIDGE_HOME_LABEL: escapeHtml(navigation.homeLabel || '← Voltar à balança'),
+    ...placeholders,
+  });
+}
+
+function hasSecondWeighing(weighing) {
+  return weighing.pesagem_2_kg !== null && weighing.pesagem_2_kg !== undefined;
+}
+
+function buildStandaloneWeighingRows(weighings, { showAllLink = false } = {}) {
+  return weighings
+    .map((weighing) => {
+      const href = `/balanca/avulsas/${encodeURIComponent(weighing.id)}`;
+      const secondContent = hasSecondWeighing(weighing)
+        ? escapeHtml(formatKg(weighing.pesagem_2_kg))
+        : `<a class="admin-table-link" href="${escapeHtml(`${href}/pesagem-2`)}">Adicionar pesagem 2</a>`;
+      const action = hasSecondWeighing(weighing)
+        ? `<a class="admin-table-link" href="${escapeHtml(`${href}/ticket.pdf`)}" target="_blank" rel="noopener">Imprimir ticket</a>`
+        : '-';
+
+      return `
+        <tr>
+          <td><a class="admin-table-link" href="${escapeHtml(href)}">${escapeHtml(formatDateTime(weighing.pesagem_1_em))}</a></td>
+          <td>${escapeHtml(weighing.placa_caminhao || '-')}</td>
+          <td>${escapeHtml(weighing.produto || '-')}</td>
+          <td>${escapeHtml(formatKg(weighing.pesagem_1_kg))}</td>
+          <td>${secondContent}</td>
+          <td>${escapeHtml(formatKg(weighing.peso_liquido_kg))}</td>
+          <td>${action}</td>
+        </tr>
+      `;
+    })
+    .join('') || `<tr><td colspan="7">${showAllLink ? 'Nenhuma pesagem avulsa cadastrada.' : 'Nenhuma pesagem avulsa recente.'}</td></tr>`;
+}
+
+function renderStandaloneWeighingsListPage(res, { weighings, navigation, pagination = { page: 1, totalPages: 1 } }) {
+  const html = renderWeighbridgeTemplate('weighbridge-standalone-list.html', {
+    STANDALONE_ROWS: buildStandaloneWeighingRows(weighings, { showAllLink: true }),
+    PAGINATION: buildPaginationHtml({
+      ...pagination,
+      basePath: '/balanca/avulsas',
+      ariaLabel: 'Paginação das pesagens avulsas',
+    }),
+  }, navigation);
+
+  res.send(html);
+}
+
+function renderStandaloneWeighingFormPage(res, { formValues = {}, error, navigation }) {
+  const html = renderWeighbridgeTemplate('weighbridge-standalone-form.html', {
+    STANDALONE_ERROR: buildAlertHtml(error, 'error'),
+    PESAGEM_1_EM: escapeHtml(formValues.pesagem_1_em || toDateTimeLocalValue()),
+    PESAGEM_1_KG: escapeHtml(formatDecimalInput(formValues.pesagem_1_kg)),
+    PLACA_CAMINHAO: escapeHtml(formValues.placa_caminhao || ''),
+    NOME_MOTORISTA: escapeHtml(formValues.nome_motorista || ''),
+    PRODUTO: escapeHtml(formValues.produto || ''),
+    VENDEDOR: escapeHtml(formValues.vendedor || ''),
+    COMPRADOR: escapeHtml(formValues.comprador || ''),
+    COMENTARIO: escapeHtml(formValues.comentario || ''),
+    FOTO_CAPTURA_ID: escapeHtml(getCaptureIdValue(formValues)),
+  }, navigation);
+
+  res.send(html);
+}
+
+function buildStandaloneSummary(weighing) {
+  return [
+    `Pesagem avulsa #${weighing.id}`,
+    weighing.placa_caminhao,
+    weighing.produto,
+    `pesagem 1 ${formatKg(weighing.pesagem_1_kg)} em ${formatDateTime(weighing.pesagem_1_em)}`,
+  ].filter(Boolean).join(' · ');
+}
+
+function buildStandaloneCommentHtml(weighing) {
+  if (!weighing.comentario) {
+    return '';
+  }
+
+  return `<p class="admin-muted weighbridge-comment"><strong>Comentário:</strong> ${escapeHtml(weighing.comentario)}</p>`;
+}
+
+function renderStandaloneWeighingSecondFormPage(res, { weighing, formValues = {}, error, navigation }) {
+  const html = renderWeighbridgeTemplate('weighbridge-standalone-second-form.html', {
+    STANDALONE_ERROR: buildAlertHtml(error, 'error'),
+    STANDALONE_SUMMARY: escapeHtml(buildStandaloneSummary(weighing)),
+    STANDALONE_COMMENT: buildStandaloneCommentHtml(weighing),
+    AVULSA_ID: escapeHtml(weighing.id),
+    PESAGEM_2_EM: escapeHtml(formValues.pesagem_2_em || toDateTimeLocalValue()),
+    PESAGEM_2_KG: escapeHtml(formatDecimalInput(formValues.pesagem_2_kg)),
+    FOTO_CAPTURA_ID: escapeHtml(getCaptureIdValue(formValues)),
+  }, navigation);
+
+  res.send(html);
+}
+
+function buildStandaloneDetailFieldsHtml(weighing) {
+  const fields = [
+    ['Data/hora da pesagem 1', formatDateTime(weighing.pesagem_1_em)],
+    ['Pesagem 1', formatRoundedKg(weighing.pesagem_1_kg)],
+    ['Data/hora da pesagem 2', hasSecondWeighing(weighing) ? formatDateTime(weighing.pesagem_2_em) : null],
+    ['Pesagem 2', hasSecondWeighing(weighing) ? formatRoundedKg(weighing.pesagem_2_kg) : null],
+    ['Peso líquido', formatRoundedKg(weighing.peso_liquido_kg)],
+    ['Placa', weighing.placa_caminhao],
+    ['Motorista', weighing.nome_motorista],
+    ['Produto', weighing.produto],
+    ['Vendedor', weighing.vendedor],
+    ['Comprador', weighing.comprador],
+    ['Operador', weighing.operador_login],
+  ];
+  const commentHtml = `<div class="weighbridge-detail-full"><dt>Comentário</dt><dd><span class="copy-field-value weighbridge-comment">${escapeHtml(weighing.comentario || '-')}</span><button class="copy-field-button" type="button" aria-label="Copiar Comentário">Copiar</button></dd></div>`;
+
+  return [
+    ...fields.map(([label, value]) => buildCopyFieldHtml(label, value === '-' ? null : value)),
+    commentHtml,
+  ].join('\n            ');
+}
+
+function buildStandalonePrimaryActionsHtml(weighing) {
+  const href = `/balanca/avulsas/${encodeURIComponent(weighing.id)}`;
+
+  if (hasSecondWeighing(weighing)) {
+    return `
+          <div class="weighbridge-output-actions">
+            <a class="btn-secondary-action" href="${escapeHtml(`${href}/ticket.pdf`)}" target="_blank" rel="noopener">Imprimir ticket</a>
+          </div>
+    `;
+  }
+
+  return `
+          <div class="weighbridge-output-actions">
+            <a class="btn-secondary-action" href="${escapeHtml(`${href}/pesagem-2`)}">Adicionar pesagem 2</a>
+            <button class="btn-secondary-action" type="button" disabled>Imprimir ticket</button>
+          </div>
+  `;
+}
+
+function buildStandaloneEditFormHtml(weighing, formValues = {}) {
+  const value = (key, fallback) => escapeHtml(formValues[key] ?? fallback ?? '');
+  const pesagem2Em = formValues.pesagem_2_em ?? (weighing.pesagem_2_em ? toDateTimeLocalValue(weighing.pesagem_2_em) : '');
+
+  return `
+        <section class="admin-section">
+          <h2>Editar pesagem avulsa</h2>
+          <form class="contact-form contracts-form" action="/balanca/avulsas/${escapeHtml(weighing.id)}" method="post">
+            <input type="hidden" name="_csrf" value="{{CSRF_TOKEN}}">
+            <div class="contracts-form-grid contracts-form-grid-two">
+              <label>Data e hora da pesagem 1
+                <input class="form-control" name="pesagem_1_em" type="datetime-local" value="${value('pesagem_1_em', toDateTimeLocalValue(weighing.pesagem_1_em))}" required>
+              </label>
+              <label>Pesagem 1 (kg)
+                <input class="form-control" name="pesagem_1_kg" type="number" min="0.001" step="0.001" value="${escapeHtml(formatDecimalInput(formValues.pesagem_1_kg ?? weighing.pesagem_1_kg))}" inputmode="decimal" required>
+              </label>
+              <label>Data e hora da pesagem 2
+                <input class="form-control" name="pesagem_2_em" type="datetime-local" value="${escapeHtml(pesagem2Em)}">
+              </label>
+              <label>Pesagem 2 (kg)
+                <input class="form-control" name="pesagem_2_kg" type="number" min="0.001" step="0.001" value="${escapeHtml(formatDecimalInput(formValues.pesagem_2_kg ?? weighing.pesagem_2_kg))}" inputmode="decimal" placeholder="Deixe em branco se pendente">
+              </label>
+              <label>Placa (opcional)
+                <input class="form-control" name="placa_caminhao" type="text" value="${value('placa_caminhao', weighing.placa_caminhao)}" maxlength="12" autocomplete="off">
+              </label>
+              <label>Nome do motorista (opcional)
+                <input class="form-control" name="nome_motorista" type="text" value="${value('nome_motorista', weighing.nome_motorista)}" maxlength="120" autocomplete="off">
+              </label>
+              <label>Produto (opcional)
+                <input class="form-control" name="produto" type="text" value="${value('produto', weighing.produto)}" maxlength="120" autocomplete="off">
+              </label>
+              <label>Vendedor (opcional)
+                <input class="form-control" name="vendedor" type="text" value="${value('vendedor', weighing.vendedor)}" maxlength="120" autocomplete="off">
+              </label>
+              <label>Comprador (opcional)
+                <input class="form-control" name="comprador" type="text" value="${value('comprador', weighing.comprador)}" maxlength="120" autocomplete="off">
+              </label>
+              <label class="weighbridge-form-full">Comentário (opcional)
+                <textarea class="form-control" name="comentario" rows="4" maxlength="1000">${value('comentario', weighing.comentario)}</textarea>
+              </label>
+            </div>
+            <p class="admin-muted">Para voltar a pesagem para o pátio, apague o peso da pesagem 2 antes de salvar. Campos de texto em branco ficam sem valor.</p>
+            <div class="contracts-form-actions">
+              <button class="btn-primary-action" type="submit">Salvar alterações</button>
+              <a class="btn-secondary-action" href="/balanca/avulsas">Cancelar</a>
+            </div>
+          </form>
+        </section>
+  `;
+}
+
+function renderStandaloneWeighingDetailPage(res, { weighing, photos = [], formValues = {}, message, error, navigation }) {
+  const html = renderWeighbridgeTemplate('weighbridge-standalone-detail.html', {
+    STANDALONE_MESSAGE: buildAlertHtml(message),
+    STANDALONE_ERROR: buildAlertHtml(error, 'error'),
+    AVULSA_ID: escapeHtml(weighing.id),
+    STANDALONE_FIELDS: buildStandaloneDetailFieldsHtml(weighing),
+    STANDALONE_PRIMARY_ACTIONS: buildStandalonePrimaryActionsHtml(weighing),
+    SCALE_PHOTOS_SECTION: buildScalePhotosSectionHtml(photos),
+    STANDALONE_EDIT_FORM: buildStandaloneEditFormHtml(weighing, formValues),
+    STANDALONE_DELETE_FORM: buildDeletionReasonFormHtml({
+      action: `/balanca/avulsas/${weighing.id}/deletar`,
+      buttonLabel: 'Deletar pesagem avulsa',
+      textareaId: `motivo-delecao-avulsa-${weighing.id}`,
+    }),
+  }, navigation);
+
+  res.send(html);
+}
+
 module.exports = {
   buildScaleInputRows,
   buildScaleOutputRows,
+  buildStandaloneWeighingRows,
+  renderStandaloneWeighingDetailPage,
+  renderStandaloneWeighingFormPage,
+  renderStandaloneWeighingSecondFormPage,
+  renderStandaloneWeighingsListPage,
   renderScaleContractDetailPage,
   renderScaleContractsListPage,
   renderScaleInputClassificationFormPage,

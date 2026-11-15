@@ -30,11 +30,23 @@ function dateTime(value, field) {
   if (!Number.isFinite(parsed.getTime()) || parsed.toISOString().slice(0, 19) !== full) throw invalid(`${field}: data inválida.`);
 }
 
+// null limpa o campo quando ele não é obrigatório na rota. Os campos livres
+// das pesagens avulsas (placa, produto, vendedor, comprador, comentário) e a
+// pesagem 2 também aceitam null; nas entradas e saídas, placa e produto
+// continuam obrigatórios e por isso nunca chegam aqui como null.
+const NULLABLE_FIELDS = [
+  'peso_tara_kg', 'peso_bruto_kg', 'origem', 'nome_motorista', 'umidade_percent', 'impureza_percent',
+  'graos_avariados_percent', 'placa_caminhao', 'produto', 'vendedor', 'comprador', 'comentario',
+  'pesagem_2_kg', 'pesagem_2_em',
+];
+const DATE_TIME_FIELDS = ['data_entrada', 'data_saida', 'peso_bruto_adicionado_em', 'pesagem_1_em', 'pesagem_2_em'];
+const LONG_TEXT_FIELDS = ['motivo_delecao', 'comentario'];
+
 function fields(req, allowed, required) {
   const value = body(req, allowed, required);
   for (const [key, item] of Object.entries(value)) {
-    if (item === null && !required?.includes(key) && ['peso_tara_kg', 'peso_bruto_kg', 'origem', 'nome_motorista', 'umidade_percent', 'impureza_percent', 'graos_avariados_percent'].includes(key)) continue;
-    if (['data_entrada', 'data_saida', 'peso_bruto_adicionado_em'].includes(key)) {
+    if (item === null && !required?.includes(key) && NULLABLE_FIELDS.includes(key)) continue;
+    if (DATE_TIME_FIELDS.includes(key)) {
       dateTime(item, key);
     } else if (key === 'usar_tara_anterior') {
       if (typeof item !== 'boolean') throw invalid(`${key} deve ser booleano.`);
@@ -49,7 +61,7 @@ function fields(req, allowed, required) {
       value[key] = String(item);
     } else if (key.endsWith('_id')) {
       value[key] = id(item);
-    } else if (typeof item !== 'string' || item.length > (key === 'motivo_delecao' ? 2000 : 200)) {
+    } else if (typeof item !== 'string' || item.length > (LONG_TEXT_FIELDS.includes(key) ? 2000 : 200)) {
       throw invalid(`${key}: texto inválido ou muito longo.`);
     }
   }

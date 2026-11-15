@@ -672,6 +672,7 @@ function renderAdminWeighbridgePanel({ inputs = [], outputs = [] } = {}) {
         <section class="admin-section admin-notifications-panel admin-home-panel" aria-labelledby="admin-weighbridge-title">
           <div class="admin-section-header admin-notifications-header">
             <h2 id="admin-weighbridge-title">Entradas e saídas</h2>
+            <a class="btn-secondary-action" href="/balanca/avulsas">Ver pesagens avulsas</a>
           </div>
           <section class="admin-section" aria-labelledby="admin-recent-inputs-title">
             <div class="admin-section-header">

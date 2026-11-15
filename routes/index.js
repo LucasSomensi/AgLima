@@ -7,6 +7,7 @@ const dryerRoutes = require('./dryer-routes');
 const internalRoutes = require('./internal-routes');
 const publicRoutes = require('./public-routes');
 const { router: scaleApiRoutes } = require('./scale-api-routes');
+const standaloneWeighingRoutes = require('./standalone-weighing-routes');
 const weighbridgeRoutes = require('./weighbridge-routes');
 const { router: weighbridgeApiRoutes } = require('./weighbridge-api-routes');
 
@@ -24,6 +25,7 @@ router.use(authRoutes);
 router.use(internalRoutes);
 router.use(dryerRoutes);
 router.use(weighbridgeRoutes);
+router.use(standaloneWeighingRoutes);
 router.use(adminRoutes);
 
 module.exports = router;

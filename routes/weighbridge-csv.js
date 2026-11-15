@@ -140,9 +140,52 @@ function buildScaleOutputsCsv(outputs) {
   ]);
 }
 
+function buildStandaloneWeighingsCsv(weighings) {
+  return buildCsv([
+    [
+      'ID',
+      'Data pesagem 1',
+      'Hora pesagem 1',
+      'Pesagem 1 kg',
+      'Data pesagem 2',
+      'Hora pesagem 2',
+      'Pesagem 2 kg',
+      'Liquido kg',
+      'Placa',
+      'Motorista',
+      'Produto',
+      'Vendedor',
+      'Comprador',
+      'Comentario',
+    ],
+    ...weighings.map((weighing) => {
+      const first = formatBrasiliaDateTime(weighing.pesagem_1_em);
+      const second = formatBrasiliaDateTime(weighing.pesagem_2_em);
+
+      return [
+        weighing.id,
+        first.date,
+        first.time,
+        formatCsvWeightKg(weighing.pesagem_1_kg),
+        second.date,
+        second.time,
+        formatCsvWeightKg(weighing.pesagem_2_kg),
+        formatCsvWeightKg(weighing.peso_liquido_kg),
+        weighing.placa_caminhao,
+        weighing.nome_motorista,
+        weighing.produto,
+        weighing.vendedor,
+        weighing.comprador,
+        weighing.comentario,
+      ];
+    }),
+  ]);
+}
+
 module.exports = {
   buildScaleInputsCsv,
   buildScaleOutputsCsv,
+  buildStandaloneWeighingsCsv,
   escapeCsvValue,
   formatBrasiliaDateTime,
   formatCsvDecimal,

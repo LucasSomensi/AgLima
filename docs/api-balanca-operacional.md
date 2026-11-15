@@ -163,6 +163,14 @@ legado do equipamento. Todos exigem token, exceto `POST /sessao`.
 | `GET /saidas/{id}/nf` | Dados para preenchimento da NF | `200` dados; `409` sem contrato |
 | `GET /saidas/{id}/ticket.pdf` | Ticket após bruto e contrato | `200 application/pdf` |
 | `GET /saidas.csv` | Exportar todas as saídas | `200 text/csv` |
+| `GET /avulsas` | Pesagens avulsas paginadas; `pendentes=true` lista só as do pátio | `200` página |
+| `POST /avulsas` | Registrar pesagem avulsa com a pesagem 1 | `201 {id}` e Location |
+| `GET /avulsas/{id}` | Detalhes da pesagem avulsa | `200` registro |
+| `PUT /avulsas/{id}` | Editar todos os campos | `200 {id}` |
+| `POST /avulsas/{id}/pesagem-2` | Adicionar a pesagem 2 uma única vez | `200 {id}` |
+| `POST /avulsas/{id}/deletar` | Excluir com motivo | `204` |
+| `GET /avulsas/{id}/ticket.pdf` | Ticket após a pesagem 2 | `200 application/pdf` |
+| `GET /avulsas.csv` | Exportar todas as pesagens avulsas | `200 text/csv` |
 | `GET /contratos` | Não embarcados com saldo positivo, paginado | `200` página |
 | `GET /contratos/{id}` | Contrato e saídas vinculadas | `200 {contract,outputs}` |
 
@@ -173,14 +181,15 @@ ações administrativas que o operador não possui no site.
 
 ### Paginação
 
-`GET /entradas`, `/saidas` e `/contratos` aceitam `pagina` (padrão 1, máximo
+`GET /entradas`, `/saidas`, `/avulsas` e `/contratos` aceitam `pagina` (padrão 1, máximo
 1000000) e `limite` (padrão 50, máximo 100). Exemplo:
 
 ```json
 {"items":[{"id":"123"}],"pagina":1,"limite":50,"tem_proxima":false}
 ```
 
-Entradas/saídas: data e ID decrescentes. Contratos: data e ID crescentes.
+Entradas/saídas: data e ID decrescentes. Pesagens avulsas: data da pesagem 1 e ID
+decrescentes. Contratos: data e ID crescentes.
 Não há contagem total na resposta. Passe para a próxima página enquanto
 `tem_proxima` for true. A paginação não representa um snapshot: novas operações
 podem deslocar itens. Exportações CSV trazem todos os registros em ordem crescente,
@@ -328,6 +337,56 @@ igual a `Venda` e `cfop` igual a `5101`, como na tela. `nome_nf` usa
 inclui a linha `Motorista` quando `nome_motorista` estiver preenchido. O cliente
 deve salvar/imprimir o PDF; a API não controla a impressora local.
 
+## 6.1. Fluxo de pesagem avulsa
+
+Pesagens avulsas são tudo o que passa pela balança e não é entrada nem saída de soja
+ou milho. Ficam fora dos saldos e contratos. Regras completas em
+[pesagens-avulsas.md](pesagens-avulsas.md). Exige a migration
+`migrations/20261114_add_standalone_weighings.sql`; sem ela, essas rotas retornam `503`.
+
+### Criar e completar
+
+`POST /avulsas` (só `pesagem_1_kg` é obrigatório):
+
+```json
+{"pesagem_1_em":"2026-11-14T10:00","pesagem_1_kg":"15320","placa_caminhao":"ABC1D23","nome_motorista":null,"produto":"Calcário","vendedor":"Fazenda Vizinha","comprador":"Cooperativa","comentario":"Calcário para o talhão 3."}
+```
+
+- `pesagem_1_em` opcional; omitido usa o momento atual.
+- `placa_caminhao`, `nome_motorista`, `produto`, `vendedor`, `comprador` e
+  `comentario` aceitam texto ou `null`; texto em branco também grava `null`.
+- A placa é normalizada para maiúsculas sem pontuação e não tem padrão fixo, mas pode
+  ter no máximo 10 letras/números. Motorista, produto, vendedor e comprador têm até
+  120 caracteres; o comentário, até 1000, preservando quebras de linha.
+
+Recebe `201 {"id":"12"}`. Depois, `POST /avulsas/12/pesagem-2`:
+
+```json
+{"pesagem_2_kg":"41000","pesagem_2_em":"2026-11-14T11:30"}
+```
+
+Data opcional. Não há ordem entre as pesagens: a pesagem 2 pode ser maior, menor ou
+igual à pesagem 1, e o banco calcula `peso_liquido_kg` como a diferença absoluta. Se
+a pesagem 2 já existir, retorna `409`.
+
+`GET /avulsas?pendentes=true` lista apenas as pesagens que ainda aguardam a pesagem 2
+(o pátio). Qualquer outro valor de `pendentes` retorna `400`.
+
+### Editar, excluir e ticket
+
+- `PUT /avulsas/12`: exige **todos** os campos (`pesagem_1_em`, `pesagem_1_kg`,
+  `pesagem_2_kg`, `pesagem_2_em`, `placa_caminhao`, `nome_motorista`, `produto`,
+  `vendedor`, `comprador`, `comentario`); use `null` para limpar. Diferente do
+  `nome_motorista` das saídas, omitir um campo não preserva o valor: retorna `400`.
+  `pesagem_2_kg: null` devolve a pesagem ao pátio; com peso e `pesagem_2_em: null`,
+  usa o momento atual. Grava auditoria `editar_pesagem_avulsa`.
+- `POST /avulsas/12/deletar`: mesmo corpo/regras de motivo das outras exclusões.
+- `GET /avulsas/12/ticket.pdf`: exige a pesagem 2 (`409` antes). Mesmo layout do
+  ticket de saída, com `Pesagem 1`, `Pesagem 2` e `PLiq`.
+
+A API não anexa fotos da balança: os botões de peso com foto são exclusivos dos
+formulários web, como nas entradas e saídas.
+
 ## 7. Respostas, erros e repetição segura
 
 Sucessos: `200` JSON/arquivo, `201` criação/divisão com `Location`, `204` exclusão
@@ -398,7 +457,8 @@ finally:
 
 ## 9. Testes e manutenção
 
-Execute `npm test`. `test/weighbridge-api.test.js` cobre autenticação, armazenamento
+Execute `npm test`. `test/standalone-weighings.test.js` cobre as rotas de pesagens
+avulsas. `test/weighbridge-api.test.js` cobre autenticação, armazenamento
 do digest, isolamento da chave do equipamento, autorização, campos/IDs inválidos,
 paginação SQL, mapeamento dos endpoints, atores de auditoria, erros, PDF, CSV e NF.
 Os testes HTTP usam banco simulado e não escrevem no Railway. A migração e um ciclo
