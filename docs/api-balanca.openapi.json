@@ -2570,6 +2570,12 @@
               }
             ],
             "description": "Kg positivo, até 3 casas decimais, sem separador de milhares."
+          },
+          "tara_adicionada_em": {
+            "type": "string",
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}(:[0-9]{2})?$",
+            "description": "Data real em Brasília, sem offset/Z. Omissão usa now().",
+            "example": "2026-10-14T09:30"
           }
         },
         "required": [

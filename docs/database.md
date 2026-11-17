@@ -320,7 +320,7 @@ Armazena as entradas registradas pelo operador de balança. Cada entrada nasce c
 | `cliente_associado_em` | `timestamp with time zone` | Sim | — | Data/hora da associação futura com cliente. |
 | `criado_por_user_id` | `uuid` | Não | — | Usuário operador que criou a entrada. FK para `users.id`. |
 | `tara_adicionada_por_user_id` | `uuid` | Sim | — | Usuário que adicionou tara manualmente. FK para `users.id`. |
-| `tara_adicionada_em` | `timestamp with time zone` | Sim | — | Data/hora em que a tara manual foi adicionada. |
+| `tara_adicionada_em` | `timestamp with time zone` | Sim | — | Data/hora da tara manual, informada no formulário de tara (padrão: momento do lançamento). |
 | `criado_em` | `timestamp with time zone` | Não | `now()` | Data/hora de criação do registro. |
 | `atualizado_em` | `timestamp with time zone` | Não | `now()` | Data/hora da última atualização. |
 

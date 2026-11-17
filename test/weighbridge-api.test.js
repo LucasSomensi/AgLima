@@ -129,8 +129,9 @@ test('weighbridge API HTTP contract', async (t) => {
       assert.equal(id, '10'); assert.equal(data.pesoTaraKg, null); assert.equal(data.origem, null);
       assert.equal(user.login, actor.login); return { id };
     });
-    st.mock.method(service, 'addScaleInputTare', async (id, weight, userId) => {
-      assert.equal(weight, '10000'); assert.equal(userId, actor.id); return { id };
+    const tareDates = [];
+    st.mock.method(service, 'addScaleInputTare', async (id, weight, userId, taraAdicionadaEm) => {
+      assert.equal(weight, '10000'); assert.equal(userId, actor.id); tareDates.push(taraAdicionadaEm); return { id };
     });
     st.mock.method(service, 'addScaleInputClassification', async (id, data, userId) => {
       assert.deepEqual(data, { umidadePercent: '0', impurezaPercent: '0', graosAvariadosPercent: '0' });
@@ -150,6 +151,10 @@ test('weighbridge API HTTP contract', async (t) => {
     assert.equal((await request(server, 'PUT', '/entradas/10', edit)).status, 200);
     assert.equal((await request(server, 'PUT', '/entradas/10', input)).status, 400);
     assert.equal((await request(server, 'POST', '/entradas/10/tara', { peso_tara_kg: 10000 })).status, 200);
+    assert.equal((await request(server, 'POST', '/entradas/10/tara', { peso_tara_kg: 10000, tara_adicionada_em: '2026-11-15T09:30' })).status, 200);
+    assert.equal((await request(server, 'POST', '/entradas/10/tara', { peso_tara_kg: 10000, tara_adicionada_em: '15/11/2026 09:30' })).status, 400);
+    assert.ok(tareDates[0] instanceof Date);
+    assert.equal(tareDates[1].toISOString(), '2026-11-15T12:30:00.000Z');
     assert.equal((await request(server, 'POST', '/entradas/10/classificacao', { umidade_percent: 0, impureza_percent: 0, graos_avariados_percent: 0 })).status, 200);
     assert.equal((await request(server, 'POST', '/entradas/10/origem', { origem: 'Fazenda X' })).status, 200);
     assert.equal((await request(server, 'POST', '/entradas/10/deletar', { motivo_delecao: 'Registro duplicado por erro de digitação.' })).status, 204);

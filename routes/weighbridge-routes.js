@@ -612,7 +612,12 @@ router.post('/balanca/entradas/:id/tara', canAccessWeighbridge, async (req, res)
   }
 
   try {
-    const updatedInput = await addScaleInputTare(req.params.id, payload.pesoTaraKg, req.sessionUser.userId);
+    const updatedInput = await addScaleInputTare(
+      req.params.id,
+      payload.pesoTaraKg,
+      req.sessionUser.userId,
+      payload.taraAdicionadaEm
+    );
 
     if (!updatedInput) {
       return renderScaleInputTareFormPage(res, {

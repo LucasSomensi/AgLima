@@ -50,8 +50,8 @@ Campos centrais:
 - `GET /balanca/entradas/:id/ticket.pdf`: gera o ticket térmico quando a entrada possui tara e peso líquido.
 - `POST /balanca/entradas/:id`: atualiza data/hora, placa, produto e peso bruto da entrada.
 - `POST /balanca/entradas/:id/deletar`: exclui a entrada.
-- `GET /balanca/entradas/:id/tara`: abre formulário de tara manual.
-- `POST /balanca/entradas/:id/tara`: grava tara manual.
+- `GET /balanca/entradas/:id/tara`: abre formulário de tara manual, com data e hora da tara (padrão: agora). Os botões de peso da balança e de foto automática preenchem a data e hora com o horário da foto anexada.
+- `POST /balanca/entradas/:id/tara`: grava tara manual com a data e hora informada em `tara_adicionada_em`.
 - `GET /balanca/entradas/:id/classificacao`: abre formulário de classificação.
 - `POST /balanca/entradas/:id/classificacao`: grava classificação pelo fluxo da balança.
 - `GET /secador/entradas/:id/classificacao`: abre o formulário mobile de classificação para operadores de silo.
