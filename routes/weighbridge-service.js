@@ -335,14 +335,20 @@ function buildScaleInputEditPayload(body) {
   };
 }
 
+// Sem data e hora (clientes da API que não enviam o campo), vale o momento atual.
 function buildScaleInputTarePayload(body) {
   const pesoTaraKg = normalizeDecimal(body.peso_tara_kg);
+  const taraAdicionadaEm = parseOptionalDateTime(body.tara_adicionada_em);
 
   if (!pesoTaraKg) {
     return { error: 'Informe um peso tara válido.' };
   }
 
-  return { payload: { pesoTaraKg } };
+  if (!taraAdicionadaEm) {
+    return { error: 'Informe uma data e hora válidas para a tara.' };
+  }
+
+  return { payload: { pesoTaraKg, taraAdicionadaEm } };
 }
 
 function normalizePercent(value) {
@@ -785,7 +791,7 @@ async function deleteScaleInput(inputId, user, motivoDelecao) {
   }
 }
 
-async function addScaleInputTare(inputId, pesoTaraKg, userId) {
+async function addScaleInputTare(inputId, pesoTaraKg, userId, taraAdicionadaEm = new Date()) {
   ensureDatabaseConfigured();
 
   const result = await pool.query(
@@ -793,14 +799,14 @@ async function addScaleInputTare(inputId, pesoTaraKg, userId) {
       UPDATE entradas_balanca
       SET peso_tara_kg = $2,
           tara_adicionada_por_user_id = $3,
-          tara_adicionada_em = now(),
+          tara_adicionada_em = $4,
           atualizado_em = now()
       WHERE id = $1
         AND peso_tara_kg IS NULL
         AND peso_bruto_kg > $2
       RETURNING id
     `,
-    [inputId, pesoTaraKg, userId]
+    [inputId, pesoTaraKg, userId, taraAdicionadaEm]
   );
 
   return result.rows[0] || null;

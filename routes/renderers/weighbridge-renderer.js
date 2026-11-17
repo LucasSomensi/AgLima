@@ -556,6 +556,7 @@ function renderScaleInputTareFormPage(res, { input, formValues = {}, error, navi
     .replace('{{SCALE_INPUT_ERROR}}', () => buildAlertHtml(error, 'error'))
     .replace(/{{ENTRADA_ID}}/g, () => escapeHtml(input.id))
     .replace('{{INPUT_SUMMARY}}', () => escapeHtml(`${formatDateTime(input.data_entrada)} · ${input.placa_caminhao} · bruto ${formatKg(input.peso_bruto_kg)}`))
+    .replace(/{{TARA_ADICIONADA_EM}}/g, () => escapeHtml(formValues.tara_adicionada_em || toDateTimeLocalValue()))
     .replace(/{{PESO_TARA_KG}}/g, () => escapeHtml(formatDecimalInput(formValues.peso_tara_kg)))
     .replace(/{{FOTO_CAPTURA_ID}}/g, () => escapeHtml(getCaptureIdValue(formValues))), navigation);
 

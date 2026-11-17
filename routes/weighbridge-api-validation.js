@@ -39,7 +39,9 @@ const NULLABLE_FIELDS = [
   'graos_avariados_percent', 'placa_caminhao', 'produto', 'vendedor', 'comprador', 'comentario',
   'pesagem_2_kg', 'pesagem_2_em',
 ];
-const DATE_TIME_FIELDS = ['data_entrada', 'data_saida', 'peso_bruto_adicionado_em', 'pesagem_1_em', 'pesagem_2_em'];
+const DATE_TIME_FIELDS = [
+  'data_entrada', 'data_saida', 'peso_bruto_adicionado_em', 'tara_adicionada_em', 'pesagem_1_em', 'pesagem_2_em',
+];
 const LONG_TEXT_FIELDS = ['motivo_delecao', 'comentario'];
 
 function fields(req, allowed, required) {

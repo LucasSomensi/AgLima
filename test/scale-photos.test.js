@@ -737,6 +737,34 @@ test('every weight form has both the scale weight and the automatic photo button
   }
 });
 
+test('weight forms mark the weighing date and time filled from the attached photo', () => {
+  const forms = {
+    'weighbridge-input-form.html': 'data_entrada',
+    'weighbridge-input-tare-form.html': 'tara_adicionada_em',
+    'weighbridge-output-form.html': 'data_saida',
+    'weighbridge-output-gross-form.html': 'peso_bruto_adicionado_em',
+    'weighbridge-standalone-form.html': 'pesagem_1_em',
+    'weighbridge-standalone-second-form.html': 'pesagem_2_em',
+  };
+
+  for (const [file, name] of Object.entries(forms)) {
+    const html = fs.readFileSync(path.join(__dirname, '../views', file), 'utf8');
+    const marked = html.match(/<input[^>]*data-scale-photo-datetime[^>]*>/g) || [];
+    assert.equal(marked.length, 1, file);
+    assert.match(marked[0], new RegExp(`name="${name}" type="datetime-local"`), file);
+  }
+});
+
+test('input tare form shows the tare date and time, keeping the value after an error', () => {
+  const input = { id: 9, data_entrada: '2026-11-11T12:00:00Z', placa_caminhao: 'ABC1D23', peso_bruto_kg: '40000' };
+  const fresh = renderPage(renderScaleInputTareFormPage, { input });
+  assert.match(fresh, /name="tara_adicionada_em" type="datetime-local" value="\d{4}-\d{2}-\d{2}T\d{2}:\d{2}"/);
+  assert.doesNotMatch(fresh, /{{TARA_ADICIONADA_EM}}/);
+
+  const kept = renderPage(renderScaleInputTareFormPage, { input, formValues: { tara_adicionada_em: '2026-11-11T10:15' } });
+  assert.match(kept, /name="tara_adicionada_em" type="datetime-local" value="2026-11-11T10:15"/);
+});
+
 test('weight forms keep a valid capture id after a validation error', () => {
   const input = { id: 9, data_entrada: '2026-11-11T12:00:00Z', placa_caminhao: 'ABC1D23', peso_bruto_kg: '40000' };
   const kept = renderPage(renderScaleInputTareFormPage, { input, formValues: { foto_captura_id: CAPTURE_ID } });

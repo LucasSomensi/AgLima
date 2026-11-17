@@ -101,9 +101,9 @@ router.put('/entradas/:id', wrap(async (req, res) => {
   res.json(conflict(await service.updateScaleInput(req.params.id, update, req.apiUser)));
 }));
 router.post('/entradas/:id/tara', wrap(async (req, res) => {
-  const data = payload(service.buildScaleInputTarePayload, fields(req, ['peso_tara_kg'], ['peso_tara_kg']));
+  const data = payload(service.buildScaleInputTarePayload, fields(req, ['peso_tara_kg', 'tara_adicionada_em'], ['peso_tara_kg']));
   missing(await service.getScaleInputById(req.params.id));
-  res.json(conflict(await service.addScaleInputTare(req.params.id, data.pesoTaraKg, req.apiUser.userId)));
+  res.json(conflict(await service.addScaleInputTare(req.params.id, data.pesoTaraKg, req.apiUser.userId, data.taraAdicionadaEm)));
 }));
 router.post('/entradas/:id/classificacao', wrap(async (req, res) => {
   const data = payload(service.buildScaleInputClassificationPayload, fields(req, classificationFields, classificationFields));

@@ -219,7 +219,7 @@ Resposta: `201 {"id":"123"}`. Guarde esse ID.
 ### Completar
 
 ```text
-POST /entradas/123/tara            {"peso_tara_kg":"12000"}
+POST /entradas/123/tara            {"peso_tara_kg":"12000","tara_adicionada_em":"2026-10-14T09:30"}
 POST /entradas/123/origem          {"origem":"Fazenda X — Talhão 4"}
 POST /entradas/123/classificacao   {"umidade_percent":14,"impureza_percent":1,"graos_avariados_percent":0}
 ```
