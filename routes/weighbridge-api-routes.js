@@ -5,6 +5,7 @@ const auth = require('./weighbridge-api-auth');
 const scale = require('./scale-reading-service');
 const csv = require('./weighbridge-csv');
 const pdf = require('./weighbridge-ticket-pdf');
+const { loadTicketPhotos } = require('./scale-photo-service');
 const reports = require('./weighbridge-reports');
 const { createIpRateLimiter } = require('./rate-limit');
 const { ApiError, body, fields, id, payload, pagination, paged } = require('./weighbridge-api-validation');
@@ -181,7 +182,8 @@ for (const input of [true, false]) {
     if (info.peso_liquido_kg == null || (input ? info.peso_tara_kg == null : info.peso_bruto_kg == null || !info.contrato_id)) {
       throw new ApiError(409, 'STATE_CONFLICT', 'Conclua a pesagem e, para saídas, associe o contrato antes de gerar o ticket.');
     }
-    const content = await (input ? pdf.buildScaleInputTicketPdf : pdf.buildScaleOutputTicketPdf)(info);
+    const photos = await loadTicketPhotos(input ? { entradaId: info.entrada_id } : { saidaId: info.saida_id });
+    const content = await (input ? pdf.buildScaleInputTicketPdf : pdf.buildScaleOutputTicketPdf)(info, { photos });
     res.type('application/pdf').attachment(`ticket-${input ? 'entrada' : 'saida'}-${req.params.id}.pdf`).send(content);
   }));
 }
@@ -221,7 +223,8 @@ router.post('/avulsas/:id/deletar', wrap(async (req, res) => {
 router.get('/avulsas/:id/ticket.pdf', wrap(async (req, res) => {
   const info = missing(await standalone.getStandaloneWeighingById(req.params.id));
   if (!standalone.isStandaloneWeighingComplete(info)) throw new ApiError(409, 'STATE_CONFLICT', 'Lance a pesagem 2 antes de gerar o ticket.');
-  res.type('application/pdf').attachment(`ticket-pesagem-avulsa-${req.params.id}.pdf`).send(await pdf.buildStandaloneWeighingTicketPdf(info));
+  const photos = await loadTicketPhotos({ pesagemAvulsaId: info.id });
+  res.type('application/pdf').attachment(`ticket-pesagem-avulsa-${req.params.id}.pdf`).send(await pdf.buildStandaloneWeighingTicketPdf(info, { photos }));
 }));
 
 router.get('/contratos', wrap(async (req, res) => {

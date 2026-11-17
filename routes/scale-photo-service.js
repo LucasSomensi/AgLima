@@ -509,6 +509,38 @@ async function listLinkedPhotos({ entradaId = null, saidaId = null, pesagemAvuls
   return result.rows;
 }
 
+// Fotos que acompanham o ticket impresso: a mais recente de cada tipo de peso
+// (bruto, tara, pesagem 1 ou 2), já com os bytes do arquivo. Uma foto que não
+// puder ser lida fica de fora; o ticket nunca deixa de ser gerado por isso.
+async function loadTicketPhotos(filter) {
+  let photos;
+
+  try {
+    photos = await listLinkedPhotos(filter);
+  } catch (error) {
+    console.error('Error loading ticket photos:', error.code || error.message);
+    return [];
+  }
+
+  const latestByType = new Map();
+
+  for (const photo of photos) {
+    latestByType.set(photo.tipo_peso, photo);
+  }
+
+  const result = [];
+
+  for (const photo of latestByType.values()) {
+    try {
+      result.push({ ...photo, buffer: await storage.readPhotoFile(photo.arquivo) });
+    } catch (error) {
+      console.error('Error reading ticket photo:', error.code || error.message);
+    }
+  }
+
+  return result;
+}
+
 // Fotos automáticas de um dia no fuso da aplicação (data no formato AAAA-MM-DD).
 async function listAutomaticPhotosByDay(day) {
   ensureDatabaseConfigured();
@@ -590,6 +622,7 @@ module.exports = {
   listAutomaticPhotosByDay,
   listLinkedPhotos,
   listRecentAutomaticPhotos,
+  loadTicketPhotos,
   parseCapturedAtHeader,
   RECENT_AUTOMATIC_PHOTOS_LIMIT,
   parseWeightHeader,

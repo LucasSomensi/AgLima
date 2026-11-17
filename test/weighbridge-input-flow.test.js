@@ -12,7 +12,7 @@ const {
   buildScaleInputEditPayload,
   buildScaleInputPayload,
 } = require('../routes/weighbridge-service');
-const { buildScaleInputTicketLines } = require('../routes/weighbridge-ticket-pdf');
+const { buildScaleInputTicket } = require('../routes/weighbridge-ticket-pdf');
 
 function renderPage(renderFn, params) {
   let html = '';
@@ -61,8 +61,8 @@ test('input detail enables ticket printing only after tare and net weight', () =
   assert.doesNotMatch(completeHtml, /type="button" disabled>Imprimir ticket/);
 });
 
-test('input ticket lines include weighing, classification, and reused tare details', () => {
-  const lines = buildScaleInputTicketLines({
+test('input ticket includes weighing, classification, and reused tare details', () => {
+  const ticket = buildScaleInputTicket({
     entrada_id: 11,
     operador_login: 'operador-balanca',
     placa_caminhao: 'ABC1D23',
@@ -74,24 +74,30 @@ test('input ticket lines include weighing, classification, and reused tare detai
     peso_liquido_kg: '32000',
     tara_usada_de_entrada_id: 3,
     tara_origem_data: '2026-06-10T17:45:00.000Z',
+    tara_adicionada_em: '2026-06-11T13:00:00.000Z',
     umidade_percent: '14.25',
     impureza_percent: '1',
     graos_avariados_percent: '0',
   });
 
-  assert.deepEqual(lines.slice(3, 8), [
-    'Entrada: 11',
-    'Operador: operador-balanca',
-    'Placa: ABC1D23',
-    'Produto: Milho',
-    'Origem: Fazenda Boa Vista',
+  assert.equal(ticket.title, 'Ticket de entrada');
+  assert.equal(ticket.number, '11');
+  assert.deepEqual(ticket.fields, [
+    ['Operador', 'operador-balanca'],
+    ['Placa', 'ABC1D23'],
+    ['Produto', 'Milho'],
+    ['Origem', 'Fazenda Boa Vista'],
   ]);
-  assert.match(lines[9], /^Bruto: 42000 kg /);
-  assert.match(lines[10], /^Tara anterior: 10000 kg /);
-  assert.equal(lines[11], 'PLiq: 32000 kg');
-  assert.deepEqual(lines.slice(13, 16), ['Umid: 14,25%', 'Impur: 1%', 'Avar: 0%']);
-  assert.equal(lines[17], 'Ass Motorista: __________________');
-  assert.equal(lines[20], 'Ass Operador: ___________________');
+  assert.deepEqual(ticket.weights.map(({ label, photoType, at }) => [label, photoType, at]), [
+    ['Bruto', 'bruto', '2026-06-11T12:30:00.000Z'],
+    ['Tara anterior', 'tara', '2026-06-10T17:45:00.000Z'],
+  ]);
+  assert.equal(ticket.netKg, '32000');
+  assert.deepEqual(ticket.extras, [['Umidade', '14,25%'], ['Impureza', '1%'], ['Avariados', '0%']]);
+  assert.deepEqual(ticket.signatures, ['Motorista', 'Operador']);
+
+  const manualTare = buildScaleInputTicket({ tara_adicionada_em: '2026-06-11T13:00:00.000Z' });
+  assert.deepEqual([manualTare.weights[1].label, manualTare.weights[1].at], ['Tara', '2026-06-11T13:00:00.000Z']);
 });
 
 test('weighbridge home renders pending input actions', () => {
