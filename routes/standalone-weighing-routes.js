@@ -22,6 +22,7 @@ const {
 } = require('./renderers/weighbridge-renderer');
 const { buildStandaloneWeighingsCsv } = require('./weighbridge-csv');
 const { buildStandaloneWeighingTicketPdf } = require('./weighbridge-ticket-pdf');
+const { loadTicketPhotos } = require('./scale-photo-service');
 const { getWeighbridgeNavigation, linkWeightPhoto, loadLinkedPhotos } = require('./weighbridge-route-helpers');
 const { buildRedirect, paginateItems } = require('./utils');
 
@@ -173,7 +174,8 @@ router.get('/balanca/avulsas/:id/ticket.pdf', canAccessWeighbridge, async (req, 
       }));
     }
 
-    const pdfBuffer = await buildStandaloneWeighingTicketPdf(weighing);
+    const photos = await loadTicketPhotos({ pesagemAvulsaId: weighing.id });
+    const pdfBuffer = await buildStandaloneWeighingTicketPdf(weighing, { photos });
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `inline; filename="ticket-pesagem-avulsa-${weighing.id}.pdf"`);

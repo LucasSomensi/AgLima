@@ -334,7 +334,9 @@ igual a `Venda` e `cfop` igual a `5101`, como na tela. `nome_nf` usa
 `YYYY-MM-DD PLACA PRODUTO ID`. Não são incluídos recebimentos financeiros privados.
 
 `GET /saidas/456/ticket.pdf` exige bruto, líquido e contrato associado. O ticket
-inclui a linha `Motorista` quando `nome_motorista` estiver preenchido. O cliente
+é uma folha A4 com duas vias (fazenda e motorista), igual ao da tela web,
+inclui o campo `Motorista` quando `nome_motorista` estiver preenchido e
+traz as fotos da balança vinculadas a cada peso quando existirem. O cliente
 deve salvar/imprimir o PDF; a API não controla a impressora local.
 
 ## 6.1. Fluxo de pesagem avulsa
@@ -381,8 +383,9 @@ a pesagem 2 já existir, retorna `409`.
   `pesagem_2_kg: null` devolve a pesagem ao pátio; com peso e `pesagem_2_em: null`,
   usa o momento atual. Grava auditoria `editar_pesagem_avulsa`.
 - `POST /avulsas/12/deletar`: mesmo corpo/regras de motivo das outras exclusões.
-- `GET /avulsas/12/ticket.pdf`: exige a pesagem 2 (`409` antes). Mesmo layout do
-  ticket de saída, com `Pesagem 1`, `Pesagem 2` e `PLiq`.
+- `GET /avulsas/12/ticket.pdf`: exige a pesagem 2 (`409` antes). Mesmo layout A4
+  com duas vias do ticket de saída, com `Pesagem 1`, `Pesagem 2`, peso líquido e
+  as fotos vinculadas, quando houver.
 
 A API não anexa fotos da balança: os botões de peso com foto são exclusivos dos
 formulários web, como nas entradas e saídas.

@@ -212,11 +212,19 @@ A geração só é permitida quando:
 
 Quando alguma dessas condições não é atendida, a rota retorna para `/balanca/saidas/:id` com erro e a interface mantém o botão “Imprimir ticket” com aparência indisponível. Na tela de detalhes, o botão indisponível usa o mesmo padrão visual de botões desabilitados, como o botão de deleção antes do preenchimento do motivo.
 
-O PDF é montado com a biblioteca `pdfkit` em uma página estreita, adequada para impressoras térmicas de bobina de 80 mm, como a Epson T20X. O arquivo é servido inline com nome `ticket-saida-:id.pdf`.
+O PDF é montado com a biblioteca `pdfkit` em `routes/weighbridge-ticket-pdf.js`, numa **folha A4 retrato com duas vias iguais**: a de cima é a "Via da fazenda" e a de baixo a "Via do motorista", separadas por uma linha tracejada de corte. O arquivo é servido inline com nome `ticket-saida-:id.pdf`. Entradas e pesagens avulsas usam o mesmo layout.
 
-O layout contém:
+Cada via traz:
 
-- cabeçalho `Fazenda São José`;
+- cabeçalho com `Fazenda São José`, o tipo e o número do ticket, a data/hora de emissão e o nome da via;
+- à esquerda, os dados da pesagem descritos abaixo. Nomes longos quebram em até três linhas;
+- à direita, quando existirem, as **fotos da balança** vinculadas a cada peso (tara e bruto), na ordem dos pesos e com legenda de tipo, peso e data/hora da foto. As fotos são as mesmas da tela de detalhes (`balanca_fotos` com `status = 'vinculada'`). Se houver mais de uma foto do mesmo tipo, vai a mais recente. Imagens de contingência saem marcadas como "câmera indisponível". Sem fotos, os dados ocupam a largura toda. Uma foto que não puder ser lida fica de fora, sem impedir o ticket;
+- linhas de assinatura no rodapé.
+
+Cada foto é embutida uma única vez no PDF e reaproveitada nas duas vias.
+
+Dados da saída:
+
 - número do ticket, usando `saidas_balanca.id`;
 - operador, usando `users.login` do usuário que criou a saída;
 - placa;

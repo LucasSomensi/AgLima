@@ -18,8 +18,8 @@ const auth = require('../routes/weighbridge-api-auth');
 const { loginLimiter } = require('../routes/weighbridge-api-routes');
 const { buildStandaloneWeighingsCsv } = require('../routes/weighbridge-csv');
 const {
-  buildScaleOutputTicketLines,
-  buildStandaloneWeighingTicketLines,
+  buildScaleOutputTicket,
+  buildStandaloneWeighingTicket,
   buildStandaloneWeighingTicketPdf,
 } = require('../routes/weighbridge-ticket-pdf');
 const {
@@ -329,28 +329,36 @@ test('linked photos are listed by standalone weighing and recent photos read use
 // --- Ticket e CSV --------------------------------------------------------------------
 
 test('ticket follows the output ticket layout with first and second weights', async () => {
-  const lines = buildStandaloneWeighingTicketLines(complete);
-  const outputLines = buildScaleOutputTicketLines({
+  const ticket = buildStandaloneWeighingTicket(complete);
+  const outputTicket = buildScaleOutputTicket({
     saida_id: '5', operador_login: 'balanca', placa_caminhao: 'ABC1D23', nome_motorista: 'João da Silva',
     produto: 'soja', vendedor_nome_completo: 'V', comprador_nome_completo: 'C',
   });
-  assert.equal(lines.length, outputLines.length);
-  assert.equal(lines[1], 'Fazenda São José');
-  assert.ok(lines.includes('Pesagem avulsa: 5'));
-  assert.ok(lines.includes('Operador: balanca'));
-  assert.ok(lines.includes('Motorista: João da Silva'));
-  assert.ok(lines.includes('Produto: Calcário'));
-  assert.ok(lines.includes('Vendedor: Fazenda Vizinha'));
-  assert.ok(lines.includes('Comprador: Cooperativa'));
-  assert.ok(lines.includes('Pesagem 1: 15320 kg 14/11/26 10:00'));
-  assert.ok(lines.includes('Pesagem 2: 41000 kg 14/11/26 11:30'));
-  assert.ok(lines.includes('PLiq: 25680 kg'));
-  assert.ok(lines.includes('Ass Vendedor: ____________________'));
-  assert.ok(lines.includes('Ass Comprador: ____________________'));
+  assert.equal(ticket.title, 'Pesagem avulsa');
+  assert.equal(ticket.number, '5');
+  assert.deepEqual(ticket.fields.map(([label]) => label), outputTicket.fields.map(([label]) => label));
+  assert.deepEqual(ticket.fields, [
+    ['Operador', 'balanca'],
+    ['Placa', 'ABC1D23'],
+    ['Motorista', 'João da Silva'],
+    ['Produto', 'Calcário'],
+    ['Vendedor', 'Fazenda Vizinha'],
+    ['Comprador', 'Cooperativa'],
+  ]);
+  assert.deepEqual(ticket.weights.map(({ label, photoType }) => [label, photoType]), [
+    ['Pesagem 1', 'pesagem_1'],
+    ['Pesagem 2', 'pesagem_2'],
+  ]);
+  assert.equal(Number(ticket.weights[0].kg), 15320);
+  assert.equal(Number(ticket.weights[1].kg), 41000);
+  assert.equal(Number(ticket.netKg), 25680);
+  assert.deepEqual(ticket.signatures, ['Vendedor', 'Comprador']);
 
-  const blank = buildStandaloneWeighingTicketLines({ ...complete, placa_caminhao: null, nome_motorista: null, produto: null, vendedor: null, comprador: null });
-  assert.ok(!blank.some((line) => line.startsWith('Motorista:')));
-  for (const label of ['Placa', 'Produto', 'Vendedor', 'Comprador']) assert.ok(blank.includes(`${label}: -`), label);
+  const blank = buildStandaloneWeighingTicket({ ...complete, placa_caminhao: null, nome_motorista: null, produto: null, vendedor: null, comprador: null });
+  assert.ok(!blank.fields.some(([label]) => label === 'Motorista'));
+  for (const label of ['Placa', 'Produto', 'Vendedor', 'Comprador']) {
+    assert.deepEqual(blank.fields.find(([name]) => name === label), [label, '-'], label);
+  }
 
   const pdf = await buildStandaloneWeighingTicketPdf(complete);
   assert.equal(pdf.subarray(0, 4).toString(), '%PDF');

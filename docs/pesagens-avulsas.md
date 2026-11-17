@@ -80,7 +80,7 @@ nem diferença mínima: a liberdade é do operador.
   com as rotas de entradas e saídas.
 - `routes/renderers/weighbridge-renderer.js`: lista, formulários, detalhe, pátio e
   seção da página inicial.
-- `routes/weighbridge-ticket-pdf.js`: ticket térmico (`buildStandaloneWeighingTicketLines`).
+- `routes/weighbridge-ticket-pdf.js`: ticket A4 com duas vias (`buildStandaloneWeighingTicket` e `buildStandaloneWeighingTicketPdf`).
 - `routes/weighbridge-csv.js`: exportação CSV (`buildStandaloneWeighingsCsv`).
 - `routes/scale-photo-service.js`: vínculo das fotos (`linkCaptureToRecord` com
   `pesagemAvulsaId`).
@@ -195,30 +195,17 @@ com `pesagem_avulsa_id`, e cada foto pertence a no máximo um lançamento.
 
 ## Ticket em PDF
 
-`GET /balanca/avulsas/:id/ticket.pdf` gera o ticket com o mesmo layout e a mesma
-página térmica de 80 mm do ticket de saída, servido inline como
-`ticket-pesagem-avulsa-:id.pdf`. Só fica disponível depois da pesagem 2.
+`GET /balanca/avulsas/:id/ticket.pdf` gera o ticket no mesmo layout A4 do ticket
+de saída: duas vias (fazenda e motorista) numa folha, com linha de corte. Veja
+[saidas.md](saidas.md#7-emitir-ticket-de-pesagem-da-saída). O arquivo é servido inline como
+`ticket-pesagem-avulsa-:id.pdf` e só fica disponível depois da pesagem 2.
 
-```
-------------------------------
-       Fazenda São José
-Pesagem avulsa: 12
-Operador: balanca
-Placa: ABC1D23
-Motorista: João da Silva
-Produto: Calcário
-Vendedor: Fazenda Vizinha
-Comprador: Cooperativa
+Cada via mostra:
 
-Pesagem 1: 15320 kg 14/11/26 10:00
-Pesagem 2: 41000 kg 14/11/26 11:30
-PLiq: 25680 kg
-
-Ass Vendedor: ____________________
-
-Ass Comprador: ____________________
----------------------------------
-```
+- título "Pesagem avulsa nº 12" e os campos operador, placa, motorista, produto, vendedor e comprador;
+- pesagem 1 e pesagem 2, cada uma com peso e data/hora, e o peso líquido em destaque;
+- as fotos da balança vinculadas a cada pesagem (`pesagem_1` e `pesagem_2`), quando existirem;
+- linhas de assinatura do vendedor e do comprador.
 
 - O operador é o login de quem lançou a pesagem 1.
 - Placa, produto, vendedor e comprador em branco aparecem como `-`.

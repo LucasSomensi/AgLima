@@ -47,7 +47,7 @@ Campos centrais:
 - `GET /balanca/entradas/placas?q=...`: retorna até 5 placas recentes para autocomplete.
 - `GET /balanca/entradas/tara-anterior?placa=...`: retorna a tara anterior da placa, se existir.
 - `GET /balanca/entradas/:id`: mostra detalhes da entrada e formulário de edição.
-- `GET /balanca/entradas/:id/ticket.pdf`: gera o ticket térmico quando a entrada possui tara e peso líquido.
+- `GET /balanca/entradas/:id/ticket.pdf`: gera o ticket A4 (duas vias, com fotos da balança quando houver) quando a entrada possui tara e peso líquido.
 - `POST /balanca/entradas/:id`: atualiza data/hora, placa, produto e peso bruto da entrada.
 - `POST /balanca/entradas/:id/deletar`: exclui a entrada.
 - `GET /balanca/entradas/:id/tara`: abre formulário de tara manual, com data e hora da tara (padrão: agora). Os botões de peso da balança e de foto automática preenchem a data e hora com o horário da foto anexada.
@@ -97,9 +97,9 @@ A ação “Adicionar tara” aparece na coluna Tara apenas quando `peso_tara_kg
 
 ### Ticket de pesagem
 
-Na tela de detalhes, “Imprimir ticket” fica habilitado quando tara e peso líquido estão preenchidos. Origem e classificação não são obrigatórias; quando pendentes, aparecem como `-`. O PDF é aberto inline em `/balanca/entradas/:id/ticket.pdf`, com nome `ticket-entrada-:id.pdf`, e usa o mesmo formato térmico de 80 mm do ticket de saída.
+Na tela de detalhes, “Imprimir ticket” fica habilitado quando tara e peso líquido estão preenchidos. Origem e classificação não são obrigatórias; quando pendentes, aparecem como `-`. O PDF é aberto inline em `/balanca/entradas/:id/ticket.pdf`, com nome `ticket-entrada-:id.pdf`, e usa o mesmo layout A4 com duas vias (fazenda e motorista) do ticket de saída, incluindo as fotos da balança de bruto e tara quando existirem. Veja a descrição do layout em [saidas.md](saidas.md#7-emitir-ticket-de-pesagem-da-saída).
 
-O ticket identifica entrada, operador, placa, produto e origem; mostra bruto, tara e líquido, além da classificação. Para tara manual, usa `tara_adicionada_em`; para tara anterior, identifica a reutilização e usa a data da medição original quando disponível. O rodapé possui linhas de assinatura para motorista e operador.
+O ticket identifica entrada, operador, placa, produto e origem; mostra bruto, tara e líquido, além da classificação. Para tara manual, usa `tara_adicionada_em`; para tara anterior, identifica a reutilização ("Tara anterior") e usa a data da medição original quando disponível. A classificação aparece como umidade, impureza e avariados. O rodapé possui linhas de assinatura para motorista e operador.
 
 ### Classificação
 

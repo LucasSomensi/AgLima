@@ -11,7 +11,7 @@ const {
   buildScaleOutputEditPayload,
   buildScaleOutputGrossPayload,
 } = require('../routes/weighbridge-service');
-const { buildTicketLines } = require('../routes/weighbridge-ticket-pdf');
+const { buildScaleOutputTicket } = require('../routes/weighbridge-ticket-pdf');
 
 const outputWithContract = {
   id: 7,
@@ -288,8 +288,8 @@ test('output detail enables ticket printing only after gross weight and contract
   assert.doesNotMatch(pendingContractHtml, /href="\/balanca\/saidas\/7\/ticket\.pdf"/);
 });
 
-test('ticket lines render requested output weighing fields', () => {
-  const lines = buildTicketLines({
+test('output ticket shows the requested weighing fields', () => {
+  const ticket = buildScaleOutputTicket({
     saida_id: 7,
     operador_login: 'operador-balanca',
     placa_caminhao: 'ABC1D23',
@@ -303,30 +303,25 @@ test('ticket lines render requested output weighing fields', () => {
     peso_liquido_kg: '32000',
   });
 
-  assert.deepEqual(lines.slice(0, 9), [
-    '------------------------------',
-    'Fazenda São José',
-    ' ',
-    'Ticket: 7',
-    'Operador: operador-balanca',
-    'Placa: ABC1D23',
-    'Produto: Milho',
-    'Vendedor: Vendedor Completo',
-    'Comprador: Comprador Completo LTDA',
+  assert.equal(ticket.title, 'Ticket de saída');
+  assert.equal(ticket.number, '7');
+  assert.deepEqual(ticket.fields, [
+    ['Operador', 'operador-balanca'],
+    ['Placa', 'ABC1D23'],
+    ['Produto', 'Milho'],
+    ['Vendedor', 'Vendedor Completo'],
+    ['Comprador', 'Comprador Completo LTDA'],
   ]);
-  assert.deepEqual(lines.slice(9, 12), [' ', ' ', ' ']);
-  assert.match(lines[12], /^Tara: 10000 kg /);
-  assert.match(lines[13], /^Bruto: 42000 kg /);
-  assert.equal(lines[14], 'PLiq: 32000 kg');
-  assert.deepEqual(lines.slice(15, 18), [' ', ' ', ' ']);
-  assert.equal(lines[18], 'Ass Vendedor: ____________________');
-  assert.deepEqual(lines.slice(19, 21), [' ', ' ']);
-  assert.equal(lines[21], 'Ass Comprador: ____________________');
-  assert.ok(!lines.some((line) => line.startsWith('Motorista:')));
+  assert.deepEqual(ticket.weights.map(({ label, photoType, kg, at }) => [label, photoType, kg, at]), [
+    ['Tara', 'tara', '10000', '2026-06-11T12:30:00.000Z'],
+    ['Bruto', 'bruto', '42000', '2026-06-11T17:45:00.000Z'],
+  ]);
+  assert.equal(ticket.netKg, '32000');
+  assert.deepEqual(ticket.signatures, ['Vendedor', 'Comprador']);
 });
 
 test('output ticket shows the driver name after the plate when available', () => {
-  const lines = buildTicketLines({
+  const ticket = buildScaleOutputTicket({
     saida_id: 7,
     operador_login: 'operador-balanca',
     placa_caminhao: 'ABC1D23',
@@ -339,7 +334,7 @@ test('output ticket shows the driver name after the plate when available', () =>
     peso_liquido_kg: '32000',
   });
 
-  assert.deepEqual(lines.slice(5, 8), ['Placa: ABC1D23', 'Motorista: João da Silva', 'Produto: Milho']);
+  assert.deepEqual(ticket.fields.slice(1, 4), [['Placa', 'ABC1D23'], ['Motorista', 'João da Silva'], ['Produto', 'Milho']]);
 });
 
 test('output ticket PDF renders with a long driver name', async () => {

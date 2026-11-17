@@ -68,6 +68,7 @@ const {
   getPhotoById,
   listAutomaticPhotosByDay,
   listRecentAutomaticPhotos,
+  loadTicketPhotos,
 } = require('./scale-photo-service');
 const { getWeighbridgeNavigation, linkWeightPhoto, loadLinkedPhotos } = require('./weighbridge-route-helpers');
 const { listStandaloneWeighings } = require('./standalone-weighing-service');
@@ -475,7 +476,8 @@ router.get('/balanca/entradas/:id/ticket.pdf', canAccessWeighbridge, async (req,
       }));
     }
 
-    const pdfBuffer = await buildScaleInputTicketPdf(inputInfo);
+    const photos = await loadTicketPhotos({ entradaId: inputInfo.entrada_id });
+    const pdfBuffer = await buildScaleInputTicketPdf(inputInfo, { photos });
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `inline; filename="ticket-entrada-${inputInfo.entrada_id}.pdf"`);
@@ -1058,7 +1060,8 @@ router.get('/balanca/saidas/:id/ticket.pdf', canAccessWeighbridge, async (req, r
       }));
     }
 
-    const pdfBuffer = await buildScaleOutputTicketPdf(outputInfo);
+    const photos = await loadTicketPhotos({ saidaId: outputInfo.saida_id });
+    const pdfBuffer = await buildScaleOutputTicketPdf(outputInfo, { photos });
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `inline; filename="ticket-saida-${outputInfo.saida_id}.pdf"`);

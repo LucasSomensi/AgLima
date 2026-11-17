@@ -127,6 +127,10 @@ async function copyPhoto(sourceRelativePath, targetRelativePath) {
   return buffer;
 }
 
+async function readPhotoFile(relativePath) {
+  return fs.readFile(resolvePhotoPath(relativePath));
+}
+
 async function deletePhotoFile(relativePath) {
   if (!relativePath) {
     return;
@@ -203,6 +207,7 @@ module.exports = {
   isJpeg,
   MAX_PHOTO_BYTES,
   pruneCurrentPhotos,
+  readPhotoFile,
   resolvePhotoPath,
   sha256,
   validatePhotoBuffer,
