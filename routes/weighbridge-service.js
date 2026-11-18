@@ -1,5 +1,6 @@
 const { ensureDatabaseConfigured, pool } = require('./database');
 const { parseOptionalDateTime } = require('./utils');
+const { APP_TIME_ZONE } = require('./constants');
 
 const PRODUCT_VALUES = ['milho', 'soja'];
 const MAX_INPUT_GROSS_WEIGHT_KG = 80000;
@@ -587,6 +588,7 @@ async function getScaleInputById(inputId) {
              peso_liquido_kg,
              liquido_real_kg,
              tara_usada_de_entrada_id,
+             tara_adicionada_em,
              origem,
              umidade_percent,
              impureza_percent,
@@ -1596,7 +1598,31 @@ async function getScaleOutputDetailInfo(outputId) {
   return result.rows[0] || null;
 }
 
+// Totais do dia (fuso de Brasília) para o resumo da página inicial da balança.
+async function getScaleDaySummary() {
+  ensureDatabaseConfigured();
+
+  const result = await pool.query(
+    `
+      WITH hoje AS (SELECT (now() AT TIME ZONE $1)::date AS dia)
+      SELECT
+        (SELECT COUNT(*) FROM entradas_balanca e, hoje
+          WHERE (e.data_entrada AT TIME ZONE $1)::date = hoje.dia) AS entradas_count,
+        (SELECT COALESCE(SUM(e.peso_liquido_kg), 0) FROM entradas_balanca e, hoje
+          WHERE (e.data_entrada AT TIME ZONE $1)::date = hoje.dia) AS entradas_liquido_kg,
+        (SELECT COUNT(*) FROM saidas_balanca s, hoje
+          WHERE (s.data_saida AT TIME ZONE $1)::date = hoje.dia) AS saidas_count,
+        (SELECT COALESCE(SUM(s.peso_liquido_kg), 0) FROM saidas_balanca s, hoje
+          WHERE (s.data_saida AT TIME ZONE $1)::date = hoje.dia) AS saidas_liquido_kg
+    `,
+    [APP_TIME_ZONE]
+  );
+
+  return result.rows[0] || null;
+}
+
 module.exports = {
+  getScaleDaySummary,
   addScaleInputClassification,
   addScaleInputTare,
   addScaleOutputGross,

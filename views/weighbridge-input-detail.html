@@ -3,106 +3,27 @@
   <head>
       <meta charset="utf-8">
       <meta name="author" content="Lucas">
-      <meta name="description" content="Detalhes da entrada AgroLima">
+      <meta name="description" content="Detalhes da entrada da balança">
       <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-      <title>Detalhes da entrada | AgroLima</title>
+      <title>Entrada | AgroLima</title>
       <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" integrity="sha384-xOolHFLEh07PJGoPkLv1IbcEPTNtaed2xpHsD9ESMhqIYd0nLMwNLD69Npy4HI+N" crossorigin="anonymous">
       <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:400,500,700&display=swap">
       <link rel="stylesheet" href="/css/styles.css">
       <link rel="icon" href="/favicon.ico" type="image/x-icon">
   </head>
-  <body>
-    <main class="page-shell admin-shell weighbridge-shell">
-      <section class="content-card admin-card weighbridge-card" aria-labelledby="input-detail-title">
-        <div class="admin-header">
-          <div>
-            <span class="eyebrow">Área da balança</span>
-            <h1 id="input-detail-title" class="page-title">Detalhes da entrada</h1>
-            <a class="back-link admin-back-link" href="{{WEIGHBRIDGE_HOME_HREF}}">{{WEIGHBRIDGE_HOME_LABEL}}</a>
-          </div>
-        </div>
-
-        {{SCALE_INPUT_MESSAGE}}
-        {{SCALE_INPUT_ERROR}}
-
-        <section class="admin-section">
-          <h2>Entrada #{{ENTRADA_ID}}</h2>
-          <dl class="weighbridge-detail-grid">
-            <div><dt>Data/hora</dt><dd>{{DATA_ENTRADA_FORMATTED}}</dd></div>
-            <div><dt>Placa</dt><dd>{{PLACA_CAMINHAO}}</dd></div>
-            <div><dt>Produto</dt><dd>{{PRODUTO}}</dd></div>
-            <div><dt>Peso bruto</dt><dd>{{PESO_BRUTO_FORMATTED}}</dd></div>
-            <div><dt>Tara</dt><dd>{{PESO_TARA_KG}}</dd></div>
-            <div><dt>Peso líquido</dt><dd>{{PESO_LIQUIDO_KG}}</dd></div>
-            <div><dt>Líquido real</dt><dd>{{LIQUIDO_REAL_KG}}</dd></div>
-            <div><dt>Origem</dt><dd>{{ORIGEM}}</dd></div>
-            <div class="weighbridge-detail-full"><dt>Classificação</dt><dd>{{CLASSIFICACAO}}</dd></div>
-          </dl>
-          <div class="weighbridge-output-actions">
-            {{INPUT_TICKET_ACTION}}
-          </div>
-        </section>
-
-        {{SCALE_PHOTOS_SECTION}}
-
-        <section class="admin-section">
-          <h2>Editar entrada</h2>
-          <form class="contact-form contracts-form" action="/balanca/entradas/{{ENTRADA_ID}}" method="post">
-            <input type="hidden" name="_csrf" value="{{CSRF_TOKEN}}">
-            <div class="contracts-form-grid contracts-form-grid-two">
-              <label>Data e hora da entrada
-                <input class="form-control" name="data_entrada" type="datetime-local" value="{{DATA_ENTRADA}}" required>
-              </label>
-              <label>Produto
-                <select class="form-control" name="produto" required>
-                  <option value="">Selecione</option>
-                  <option value="milho"{{PRODUCT_MILHO_SELECTED}}>Milho</option>
-                  <option value="soja"{{PRODUCT_SOJA_SELECTED}}>Soja</option>
-                </select>
-              </label>
-              <label>Placa do veículo
-                <input class="form-control" name="placa_caminhao" type="text" value="{{PLACA_CAMINHAO}}" placeholder="ABC1D23" maxlength="10" required>
-              </label>
-              <label>Peso bruto (kg)
-                <input class="form-control" name="peso_bruto_kg" type="number" min="0.001" max="79999.999" step="0.001" value="{{PESO_BRUTO_KG}}" inputmode="decimal" required>
-              </label>
-              <label>Peso tara (kg)
-                <input class="form-control" name="peso_tara_kg" type="number" min="0.001" step="0.001" value="{{PESO_TARA_INPUT}}" inputmode="decimal" placeholder="Deixe em branco se pendente">
-              </label>
-              <label>Origem
-                <input class="form-control" name="origem" type="text" value="{{ORIGEM_INPUT}}" maxlength="200" placeholder="Fazenda, lote ou local de origem">
-              </label>
-              <label>Umidade (%)
-                <input class="form-control" name="umidade_percent" type="number" min="0" max="100" step="0.001" value="{{UMIDADE_PERCENT}}" inputmode="decimal" placeholder="Ex.: 14">
-              </label>
-              <label>Impureza (%)
-                <input class="form-control" name="impureza_percent" type="number" min="0" max="100" step="0.001" value="{{IMPUREZA_PERCENT}}" inputmode="decimal" placeholder="Ex.: 1">
-              </label>
-              <label>Grãos avariados (%)
-                <input class="form-control" name="graos_avariados_percent" type="number" min="0" max="100" step="0.001" value="{{GRAOS_AVARIADOS_PERCENT}}" inputmode="decimal" placeholder="Ex.: 0">
-              </label>
-            </div>
-            <p class="admin-muted">Para remover tara, origem ou classificação, deixe os respectivos campos em branco antes de salvar.</p>
-            <div class="contracts-form-actions">
-              <button class="btn-primary-action" type="submit">Salvar alterações</button>
-              <a class="btn-secondary-action" href="{{WEIGHBRIDGE_HOME_HREF}}">Cancelar</a>
-            </div>
-          </form>
-        </section>
-
-        <section class="admin-section">
-          <h2>Excluir entrada</h2>
-          <form class="deletion-reason-form" action="/balanca/entradas/{{ENTRADA_ID}}/deletar" method="post" onsubmit="return confirm('Tem certeza que quer deletar essa entrada? Essa operação não pode ser desfeita.');">
-            <input type="hidden" name="_csrf" value="{{CSRF_TOKEN}}">
-            <label for="motivo-delecao-entrada">Motivo da deleção
-              <textarea class="form-control deletion-reason-input" id="motivo-delecao-entrada" name="motivo_delecao" rows="3" minlength="20" maxlength="500" placeholder="Descreva o motivo da deleção (mínimo de 20 caracteres)." required></textarea>
-            </label>
-            <p class="admin-muted deletion-reason-help">Digite pelo menos 20 caracteres para habilitar o botão.</p>
-            <button class="btn-danger-action deletion-reason-submit" type="submit" disabled>Deletar entrada</button>
-          </form>
-        </section>
+  <body class="wb-body">
+    <main class="wb-shell">
+      {{WB_TOPBAR}}
+      {{SCALE_INPUT_FLASH}}
+      <div class="wb-hero">{{WEIGHTS}}</div>
+      <section class="wb-panel">
+        <dl class="wb-facts">{{FACTS}}</dl>
       </section>
+      {{SCALE_PHOTOS_SECTION}}
+      {{EDIT_SECTION}}
+      {{DELETE_SECTION}}
     </main>
     <script src="/js/deletion-reason.js"></script>
+    <script src="/js/weighbridge-ui.js"></script>
   </body>
 </html>

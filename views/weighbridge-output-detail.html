@@ -3,99 +3,31 @@
   <head>
       <meta charset="utf-8">
       <meta name="author" content="Lucas">
-      <meta name="description" content="Detalhes da saída AgroLima">
+      <meta name="description" content="Detalhes da saída da balança">
       <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-      <title>Detalhes da saída | AgroLima</title>
+      <title>Saída | AgroLima</title>
       <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" integrity="sha384-xOolHFLEh07PJGoPkLv1IbcEPTNtaed2xpHsD9ESMhqIYd0nLMwNLD69Npy4HI+N" crossorigin="anonymous">
       <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:400,500,700&display=swap">
       <link rel="stylesheet" href="/css/styles.css">
       <link rel="icon" href="/favicon.ico" type="image/x-icon">
   </head>
-  <body>
-    <main class="page-shell admin-shell weighbridge-shell">
-      <section class="content-card admin-card weighbridge-card" aria-labelledby="output-detail-title">
-        <div class="admin-header">
-          <div>
-            <span class="eyebrow">Área da balança</span>
-            <h1 id="output-detail-title" class="page-title">Detalhes da saída</h1>
-            <a class="back-link admin-back-link" href="{{WEIGHBRIDGE_HOME_HREF}}">{{WEIGHBRIDGE_HOME_LABEL}}</a>
-          </div>
-        </div>
-
-        {{SCALE_OUTPUT_MESSAGE}}
-        {{SCALE_OUTPUT_ERROR}}
-
-        <section class="admin-section">
-          <h2>Saída #{{SAIDA_ID}}</h2>
-          <dl class="weighbridge-detail-grid">
-            <div><dt>Data/hora</dt><dd><span class="copy-field-value">{{DATA_SAIDA}}</span><button class="copy-field-button" type="button" aria-label="Copiar Data/hora">Copiar</button></dd></div>
-            <div><dt>Placa</dt><dd><span class="copy-field-value">{{PLACA_CAMINHAO}}</span><button class="copy-field-button" type="button" aria-label="Copiar Placa">Copiar</button></dd></div>
-            <div><dt>Motorista</dt><dd><span class="copy-field-value">{{NOME_MOTORISTA}}</span><button class="copy-field-button" type="button" aria-label="Copiar Motorista">Copiar</button></dd></div>
-            <div><dt>Produto</dt><dd><span class="copy-field-value">{{PRODUTO}}</span><button class="copy-field-button" type="button" aria-label="Copiar Produto">Copiar</button></dd></div>
-            <div><dt>Peso tara</dt><dd><span class="copy-field-value">{{PESO_TARA_KG}}</span><button class="copy-field-button" type="button" aria-label="Copiar Peso tara">Copiar</button></dd></div>
-            <div><dt>Peso bruto</dt><dd><span class="copy-field-value">{{PESO_BRUTO_KG}}</span><button class="copy-field-button" type="button" aria-label="Copiar Peso bruto">Copiar</button></dd></div>
-            <div><dt>Peso líquido</dt><dd><span class="copy-field-value">{{PESO_LIQUIDO_KG}}</span><button class="copy-field-button" type="button" aria-label="Copiar Peso líquido">Copiar</button></dd></div>
-          </dl>
-          {{INVOICE_INFO_LINK}}
-        </section>
-
-        {{SCALE_PHOTOS_SECTION}}
-
-        {{OUTPUT_EDIT_FORM}}
-
-        {{OUTPUT_ACTIONS_SECTION}}
+  <body class="wb-body">
+    <main class="wb-shell">
+      {{WB_TOPBAR}}
+      {{SCALE_OUTPUT_FLASH}}
+      <div class="wb-hero">{{WEIGHTS}}</div>
+      <section class="wb-panel">
+        <dl class="wb-facts">{{FACTS}}</dl>
+        <div class="wb-copy-grid" style="margin-top:8px">{{COPY_FIELDS}}</div>
       </section>
+      {{SCALE_PHOTOS_SECTION}}
+      {{SPLIT_SECTION}}
+      {{EDIT_SECTION}}
+      {{DELETE_SECTION}}
     </main>
     <script src="/js/deletion-reason.js"></script>
+    <script src="/js/weighbridge-ui.js"></script>
     <script>
-      function copyTextToClipboard(text) {
-        if (navigator.clipboard && window.isSecureContext) {
-          return navigator.clipboard.writeText(text);
-        }
-
-        const textarea = document.createElement('textarea');
-        textarea.value = text;
-        textarea.setAttribute('readonly', '');
-        textarea.style.position = 'absolute';
-        textarea.style.left = '-9999px';
-        document.body.appendChild(textarea);
-        textarea.select();
-
-        try {
-          document.execCommand('copy');
-          return Promise.resolve();
-        } catch (error) {
-          return Promise.reject(error);
-        } finally {
-          document.body.removeChild(textarea);
-        }
-      }
-
-      document.querySelectorAll('.copy-field-button').forEach((button) => {
-        button.addEventListener('click', async () => {
-          const fieldValue = button.parentElement.querySelector('.copy-field-value');
-
-          if (!fieldValue) {
-            return;
-          }
-
-          const textToCopy = fieldValue.textContent.trim();
-
-          try {
-            await copyTextToClipboard(textToCopy);
-            button.textContent = 'Copiado';
-            window.setTimeout(() => {
-              button.textContent = 'Copiar';
-            }, 1600);
-          } catch (error) {
-            button.textContent = 'Erro';
-            window.setTimeout(() => {
-              button.textContent = 'Copiar';
-            }, 1600);
-          }
-        });
-      });
-
       const firstNetInput = document.getElementById('peso-liquido-primeira');
       const secondNetInput = document.getElementById('peso-liquido-segunda');
 

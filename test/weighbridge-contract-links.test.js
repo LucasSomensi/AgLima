@@ -49,13 +49,13 @@ test('contract detail shows only requested summary fields with weights in kg and
     outputs: [outputWithContract, { ...outputWithContract, id: 8 }],
   });
 
-  assert.match(html, /<dt>Quantidade do contrato \(kg e sc\)<\/dt>[\s\S]*12\.000 kg · 200 sc/);
-  assert.match(html, /<dt>Quantidade embarcada \(kg e sc\)<\/dt>[\s\S]*3\.000 kg · 50 sc/);
-  assert.match(html, /<dt>Saldo \(kg e sc\)<\/dt>[\s\S]*9\.000 kg · 150 sc/);
-  assert.match(html, /<dt>Preço por saca<\/dt>[\s\S]*R\$\s75,50/);
-  assert.match(html, /<dt>Número de saídas associadas<\/dt>[\s\S]*>2<\/span>/);
-  assert.doesNotMatch(html, /CPF\/CNPJ do comprador|Preço por kg|Observações do contrato/);
-  assert.match(html, /<h2 id="contract-outputs-title">Saídas associadas<\/h2>/);
+  const cell = (label) => new RegExp(`<span class="wb-copy-label">${label}</span><span class="wb-copy-value">([^<]*)</span>`);
+  assert.equal(html.match(cell('Quantidade'))[1], '12.000 kg · 200 sc');
+  assert.equal(html.match(cell('Embarcado'))[1], '3.000 kg · 50 sc');
+  assert.equal(html.match(cell('Saldo'))[1], '9.000 kg · 150 sc');
+  assert.match(html.match(cell('Preço por saca'))[1], /R\$\s75,50/);
+  assert.doesNotMatch(html, /CPF\/CNPJ|Preço\/kg|Obs\. do contrato/);
+  assert.match(html, /<h2 id="contract-outputs-title">Saídas associadas <span class="wb-count">2<\/span><\/h2>/);
 });
 
 test('weighbridge outputs keep pending contract column as plain text', () => {
@@ -63,8 +63,9 @@ test('weighbridge outputs keep pending contract column as plain text', () => {
     outputs: [{ ...outputWithContract, contrato_id: null, comprador_nome: null }],
   });
 
-  assert.match(html, /<td>Pendente<\/td>/);
+  assert.match(html, /href="\/balanca\/saidas\/7\/associar"[^>]*aria-label="Associar contrato"/);
   assert.doesNotMatch(html, /href="\/balanca\/contratos\/null"/);
+  assert.doesNotMatch(html, /saidas\/7\/(nf|ticket\.pdf)/);
 });
 
 test('weighbridge output tables include gross and tare columns with pending tare and association actions', () => {
@@ -78,10 +79,10 @@ test('weighbridge output tables include gross and tare columns with pending tare
     }],
   });
 
-  assert.match(html, /<th>Bruto<\/th>/);
-  assert.match(html, /<th>Tara<\/th>/);
-  assert.match(html, /href="\/balanca\/saidas\/7\/bruto">Adicionar bruto/);
-  assert.match(html, /href="\/balanca\/saidas\/7\/associar">Associar contrato/);
+  assert.match(html, /<th class="num">Bruto <small>kg<\/small><\/th>/);
+  assert.match(html, /<th class="num">Tara <small>kg<\/small><\/th>/);
+  assert.match(html, /href="\/balanca\/saidas\/7\/bruto"[^>]*aria-label="Adicionar bruto"/);
+  assert.match(html, /href="\/balanca\/saidas\/7\/associar"[^>]*aria-label="Associar contrato"/);
   assert.doesNotMatch(html, /Aguardando tara/);
 });
 
@@ -178,7 +179,7 @@ test('weighbridge contracts list shows admin-only contract filter toggle', () =>
     canFilterContracts: true,
   });
 
-  assert.match(html, /<h1 id="contracts-title" class="page-title">Contratos<\/h1>/);
+  assert.match(html, /<h1>Contratos<\/h1>/);
   assert.match(html, /aria-label="Filtro de contratos"/);
   assert.match(html, /href="\/balanca\/contratos"[^>]*>Não embarcados<\/a>/);
   assert.match(html, /href="\/balanca\/contratos\?filtro=abertos" aria-current="page">Em aberto<\/a>/);
@@ -280,11 +281,14 @@ test('output detail enables ticket printing only after gross weight and contract
     error: '',
   });
 
-  assert.match(completeHtml, /href="\/balanca\/saidas\/7\/ticket\.pdf"[^>]*>Imprimir ticket/);
-  assert.doesNotMatch(completeHtml, /type="button" disabled>Imprimir ticket/);
-  assert.match(pendingGrossHtml, /<button class="btn-secondary-action" type="button" disabled>Imprimir ticket<\/button>/);
+  assert.match(completeHtml, /href="\/balanca\/saidas\/7\/ticket\.pdf"[^>]*aria-label="Imprimir ticket"/);
+  assert.match(completeHtml, /href="\/balanca\/saidas\/7\/nf"/);
+  assert.doesNotMatch(completeHtml, /disabled[^>]*aria-label="Imprimir ticket"/);
+  assert.match(pendingGrossHtml, /disabled title="Imprimir ticket \(falta o bruto\)"/);
+  assert.match(pendingGrossHtml, /href="\/balanca\/saidas\/7\/bruto"[^>]*aria-label="Adicionar bruto"/);
   assert.doesNotMatch(pendingGrossHtml, /href="\/balanca\/saidas\/7\/ticket\.pdf"/);
-  assert.match(pendingContractHtml, /<button class="btn-secondary-action" type="button" disabled>Imprimir ticket<\/button>/);
+  assert.match(pendingContractHtml, /disabled title="Imprimir ticket \(falta o contrato\)"/);
+  assert.match(pendingContractHtml, /href="\/balanca\/saidas\/7\/associar"[^>]*aria-label="Associar contrato"/);
   assert.doesNotMatch(pendingContractHtml, /href="\/balanca\/saidas\/7\/ticket\.pdf"/);
 });
 
@@ -417,42 +421,44 @@ test('output invoice renders NF fields in requested order with calculated ton va
   });
 
   const labels = [
-    'Nome completo do vendedor',
-    'Inscrição estadual do vendedor',
-    'CPF/CNPJ do comprador',
-    'Inscrição estadual do comprador',
-    'Nome completo do comprador',
-    'CEP do comprador',
-    'Endereço do comprador',
-    'Número do comprador',
+    'Vendedor',
+    'IE vendedor',
+    'CPF/CNPJ comprador',
+    'IE comprador',
+    'Comprador',
+    'CEP',
+    'Endereço',
+    'Número',
     'Natureza da operação',
-    'Informações adicionais de interesse do contribuinte',
+    'Inf. adicionais',
     'Produto',
     'CFOP',
-    'Peso Líquido em kg',
-    'Peso Líquido em ton',
-    'Preço por kg',
-    'Preço por ton',
-    'CNPJ da transportadora',
-    'Inscrição Estadual da transportadora',
-    'Razão Social da transportadora',
-    'UF da transportadora',
+    'Líquido kg',
+    'Líquido t',
+    'Preço/kg',
+    'Preço/t',
+    'CNPJ transportadora',
+    'IE transportadora',
+    'Transportadora',
+    'UF transportadora',
     'Placa',
     'Nome da NF',
     'E-mail',
-    'Observações do contrato',
+    'Obs. do contrato',
   ];
-  const detailHtml = html.slice(html.indexOf('<h2>Dados da Nota Fiscal</h2>'));
-  const positions = labels.map((label) => detailHtml.indexOf(`<dt>${label}</dt>`));
+  const detailHtml = html.slice(html.indexOf('aria-label="Dados da nota fiscal"'));
+  const positions = labels.map((label) => detailHtml.indexOf(`<span class="wb-copy-label">${label}</span>`));
+  const copyValue = (label) => detailHtml.match(new RegExp(`data-copy="([^"]*)" aria-label="Copiar ${label.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&')}"`))[1];
 
   assert.deepEqual(positions.every((position) => position !== -1), true);
   assert.deepEqual([...positions].sort((a, b) => a - b), positions);
-  assert.match(html, /<dt>Nome completo do comprador<\/dt><dd><span class="copy-field-value">Comprador Completo LTDA<\/span>/);
-  assert.match(html, /<dt>Peso Líquido em ton<\/dt><dd><span class="copy-field-value">12,345678<\/span>/);
-  assert.match(html, /<dt>Preço por kg<\/dt><dd><span class="copy-field-value">2,0083333333<\/span>/);
-  assert.match(html, /<dt>Preço por ton<\/dt><dd><span class="copy-field-value">2008,3333333333<\/span>/);
-  assert.match(html, /<dt>Nome da NF<\/dt><dd><span class="copy-field-value">2026-06-11 ABC1D23 MILHO 7<\/span>/);
-  assert.match(html, /<dt>E-mail<\/dt><dd><span class="copy-field-value">nf@example\.com<\/span>/);
+  assert.equal(copyValue('Comprador'), 'Comprador Completo LTDA');
+  assert.equal(copyValue('Líquido t'), '12,345678');
+  assert.equal(copyValue('Preço/kg'), '2,0083333333');
+  assert.equal(copyValue('Preço/t'), '2008,3333333333');
+  assert.equal(copyValue('Nome da NF'), '2026-06-11 ABC1D23 MILHO 7');
+  assert.equal(copyValue('E-mail'), 'nf@example.com');
+  assert.match(html, /href="\/balanca\/saidas\/7\/ticket\.pdf"|title="Imprimir ticket/);
 });
 
 test('output invoice uses default NF values when optional contract fields are null', () => {
@@ -489,8 +495,8 @@ test('output invoice uses default NF values when optional contract fields are nu
     error: '',
   });
 
-  assert.match(html, /<dt>Natureza da operação<\/dt><dd><span class="copy-field-value">Venda<\/span>/);
-  assert.match(html, /<dt>CFOP<\/dt><dd><span class="copy-field-value">5101<\/span>/);
+  assert.match(html, /data-copy="Venda" aria-label="Copiar Natureza da operação"/);
+  assert.match(html, /data-copy="5101" aria-label="Copiar CFOP"/);
 });
 
 test('output edit payload accepts optional gross and validates tare relationship', () => {

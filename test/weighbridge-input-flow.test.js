@@ -55,10 +55,11 @@ test('input detail enables ticket printing only after tare and net weight', () =
     error: '',
   });
 
-  assert.match(pendingHtml, /<button class="btn-secondary-action" type="button" disabled>Imprimir ticket<\/button>/);
+  assert.match(pendingHtml, /<button class="wb-btn" type="button" disabled title="Imprimir ticket \(falta a tara\)" aria-label="Imprimir ticket">/);
   assert.doesNotMatch(pendingHtml, /href="\/balanca\/entradas\/11\/ticket\.pdf"/);
-  assert.match(completeHtml, /href="\/balanca\/entradas\/11\/ticket\.pdf"[^>]*target="_blank"[^>]*>Imprimir ticket/);
-  assert.doesNotMatch(completeHtml, /type="button" disabled>Imprimir ticket/);
+  assert.match(pendingHtml, /href="\/balanca\/entradas\/11\/tara"[^>]*aria-label="Adicionar tara"/);
+  assert.match(completeHtml, /href="\/balanca\/entradas\/11\/ticket\.pdf"[^>]*aria-label="Imprimir ticket" target="_blank"/);
+  assert.doesNotMatch(completeHtml, /disabled[^>]*aria-label="Imprimir ticket"/);
 });
 
 test('input ticket includes weighing, classification, and reused tare details', () => {
@@ -108,13 +109,14 @@ test('weighbridge home renders pending input actions', () => {
     error: '',
   });
 
-  assert.match(html, /Últimas 10 entradas/);
-  assert.match(html, /<th>Classificação<\/th>/);
-  assert.match(html, /href="\/balanca\/entradas">Ver lista completa/);
-  assert.match(html, /href="\/balanca\/entradas\/11">/);
-  assert.match(html, /href="\/balanca\/entradas\/11\/tara">Adicionar tara/);
-  assert.match(html, /href="\/balanca\/entradas\/11\/classificacao">Adicionar classificação/);
-  assert.match(html, /href="\/balanca\/entradas\/11\/origem">Definir origem/);
+  assert.match(html, /id="recent-title">Recentes/);
+  assert.match(html, /<tr data-movement-type="entrada">/);
+  assert.match(html, /href="\/balanca\/entradas" title="Lista completa de entradas"/);
+  assert.match(html, /href="\/balanca\/entradas\/11"/);
+  assert.match(html, /href="\/balanca\/entradas\/11\/tara"[^>]*aria-label="Adicionar tara"/);
+  assert.match(html, /href="\/balanca\/entradas\/11\/classificacao"[^>]*aria-label="Adicionar classificação"/);
+  assert.match(html, /href="\/balanca\/entradas\/11\/origem"[^>]*aria-label="Definir origem"/);
+  assert.doesNotMatch(html, /entradas\/11\/ticket\.pdf/);
 });
 
 test('weighbridge input plate copies entry report to clipboard only when complete', () => {
@@ -131,9 +133,10 @@ test('weighbridge input plate copies entry report to clipboard only when complet
     }],
   });
 
-  assert.match(html, /<button class="admin-table-link weighbridge-copy-report-button"/);
+  assert.match(html, /<button class="wb-btn wb-btn--sm wb-btn--icon" type="button" data-clipboard-report=/);
   assert.match(html, /data-clipboard-report="12\/06\/2026 09:30&#10;ABC1D23&#10;Fazenda São José&#10;18000kg&#10;Umidade: 14,0%"/);
-  assert.match(html, /<script src="\/js\/weighbridge-input-copy\.js"><\/script>/);
+  assert.match(html, /aria-label="Copiar relatório da entrada ABC1D23"/);
+  assert.match(html, /<script src="\/js\/weighbridge-ui\.js"><\/script>/);
 });
 
 test('weighbridge input plate is plain text until origin tare and classification are complete', () => {
@@ -147,7 +150,7 @@ test('weighbridge input plate is plain text until origin tare and classification
     }],
   });
 
-  assert.match(html, /<td>ABC1D23<\/td>/);
+  assert.match(html, /<a class="wb-plate" href="\/balanca\/entradas\/11">ABC1D23<\/a>/);
   assert.doesNotMatch(html, /data-clipboard-report=/);
 });
 
@@ -170,7 +173,9 @@ test('weighbridge home renders completed input states without client action', ()
 
   assert.match(html, /Tara anterior/);
   assert.match(html, /Fazenda São José/);
-  assert.match(html, /Classificada/);
+  assert.match(html, /title="Umidade 14% · Impureza 1% · Avariados 0%"/);
+  assert.match(html, /entradas\/11\/ticket\.pdf/);
+  assert.doesNotMatch(html, /aria-label="(Adicionar tara|Definir origem|Adicionar classificação)"/);
   assert.doesNotMatch(html, /Adicionar cliente/);
 });
 
@@ -269,8 +274,9 @@ test('input detail edit form exposes tare, origin, and classification fields', (
     error: '',
   });
 
-  assert.match(html, /<dt>Placa<\/dt><dd>ABC1D23<\/dd>/);
-  assert.match(html, /<dt>Líquido real<\/dt><dd>17821<\/dd>/);
+  assert.match(html, /<span class="wb-plate wb-plate--lg">ABC1D23<\/span>/);
+  assert.match(html, /Líquido real 17821 kg/);
+  assert.match(html, /<details class="wb-details" id="editar">/);
   assert.match(html, /name="peso_tara_kg"[^>]+value="12000"/);
   assert.match(html, /name="origem"[^>]+value="Fazenda São José"/);
   assert.match(html, /name="umidade_percent"[^>]+value="14"/);

@@ -2150,3 +2150,1251 @@ button:disabled,
   height: 1px;
   overflow: hidden;
 }
+
+/* ==========================================================================
+   Balança — layout compacto (wb-*)
+   Tela de uso diário do operador: muita informação, pouco espaço vazio,
+   ações por ícone (com title/aria-label) e as funções frequentes à mão.
+   ========================================================================== */
+
+:root {
+  --wb-panel: rgba(12, 40, 26, 0.72);
+  --wb-panel-2: rgba(234, 246, 238, 0.06);
+  --wb-line: rgba(234, 246, 238, 0.12);
+  --wb-line-strong: rgba(234, 246, 238, 0.22);
+  --wb-muted: rgba(234, 246, 238, 0.66);
+  --wb-in: #7fe0a3;
+  --wb-out: #f2c66d;
+  --wb-avulsa: #9fc2ff;
+  --wb-todo: #f2c66d;
+  --wb-danger: #ff9d94;
+}
+
+.wb-body {
+  font-size: 15px;
+}
+
+.wb-shell {
+  width: 100%;
+  max-width: 1480px;
+  margin: 0 auto;
+  padding: 10px 16px 40px;
+}
+
+.wb-i {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vertical-align: middle;
+}
+
+.wb-i-lg {
+  width: 24px;
+  height: 24px;
+}
+
+/* --- Barra superior ------------------------------------------------------ */
+
+.wb-topbar {
+  position: sticky;
+  top: 8px;
+  z-index: 30;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 8px 10px;
+  border: 1px solid var(--wb-line-strong);
+  border-radius: 14px;
+  background: rgba(14, 44, 29, 0.92);
+  box-shadow: 0 10px 30px rgba(5, 20, 12, 0.35);
+  backdrop-filter: blur(10px);
+}
+
+.wb-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: #ffffff;
+  font-size: 1.15rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.wb-brand .wb-i {
+  color: var(--accent);
+}
+
+.wb-brand:hover,
+.wb-brand:focus {
+  color: #ffffff;
+  text-decoration: none;
+}
+
+.wb-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  min-width: 0;
+}
+
+.wb-title h1 {
+  margin: 0;
+  color: #ffffff;
+  font-size: 1.15rem;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.wb-topbar-end {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.wb-sep {
+  width: 1px;
+  height: 26px;
+  margin: 0 2px;
+  background: var(--wb-line-strong);
+}
+
+.wb-topbar form {
+  margin: 0;
+}
+
+/* Peso ao vivo da balança 1 */
+.wb-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 12px;
+  color: #ffffff;
+  border: 1px solid var(--wb-line-strong);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.28);
+  font-size: 1.12rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.wb-live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--wb-in);
+  box-shadow: 0 0 0 3px rgba(127, 224, 163, 0.18);
+}
+
+.wb-live small {
+  color: var(--wb-muted);
+  font-size: 0.75rem;
+  font-weight: 400;
+}
+
+.wb-live.is-stale .wb-live-dot {
+  background: var(--wb-todo);
+  box-shadow: 0 0 0 3px rgba(242, 198, 109, 0.18);
+}
+
+.wb-live.is-offline {
+  color: var(--wb-muted);
+}
+
+.wb-live.is-offline .wb-live-dot {
+  background: var(--wb-danger);
+  box-shadow: none;
+}
+
+/* --- Botões ---------------------------------------------------------------- */
+
+.wb-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 12px;
+  color: #ffffff;
+  border: 1px solid var(--wb-line-strong);
+  border-radius: 10px;
+  background: rgba(246, 251, 247, 0.08);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+.wb-btn:hover,
+.wb-btn:focus-visible {
+  color: #ffffff;
+  border-color: rgba(217, 182, 109, 0.75);
+  background: rgba(246, 251, 247, 0.16);
+  text-decoration: none;
+}
+
+.wb-btn:disabled,
+.wb-btn[aria-disabled="true"] {
+  opacity: 0.35;
+  cursor: not-allowed;
+  border-color: var(--wb-line);
+  background: transparent;
+}
+
+.wb-btn--icon {
+  width: 36px;
+  padding: 0;
+}
+
+.wb-btn--sm {
+  height: 28px;
+  padding: 0 8px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+}
+
+.wb-btn--sm .wb-i {
+  width: 15px;
+  height: 15px;
+}
+
+.wb-btn--sm.wb-btn--icon {
+  width: 28px;
+  padding: 0;
+}
+
+.wb-btn--primary {
+  color: var(--green-950);
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+.wb-btn--primary:hover,
+.wb-btn--primary:focus-visible {
+  color: var(--green-950);
+  border-color: #e8c983;
+  background: #e8c983;
+}
+
+.wb-btn--danger {
+  color: var(--wb-danger);
+  border-color: rgba(255, 157, 148, 0.45);
+  background: rgba(180, 35, 24, 0.16);
+}
+
+.wb-btn--danger:hover,
+.wb-btn--danger:focus-visible {
+  color: #ffffff;
+  border-color: var(--wb-danger);
+  background: rgba(180, 35, 24, 0.45);
+}
+
+/* Passo pendente: chama a atenção sem gritar */
+.wb-btn--todo {
+  color: var(--wb-todo);
+  border-style: dashed;
+  border-color: rgba(242, 198, 109, 0.6);
+  background: rgba(242, 198, 109, 0.08);
+}
+
+.wb-btn--todo:hover,
+.wb-btn--todo:focus-visible {
+  color: var(--green-950);
+  border-style: solid;
+  border-color: var(--wb-todo);
+  background: var(--wb-todo);
+}
+
+.wb-btn.is-copied {
+  color: var(--wb-in);
+  border-color: var(--wb-in);
+}
+
+/* Ações principais da página inicial */
+.wb-quick {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.wb-quick-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 150px;
+  height: 54px;
+  padding: 0 18px;
+  color: #ffffff;
+  border: 1px solid var(--wb-line-strong);
+  border-radius: 12px;
+  background: var(--wb-panel);
+  font-size: 1.05rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: transform 120ms ease, border-color 120ms ease, background 120ms ease;
+}
+
+.wb-quick-btn .wb-i {
+  width: 26px;
+  height: 26px;
+}
+
+.wb-quick-btn kbd {
+  margin-left: auto;
+  padding: 2px 6px;
+  color: var(--wb-muted);
+  border: 1px solid var(--wb-line-strong);
+  border-radius: 5px;
+  background: transparent;
+  box-shadow: none;
+  font-family: inherit;
+  font-size: 0.72rem;
+}
+
+.wb-quick-btn:hover,
+.wb-quick-btn:focus-visible {
+  color: #ffffff;
+  border-color: rgba(217, 182, 109, 0.8);
+  background: rgba(30, 75, 50, 0.9);
+  text-decoration: none;
+  transform: translateY(-1px);
+}
+
+.wb-quick-btn--in .wb-i { color: var(--wb-in); }
+.wb-quick-btn--out .wb-i { color: var(--wb-out); }
+.wb-quick-btn--avulsa .wb-i { color: var(--wb-avulsa); }
+
+/* Indicadores do dia */
+.wb-stats {
+  display: flex;
+  flex: 1 1 420px;
+  flex-wrap: wrap;
+  align-items: stretch;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.wb-stat {
+  display: grid;
+  align-content: center;
+  min-width: 118px;
+  padding: 6px 12px;
+  border: 1px solid var(--wb-line);
+  border-radius: 12px;
+  background: var(--wb-panel);
+}
+
+.wb-stat-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--wb-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.wb-stat-label .wb-i {
+  width: 14px;
+  height: 14px;
+}
+
+.wb-stat strong {
+  color: #ffffff;
+  font-size: 1.08rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.wb-stat strong small {
+  color: var(--wb-muted);
+  font-size: 0.78rem;
+  font-weight: 400;
+}
+
+.wb-stat--in .wb-i { color: var(--wb-in); }
+.wb-stat--out .wb-i { color: var(--wb-out); }
+.wb-stat--avulsa .wb-i { color: var(--wb-avulsa); }
+.wb-stat--yard .wb-i { color: var(--wb-todo); }
+
+/* --- Painéis --------------------------------------------------------------- */
+
+.wb-panel {
+  margin-top: 10px;
+  padding: 10px 12px 12px;
+  border: 1px solid var(--wb-line);
+  border-radius: 14px;
+  background: var(--wb-panel);
+}
+
+.wb-panel--yard {
+  border-color: rgba(242, 198, 109, 0.4);
+}
+
+.wb-panel-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.wb-panel-head h2,
+.wb-panel-head h3 {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--green-100);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.wb-panel-head .wb-panel-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.wb-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  color: var(--green-950);
+  border-radius: 999px;
+  background: var(--wb-todo);
+  font-size: 0.78rem;
+  letter-spacing: 0;
+}
+
+.wb-empty {
+  margin: 0;
+  padding: 8px 4px;
+  color: var(--wb-muted);
+}
+
+/* Filtro segmentado */
+.wb-seg {
+  display: inline-flex;
+  padding: 2px;
+  border: 1px solid var(--wb-line-strong);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.wb-seg button,
+.wb-seg a {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 28px;
+  padding: 0 10px;
+  color: var(--wb-muted);
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.wb-seg button:hover,
+.wb-seg a:hover {
+  color: #ffffff;
+  text-decoration: none;
+}
+
+.wb-seg .is-active,
+.wb-seg [aria-pressed="true"],
+.wb-seg [aria-current="page"] {
+  color: var(--green-950);
+  background: var(--green-100);
+}
+
+.wb-seg .wb-i {
+  width: 15px;
+  height: 15px;
+}
+
+/* --- Tabelas densas ---------------------------------------------------- */
+
+.wb-table-wrap {
+  overflow-x: auto;
+  margin: 0 -4px;
+}
+
+.wb-table {
+  width: 100%;
+  color: #ffffff;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+
+.wb-table th {
+  padding: 4px 8px 6px;
+  color: var(--wb-muted);
+  border-bottom: 1px solid var(--wb-line-strong);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-align: left;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.wb-table th small {
+  font-size: 0.65rem;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.wb-table td {
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--wb-line);
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.wb-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.wb-table tbody tr:hover td {
+  background: rgba(234, 246, 238, 0.045);
+}
+
+.wb-table .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.wb-table .net {
+  font-weight: 700;
+}
+
+.wb-table .wb-col-type {
+  width: 30px;
+  padding-right: 0;
+}
+
+.wb-table .wb-col-actions {
+  width: 1%;
+  text-align: right;
+}
+
+.wb-table .wb-col-info {
+  width: 100%;
+  white-space: normal;
+}
+
+.wb-table a:not(.wb-btn):not(.wb-plate) {
+  color: #ffffff;
+  text-decoration: none;
+}
+
+.wb-table a:not(.wb-btn):not(.wb-plate):hover {
+  color: var(--accent);
+}
+
+.wb-row-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+.wb-info {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+}
+
+.wb-info-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wb-info-item .wb-i {
+  width: 14px;
+  height: 14px;
+  color: var(--wb-muted);
+}
+
+.wb-muted {
+  color: var(--wb-muted);
+}
+
+.wb-tag {
+  display: inline-block;
+  margin-right: 4px;
+  padding: 1px 4px;
+  color: var(--wb-muted);
+  border: 1px solid var(--wb-line-strong);
+  border-radius: 4px;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  vertical-align: 1px;
+}
+
+/* Tipo do movimento */
+.wb-type {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+}
+
+.wb-type .wb-i {
+  width: 16px;
+  height: 16px;
+}
+
+.wb-type--in {
+  color: var(--wb-in);
+  background: rgba(127, 224, 163, 0.14);
+}
+
+.wb-type--out {
+  color: var(--wb-out);
+  background: rgba(242, 198, 109, 0.14);
+}
+
+.wb-type--avulsa {
+  color: var(--wb-avulsa);
+  background: rgba(159, 194, 255, 0.14);
+}
+
+/* Placa no estilo de placa */
+.wb-plate {
+  display: inline-block;
+  padding: 2px 7px;
+  color: #ffffff;
+  border: 1px solid var(--wb-line-strong);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.07);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.06em;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+a.wb-plate:hover,
+a.wb-plate:focus-visible {
+  color: #ffffff;
+  border-color: var(--accent);
+  text-decoration: none;
+}
+
+.wb-plate--lg {
+  padding: 3px 10px;
+  font-size: 1.05rem;
+}
+
+.wb-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 26px;
+  padding: 0 9px;
+  color: var(--green-100);
+  border: 1px solid var(--wb-line-strong);
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.wb-chip .wb-i {
+  width: 14px;
+  height: 14px;
+}
+
+.wb-chip--in { color: var(--wb-in); border-color: rgba(127, 224, 163, 0.4); }
+.wb-chip--out { color: var(--wb-out); border-color: rgba(242, 198, 109, 0.4); }
+.wb-chip--avulsa { color: var(--wb-avulsa); border-color: rgba(159, 194, 255, 0.4); }
+.wb-chip--todo { color: var(--wb-todo); border-style: dashed; border-color: rgba(242, 198, 109, 0.6); }
+.wb-chip--ok { color: var(--wb-in); border-color: rgba(127, 224, 163, 0.4); }
+
+.wb-elapsed {
+  margin-left: 6px;
+  color: var(--wb-muted);
+  font-size: 0.8rem;
+}
+
+.wb-elapsed.is-long {
+  color: var(--wb-todo);
+}
+
+[data-movement-type][hidden] {
+  display: none;
+}
+
+/* --- Avisos -------------------------------------------------------------- */
+
+.wb-flash {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin: 10px 0 0;
+  padding: 8px 12px;
+  color: #c9ffd8;
+  border: 1px solid rgba(174, 255, 197, 0.42);
+  border-radius: 12px;
+  background: rgba(18, 102, 48, 0.32);
+  font-weight: 700;
+}
+
+.wb-flash--error {
+  color: #ffc4be;
+  border-color: rgba(255, 180, 180, 0.42);
+  background: rgba(128, 24, 24, 0.3);
+}
+
+.wb-flash .wb-btn {
+  margin-left: auto;
+}
+
+/* --- Detalhe ------------------------------------------------------------- */
+
+.wb-hero {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.wb-weight {
+  display: grid;
+  align-content: start;
+  gap: 2px;
+  min-height: 92px;
+  padding: 10px 14px;
+  border: 1px solid var(--wb-line);
+  border-radius: 14px;
+  background: var(--wb-panel);
+}
+
+.wb-weight-label {
+  color: var(--wb-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.wb-weight-value {
+  color: #ffffff;
+  font-size: 1.9rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
+}
+
+.wb-weight-value small {
+  color: var(--wb-muted);
+  font-size: 0.9rem;
+  font-weight: 400;
+}
+
+.wb-weight-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  color: var(--wb-muted);
+  font-size: 0.82rem;
+}
+
+.wb-weight--net {
+  border-color: rgba(217, 182, 109, 0.55);
+  background: linear-gradient(135deg, rgba(217, 182, 109, 0.14), rgba(12, 40, 26, 0.72));
+}
+
+.wb-weight--net .wb-weight-value {
+  color: var(--accent);
+}
+
+.wb-weight--todo {
+  align-content: center;
+  justify-items: start;
+  border-style: dashed;
+  border-color: rgba(242, 198, 109, 0.55);
+}
+
+.wb-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.wb-fact {
+  display: grid;
+  align-content: start;
+  gap: 3px;
+  min-width: 0;
+  padding: 8px 12px;
+  border: 1px solid var(--wb-line);
+  border-radius: 12px;
+  background: var(--wb-panel-2);
+}
+
+.wb-fact dt {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--wb-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.wb-fact dt .wb-i {
+  width: 14px;
+  height: 14px;
+}
+
+.wb-fact dd {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: #ffffff;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.wb-fact--wide {
+  grid-column: 1 / -1;
+}
+
+.wb-fact dd .wb-btn {
+  font-weight: 700;
+}
+
+/* Campos de cópia (NF): o campo inteiro é o botão */
+.wb-copy-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 6px;
+}
+
+.wb-copy {
+  position: relative;
+  display: grid;
+  align-content: start;
+  gap: 2px;
+  min-width: 0;
+  padding: 7px 34px 7px 10px;
+  color: #ffffff;
+  border: 1px solid var(--wb-line);
+  border-radius: 10px;
+  background: var(--wb-panel-2);
+  font: inherit;
+  text-align: left;
+  cursor: copy;
+  transition: border-color 120ms ease, background 120ms ease;
+}
+
+.wb-copy:hover,
+.wb-copy:focus-visible {
+  border-color: rgba(217, 182, 109, 0.75);
+  background: rgba(234, 246, 238, 0.1);
+  outline: none;
+}
+
+.wb-copy-label {
+  color: var(--wb-muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.wb-copy-value {
+  font-weight: 700;
+  overflow-wrap: anywhere;
+  white-space: pre-line;
+}
+
+.wb-copy > .wb-i {
+  position: absolute;
+  top: 9px;
+  right: 9px;
+  width: 16px;
+  height: 16px;
+  color: var(--wb-muted);
+}
+
+.wb-copy.is-copied {
+  border-color: var(--wb-in);
+  background: rgba(127, 224, 163, 0.12);
+}
+
+.wb-copy.is-copied > .wb-i {
+  color: var(--wb-in);
+}
+
+.wb-copy--wide {
+  grid-column: span 2;
+}
+
+.wb-copy--empty .wb-copy-value {
+  color: var(--wb-muted);
+  font-weight: 400;
+}
+
+/* Seções recolhíveis (editar, dividir, excluir) */
+.wb-details {
+  margin-top: 10px;
+  border: 1px solid var(--wb-line);
+  border-radius: 14px;
+  background: var(--wb-panel);
+}
+
+.wb-details > summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  color: var(--green-100);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  list-style: none;
+  cursor: pointer;
+}
+
+.wb-details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.wb-details > summary::after {
+  content: '';
+  width: 8px;
+  height: 8px;
+  margin-left: auto;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg);
+  transition: transform 120ms ease;
+}
+
+.wb-details[open] > summary::after {
+  transform: rotate(-135deg);
+}
+
+.wb-details-body {
+  padding: 0 12px 12px;
+}
+
+.wb-details--danger > summary {
+  color: var(--wb-danger);
+}
+
+/* Fotos compactas */
+.wb-photos {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.wb-photos .scale-photo {
+  flex: 0 0 210px;
+  margin: 0;
+}
+
+.wb-photos .scale-photo img {
+  height: 130px;
+}
+
+/* --- Formulários ------------------------------------------------------- */
+
+.wb-form {
+  margin: 0;
+}
+
+.wb-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px 12px;
+  align-items: start;
+}
+
+.wb-form-grid--2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.wb-form label,
+.wb-field {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  color: var(--green-100);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.wb-form .form-control {
+  height: 42px;
+  min-height: 42px;
+  padding: 6px 10px;
+  color: var(--green-950);
+  border: 1px solid rgba(234, 246, 238, 0.32);
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.wb-form textarea.form-control {
+  height: auto;
+  min-height: 80px;
+}
+
+.wb-form .wb-weight-field .form-control {
+  height: 48px;
+  font-size: 1.4rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.wb-form .wb-field-full {
+  grid-column: 1 / -1;
+}
+
+.wb-form .weighbridge-weight-feedback,
+.wb-form .weighbridge-weight-photo,
+.wb-form .wb-hint {
+  color: var(--wb-muted);
+  font-size: 0.8rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.wb-form .weighbridge-weight-fetch {
+  flex-basis: 48px;
+  width: 48px;
+  height: 48px;
+}
+
+.wb-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.wb-form-actions .wb-btn {
+  height: 42px;
+  padding: 0 18px;
+  font-size: 0.95rem;
+}
+
+.wb-form .contracts-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.wb-form .weighbridge-plate-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.wb-form .weighbridge-plate-option {
+  padding: 3px 8px;
+  font-size: 0.82rem;
+  letter-spacing: 0.04em;
+  text-transform: none;
+}
+
+.wb-form .weighbridge-plate-empty,
+.wb-form .weighbridge-tare-help {
+  font-size: 0.8rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.wb-form .deletion-reason-form label,
+.wb-details .deletion-reason-form label {
+  text-transform: none;
+}
+
+.wb-details .deletion-reason-form {
+  max-width: 640px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.wb-details .deletion-reason-form .form-control {
+  min-height: 70px;
+  color: var(--green-950);
+  border-radius: 10px;
+}
+
+.wb-details .btn-danger-action {
+  min-height: 40px;
+  padding: 8px 16px;
+  border-radius: 10px;
+}
+
+.wb-summary-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.wb-table-pagination .table-pagination {
+  margin-top: 8px;
+}
+
+@media (max-width: 900px) {
+  .wb-stats {
+    justify-content: flex-start;
+  }
+
+  .wb-copy--wide {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 620px) {
+  .wb-shell {
+    padding: 8px 8px 32px;
+  }
+
+  .wb-topbar {
+    position: static;
+  }
+
+  .wb-quick-btn {
+    flex: 1 1 30%;
+    min-width: 0;
+    justify-content: center;
+    padding: 0 8px;
+    font-size: 0.95rem;
+  }
+
+  .wb-quick-btn kbd {
+    display: none;
+  }
+
+  .wb-form-grid--2 {
+    grid-template-columns: 1fr;
+  }
+
+  .wb-weight-value {
+    font-size: 1.5rem;
+  }
+}
+
+@media print {
+  .wb-topbar {
+    position: static;
+  }
+}
+
+button.wb-weight-value {
+  justify-self: start;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: copy;
+}
+
+button.wb-weight-value:hover,
+button.wb-weight-value:focus-visible {
+  text-decoration: underline dotted rgba(234, 246, 238, 0.5);
+  text-underline-offset: 6px;
+  outline: none;
+}
+
+.wb-weight-meta a {
+  color: inherit;
+  text-decoration: underline;
+}
+
+@media (min-width: 621px) {
+  .wb-form .wb-weight-field {
+    grid-column: span 2;
+  }
+}
+
+.wb-form .weighbridge-plate-options {
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.wb-fact dd a,
+.wb-info a.wb-info-item {
+  color: #ffffff;
+  text-decoration: underline;
+  text-decoration-color: rgba(217, 182, 109, 0.7);
+  text-underline-offset: 3px;
+}
+
+.wb-fact dd a:hover,
+.wb-info a.wb-info-item:hover {
+  color: var(--accent);
+}

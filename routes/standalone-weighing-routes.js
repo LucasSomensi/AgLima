@@ -153,7 +153,7 @@ router.post('/balanca/avulsas/:id/pesagem-2', canAccessWeighbridge, async (req, 
     await linkWeightPhoto(req, { pesagemAvulsaId: updated.id, tipoPeso: 'pesagem_2', pesoKg: payload.pesagem2Kg });
     // Volta para a página inicial, como as demais pesagens; o ticket fica na
     // lista de últimas pesagens avulsas e no detalhe.
-    return res.redirect(homeRedirect({ avulsa_pesagem_2_adicionada: '1' }));
+    return res.redirect(homeRedirect({ avulsa_pesagem_2_adicionada: '1', avulsa_id: updated.id }));
   } catch (error) {
     console.error('Error adding standalone weighing second weight:', error.code || error.message);
     return res.redirect(homeRedirect({ error: 'Não foi possível adicionar a pesagem 2 agora.' }));

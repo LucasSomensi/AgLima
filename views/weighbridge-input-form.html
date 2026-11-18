@@ -3,32 +3,25 @@
   <head>
       <meta charset="utf-8">
       <meta name="author" content="Lucas">
-      <meta name="description" content="Adicionar entrada da balança AgroLima">
+      <meta name="description" content="Adicionar entrada na balança">
       <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-      <title>Adicionar entrada | AgroLima</title>
+      <title>Nova entrada | AgroLima</title>
       <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" integrity="sha384-xOolHFLEh07PJGoPkLv1IbcEPTNtaed2xpHsD9ESMhqIYd0nLMwNLD69Npy4HI+N" crossorigin="anonymous">
       <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:400,500,700&display=swap">
       <link rel="stylesheet" href="/css/styles.css">
       <link rel="icon" href="/favicon.ico" type="image/x-icon">
   </head>
-  <body>
-    <main class="page-shell admin-shell weighbridge-shell">
-      <section class="content-card admin-card weighbridge-card" aria-labelledby="input-form-title">
-        <div class="admin-header">
-          <div>
-            <span class="eyebrow">Área da balança</span>
-            <h1 id="input-form-title" class="page-title">Adicionar entrada</h1>
-            <a class="back-link admin-back-link" href="{{WEIGHBRIDGE_HOME_HREF}}">{{WEIGHBRIDGE_HOME_LABEL}}</a>
-          </div>
-        </div>
-
-        {{SCALE_INPUT_ERROR}}
-
-        <form class="contact-form contracts-form" action="/balanca/entradas" method="post">
-            <input type="hidden" name="_csrf" value="{{CSRF_TOKEN}}">
-          <div class="contracts-form-grid contracts-form-grid-two">
-            <label>Data e hora da entrada
-              <input class="form-control" id="data_entrada" name="data_entrada" type="datetime-local" value="{{DATA_ENTRADA}}" required data-scale-photo-datetime>
+  <body class="wb-body">
+    <main class="wb-shell">
+      {{WB_TOPBAR}}
+      {{SCALE_INPUT_ERROR}}
+      <section class="wb-panel">
+        <form class="wb-form" action="/balanca/entradas" method="post">
+          <input type="hidden" name="_csrf" value="{{CSRF_TOKEN}}">
+          <div class="wb-form-grid">
+            <label class="weighbridge-plate-field">Placa
+              <input class="form-control" id="placa_caminhao" name="placa_caminhao" type="text" value="{{PLACA_CAMINHAO}}" placeholder="ABC1D23" maxlength="10" autocomplete="off" required autofocus>
+              <span class="weighbridge-plate-options" id="plate-options" aria-live="polite">{{PLATE_SUGGESTIONS}}</span>
             </label>
             <label>Produto
               <select class="form-control" id="produto" name="produto" required>
@@ -37,21 +30,17 @@
                 <option value="soja"{{PRODUCT_SOJA_SELECTED}}>Soja</option>
               </select>
             </label>
-            <label class="weighbridge-plate-field">Placa do veículo
-              <input class="form-control" id="placa_caminhao" name="placa_caminhao" type="text" value="{{PLACA_CAMINHAO}}" placeholder="ABC1D23" maxlength="10" autocomplete="off" required>
-              <span class="admin-muted">Escolha uma das placas recentes ou digite uma nova placa.</span>
-              <div class="weighbridge-plate-options" id="plate-options" aria-live="polite">
-                {{PLATE_SUGGESTIONS}}
-              </div>
+            <label>Data/hora
+              <input class="form-control" id="data_entrada" name="data_entrada" type="datetime-local" value="{{DATA_ENTRADA}}" required data-scale-photo-datetime>
             </label>
-            <label>Peso bruto (kg)
+            <label class="wb-weight-field">Bruto (kg)
               <span class="weighbridge-weight-input-group">
                 <input class="form-control" id="peso_bruto_kg" name="peso_bruto_kg" type="number" min="0.001" max="79999.999" step="0.001" value="{{PESO_BRUTO_KG}}" inputmode="decimal" required>
                 <button class="weighbridge-weight-fetch" type="button" data-scale-weight-target="peso_bruto_kg" aria-label="Preencher peso bruto com o peso da balança 1" title="Usar peso da balança 1">
-                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20h14M7 20l1-10h8l1 10M9 10a3 3 0 0 1 6 0M12 10l2-2"/></svg>
+                  <svg class="wb-i" aria-hidden="true" focusable="false"><use href="/icons/wb.svg#i-scale"></use></svg>
                 </button>
                 <button class="weighbridge-weight-fetch" type="button" data-scale-photo-pick-target="peso_bruto_kg" aria-label="Preencher peso bruto com uma foto automática da balança 1" title="Usar foto automática da balança 1">
-                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 2.64-6.36L3 8.3M3 3v5.3h5.3M12 7v5l3.5 2"/></svg>
+                  <svg class="wb-i" aria-hidden="true" focusable="false"><use href="/icons/wb.svg#i-photo"></use></svg>
                 </button>
               </span>
               <span class="weighbridge-weight-feedback" aria-live="polite"></span>
@@ -59,18 +48,15 @@
               <span class="weighbridge-weight-photo" data-scale-photo-preview hidden></span>
             </label>
           </div>
-
-          <div class="contracts-check-grid">
-            <label class="contracts-checkbox" id="previous-tare-wrapper" title="Selecione uma placa com tara anterior para habilitar esta opção.">
+          <div class="wb-form-actions">
+            <label class="contracts-checkbox" id="previous-tare-wrapper" title="Usa a última tara registrada para esta placa.">
               <input id="usar_tara_anterior" name="usar_tara_anterior" type="checkbox"{{USAR_TARA_ANTERIOR_CHECKED}} disabled>
-              Usar tara anterior
+              Usar tara anterior <span class="wb-muted weighbridge-tare-help" id="previous-tare-help">sem tara anterior</span>
             </label>
-            <span class="weighbridge-tare-help" id="previous-tare-help">Selecione uma placa já utilizada para verificar se existe tara anterior.</span>
           </div>
-
-          <div class="contracts-form-actions">
-            <button class="btn-primary-action" type="submit">Confirmar entrada</button>
-            <a class="btn-secondary-action" href="{{WEIGHBRIDGE_HOME_HREF}}">Cancelar</a>
+          <div class="wb-form-actions">
+            <button class="wb-btn wb-btn--primary" type="submit"><svg class="wb-i" aria-hidden="true" focusable="false"><use href="/icons/wb.svg#i-check"></use></svg><span>Confirmar entrada</span></button>
+            <a class="wb-btn" href="{{WEIGHBRIDGE_HOME_HREF}}">Cancelar</a>
           </div>
         </form>
       </section>
@@ -83,6 +69,7 @@
         const optionsContainer = document.getElementById('plate-options');
         const previousTareCheckbox = document.getElementById('usar_tara_anterior');
         const previousTareHelp = document.getElementById('previous-tare-help');
+        const weightFormatter = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 0 });
         let controller = null;
         let productWasChanged = {{PRODUCT_WAS_CHANGED}};
 
@@ -111,29 +98,32 @@
           if (!hasTare) {
             previousTareCheckbox.checked = false;
           }
-          const formattedTare = Number(tareLabel).toLocaleString('pt-BR', {
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0,
-          });
           previousTareHelp.textContent = hasTare
-            ? 'Tara anterior disponível' + (tareLabel ? ': ' + formattedTare + ' kg.' : '.')
-            : 'Nenhuma tara anterior disponível para esta placa.';
+            ? (tareLabel ? weightFormatter.format(Number(tareLabel)) + ' kg' : 'disponível')
+            : 'sem tara anterior';
         }
 
         function renderOptions(plates) {
+          optionsContainer.replaceChildren();
+
           if (!plates.length) {
-            optionsContainer.innerHTML = '<p class="weighbridge-plate-empty">Nenhuma placa recente encontrada.</p>';
+            const empty = document.createElement('span');
+            empty.className = 'weighbridge-plate-empty';
+            empty.textContent = 'Nenhuma placa recente.';
+            optionsContainer.append(empty);
             return;
           }
 
-          optionsContainer.innerHTML = plates.map(function (plate) {
-            const tare = Number(plate.peso_tara_kg).toLocaleString('pt-BR', {
-              minimumFractionDigits: 0,
-              maximumFractionDigits: 0,
-            });
-            const tareText = plate.tem_tara_anterior ? ' · tara ' + tare + ' kg' : '';
-            return '<button class="weighbridge-plate-option" type="button" data-plate="' + plate.placa_caminhao + '" data-has-tare="' + (plate.tem_tara_anterior ? '1' : '0') + '" data-tare="' + (plate.peso_tara_kg || '') + '">' + plate.placa_caminhao + tareText + '</button>';
-          }).join('');
+          plates.forEach(function (plate) {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'weighbridge-plate-option';
+            button.dataset.plate = plate.placa_caminhao;
+            button.dataset.hasTare = plate.tem_tara_anterior ? '1' : '0';
+            button.dataset.tare = plate.peso_tara_kg || '';
+            button.textContent = plate.placa_caminhao + (plate.tem_tara_anterior ? ' · tara ' + weightFormatter.format(Number(plate.peso_tara_kg)) + ' kg' : '');
+            optionsContainer.append(button);
+          });
         }
 
         async function fetchPlates() {
@@ -149,8 +139,7 @@
             return;
           }
 
-          const plates = await response.json();
-          renderOptions(plates);
+          renderOptions(await response.json());
         }
 
         async function fetchPreviousTare() {
@@ -181,6 +170,7 @@
 
           plateInput.value = option.dataset.plate;
           setPreviousTareState(option.dataset.hasTare === '1', option.dataset.tare);
+          document.getElementById('peso_bruto_kg').focus();
         });
 
         dateInput.addEventListener('input', updateDefaultProduct);
@@ -199,5 +189,6 @@
       }());
     </script>
     <script src="/js/weighbridge-scale-weight.js"></script>
+    <script src="/js/weighbridge-ui.js"></script>
   </body>
 </html>

@@ -127,11 +127,12 @@ test('new output form offers an optional driver name field and keeps typed value
 
 test('output detail shows the driver name and lets the operator edit it', () => {
   const withDriver = renderPage(renderScaleOutputDetailPage, { outputInfo: { ...outputInfo, nome_motorista: 'João da Silva' } });
-  assert.match(withDriver, /<dt>Motorista<\/dt><dd><span class="copy-field-value">João da Silva<\/span>/);
+  assert.match(withDriver, /data-copy="João da Silva" aria-label="Copiar Motorista"/);
+  assert.match(withDriver, /title="Motorista"><svg[^>]*>.*?<\/svg>João da Silva<\/span>/);
   assert.match(withDriver, /name="nome_motorista" type="text" value="João da Silva" maxlength="120"/);
 
   const withoutDriver = renderPage(renderScaleOutputDetailPage, { outputInfo: { ...outputInfo, nome_motorista: null } });
-  assert.match(withoutDriver, /<dt>Motorista<\/dt><dd><span class="copy-field-value">-<\/span>/);
+  assert.match(withoutDriver, /<button class="wb-copy wb-copy--empty" type="button" data-copy="" aria-label="Copiar Motorista">/);
   assert.match(withoutDriver, /name="nome_motorista" type="text" value="" maxlength="120"/);
 
   const afterError = renderPage(renderScaleOutputDetailPage, {

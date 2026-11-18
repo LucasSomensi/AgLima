@@ -11,182 +11,58 @@
       <link rel="stylesheet" href="/css/styles.css">
       <link rel="icon" href="/favicon.ico" type="image/x-icon">
   </head>
-  <body>
-    <main class="page-shell admin-shell weighbridge-shell">
-      <section class="content-card admin-card weighbridge-card" aria-labelledby="weighbridge-title">
-        <div class="admin-header">
-          <div>
-            <span class="eyebrow">Área da balança</span>
-            <h1 id="weighbridge-title" class="page-title">Balança</h1>
-          </div>
+  <body class="wb-body">
+    <main class="wb-shell">
+      <header class="wb-topbar">
+        <a class="wb-brand" href="/balanca"><svg class="wb-i wb-i-lg" aria-hidden="true" focusable="false"><use href="/icons/wb.svg#i-scale"></use></svg>Balança</a>
+        {{LIVE_WEIGHT}}
+        <nav class="wb-topbar-end" aria-label="Navegação da balança">
+          <a class="wb-btn wb-btn--icon" href="/balanca/contratos" title="Contratos" aria-label="Contratos"><svg class="wb-i" aria-hidden="true" focusable="false"><use href="/icons/wb.svg#i-contract"></use></svg></a>
+          <a class="wb-btn wb-btn--icon" href="/balanca/fotos" title="Fotos automáticas" aria-label="Fotos automáticas"><svg class="wb-i" aria-hidden="true" focusable="false"><use href="/icons/wb.svg#i-photo"></use></svg></a>
+          <span class="wb-sep" aria-hidden="true"></span>
           <form action="/logout" method="post">
             <input type="hidden" name="_csrf" value="{{CSRF_TOKEN}}">
-            <button class="btn-secondary-action" type="submit">Sair</button>
+            <button class="wb-btn wb-btn--icon" type="submit" title="Sair" aria-label="Sair"><svg class="wb-i" aria-hidden="true" focusable="false"><use href="/icons/wb.svg#i-logout"></use></svg></button>
           </form>
-        </div>
-
-        {{WEIGHBRIDGE_MESSAGE}}
-        {{WEIGHBRIDGE_ERROR}}
-
-        <nav class="admin-module-grid weighbridge-actions" aria-label="Ações da balança">
-          <a class="admin-module-card weighbridge-action-card" href="/balanca/entradas/nova">
-            <span class="weighbridge-action-icon" aria-hidden="true">
-              <svg viewBox="0 0 48 48" focusable="false" role="img">
-                <path d="M27 17c0-4 3-7 7-7s7 3 7 7" />
-                <path d="M27 17v20c0 3 14 3 14 0V17" />
-                <path d="M27 17c0 3 14 3 14 0" />
-                <path d="M27 25c0 3 14 3 14 0" />
-                <path d="M29 38 26 43" />
-                <path d="M39 38l3 5" />
-                <path d="M7 26h19" />
-                <path d="m19 19 7 7-7 7" />
-              </svg>
-            </span>
-            <span class="admin-module-label">Adicionar entrada</span>
-          </a>
-          <a class="admin-module-card weighbridge-action-card" href="/balanca/saidas/nova">
-            <span class="weighbridge-action-icon" aria-hidden="true">
-              <svg viewBox="0 0 48 48" focusable="false" role="img">
-                <path d="M7 17c0-4 3-7 7-7s7 3 7 7" />
-                <path d="M7 17v20c0 3 14 3 14 0V17" />
-                <path d="M7 17c0 3 14 3 14 0" />
-                <path d="M7 25c0 3 14 3 14 0" />
-                <path d="M9 38 6 43" />
-                <path d="M19 38l3 5" />
-                <path d="M21 26h20" />
-                <path d="m34 19 7 7-7 7" />
-              </svg>
-            </span>
-            <span class="admin-module-label">Adicionar saída</span>
-          </a>
-          <a class="admin-module-card weighbridge-action-card" href="/balanca/avulsas/nova">
-            <span class="weighbridge-action-icon" aria-hidden="true">
-              <svg viewBox="0 0 48 48" focusable="false" role="img">
-                <path d="M18 17a6 6 0 0 1 12 0" />
-                <path d="M13 17h22l5 24H8z" />
-                <path d="M19 29h10" />
-                <path d="M24 24v10" />
-              </svg>
-            </span>
-            <span class="admin-module-label">Pesagem avulsa</span>
-          </a>
-          <a class="admin-module-card weighbridge-action-card" href="/balanca/contratos">
-            <span class="weighbridge-action-icon" aria-hidden="true">
-              <svg viewBox="0 0 48 48" focusable="false" role="img">
-                <path d="M15 6h14l7 7v29H15z" />
-                <path d="M29 6v8h7" />
-                <path d="M20 22h11" />
-                <path d="M20 29h11" />
-                <path d="M20 36h7" />
-              </svg>
-            </span>
-            <span class="admin-module-label">Visualizar contratos</span>
-          </a>
         </nav>
-        <p class="weighbridge-photos-link"><a class="btn-secondary-action" href="/balanca/fotos">Fotos automáticas da balança</a></p>
+      </header>
 
-        <!-- YARD_START -->
-        <section class="admin-section" aria-labelledby="yard-title">
-          <div class="admin-section-header">
-            <h2 id="yard-title">Pátio</h2>
-          </div>
-          <div class="admin-table-wrapper">
-            <table class="admin-table weighbridge-table">
-              <thead>
-                <tr>
-                  <th scope="col">Movimentação</th>
-                  <th scope="col">Placa</th>
-                  <th scope="col">Data/hora</th>
-                  <th scope="col">Produto</th>
-                  <th scope="col">Bruto</th>
-                  <th scope="col">Tara</th>
-                  <th scope="col">Ações</th>
-                </tr>
-              </thead>
-              <tbody>{{YARD_ROWS}}</tbody>
-            </table>
-          </div>
-        </section>
-        <!-- YARD_END -->
+      {{WEIGHBRIDGE_FLASH}}
 
-        <section class="admin-section" aria-labelledby="recent-inputs-title">
-          <div class="admin-section-header">
-            <h2 id="recent-inputs-title">Últimas 10 entradas</h2>
-            <a class="btn-secondary-action" href="/balanca/entradas">Ver lista completa</a>
-          </div>
-          <div class="admin-table-wrapper">
-            <table class="admin-table weighbridge-table weighbridge-input-table">
-              <thead>
-                <tr>
-                  <th>Data/hora</th>
-                  <th>Placa</th>
-                  <th>Produto</th>
-                  <th>Bruto</th>
-                  <th>Tara</th>
-                  <th>Líquido</th>
-                  <th>Origem</th>
-                  <th>Classificação</th>
-                </tr>
-              </thead>
-              <tbody>
-                {{SCALE_INPUT_ROWS}}
-              </tbody>
-            </table>
-          </div>
-        </section>
+      <div class="wb-quick">
+        <a class="wb-quick-btn wb-quick-btn--in" href="/balanca/entradas/nova" data-shortcut="e" title="Nova entrada (E)"><svg class="wb-i" aria-hidden="true" focusable="false"><use href="/icons/wb.svg#i-in"></use></svg>Entrada<kbd>E</kbd></a>
+        <a class="wb-quick-btn wb-quick-btn--out" href="/balanca/saidas/nova" data-shortcut="s" title="Nova saída (S)"><svg class="wb-i" aria-hidden="true" focusable="false"><use href="/icons/wb.svg#i-out"></use></svg>Saída<kbd>S</kbd></a>
+        <a class="wb-quick-btn wb-quick-btn--avulsa" href="/balanca/avulsas/nova" data-shortcut="a" title="Nova pesagem avulsa (A)"><svg class="wb-i" aria-hidden="true" focusable="false"><use href="/icons/wb.svg#i-avulsa"></use></svg>Avulsa<kbd>A</kbd></a>
+        {{DAY_SUMMARY}}
+      </div>
 
-        <section class="admin-section" aria-labelledby="recent-outputs-title">
-          <div class="admin-section-header">
-            <h2 id="recent-outputs-title">Últimas 10 saídas</h2>
-            <a class="btn-secondary-action" href="/balanca/saidas">Ver lista completa</a>
-          </div>
-          <div class="admin-table-wrapper">
-            <table class="admin-table weighbridge-table">
-              <thead>
-                <tr>
-                  <th>Data/hora</th>
-                  <th>Placa</th>
-                  <th>Produto</th>
-                  <th>Bruto</th>
-                  <th>Tara</th>
-                  <th>Líquido</th>
-                  <th>Contrato</th>
-                  <th>Ação</th>
-                </tr>
-              </thead>
-              <tbody>
-                {{SCALE_OUTPUT_ROWS}}
-              </tbody>
-            </table>
-          </div>
-        </section>
+      {{YARD_SECTION}}
 
-        <section class="admin-section" aria-labelledby="recent-standalone-title">
-          <div class="admin-section-header">
-            <h2 id="recent-standalone-title">Últimas 10 pesagens avulsas</h2>
-            <a class="btn-secondary-action" href="/balanca/avulsas">Ver lista completa</a>
+      <section class="wb-panel" aria-labelledby="recent-title">
+        <div class="wb-panel-head">
+          <h2 id="recent-title">Recentes</h2>
+          <div class="wb-seg" role="group" aria-label="Filtrar movimentações" data-movement-filter="recent-table">
+            <button type="button" data-filter="todas" aria-pressed="true">Todas</button>
+            <button type="button" data-filter="entrada" aria-pressed="false" title="Entradas" aria-label="Entradas"><svg class="wb-i" aria-hidden="true" focusable="false"><use href="/icons/wb.svg#i-in"></use></svg></button>
+            <button type="button" data-filter="saida" aria-pressed="false" title="Saídas" aria-label="Saídas"><svg class="wb-i" aria-hidden="true" focusable="false"><use href="/icons/wb.svg#i-out"></use></svg></button>
+            <button type="button" data-filter="avulsa" aria-pressed="false" title="Avulsas" aria-label="Avulsas"><svg class="wb-i" aria-hidden="true" focusable="false"><use href="/icons/wb.svg#i-avulsa"></use></svg></button>
           </div>
-          <div class="admin-table-wrapper">
-            <table class="admin-table weighbridge-table">
-              <thead>
-                <tr>
-                  <th>Data/hora</th>
-                  <th>Placa</th>
-                  <th>Produto</th>
-                  <th>Pesagem 1</th>
-                  <th>Pesagem 2</th>
-                  <th>Líquido</th>
-                  <th>Ação</th>
-                </tr>
-              </thead>
-              <tbody>
-                {{STANDALONE_ROWS}}
-              </tbody>
-            </table>
+          <div class="wb-panel-tools" aria-label="Listas completas">
+            <a class="wb-btn wb-btn--sm" href="/balanca/entradas" title="Lista completa de entradas" aria-label="Lista completa de entradas"><svg class="wb-i" aria-hidden="true" focusable="false"><use href="/icons/wb.svg#i-list"></use></svg><svg class="wb-i" aria-hidden="true" focusable="false"><use href="/icons/wb.svg#i-in"></use></svg></a>
+            <a class="wb-btn wb-btn--sm" href="/balanca/saidas" title="Lista completa de saídas" aria-label="Lista completa de saídas"><svg class="wb-i" aria-hidden="true" focusable="false"><use href="/icons/wb.svg#i-list"></use></svg><svg class="wb-i" aria-hidden="true" focusable="false"><use href="/icons/wb.svg#i-out"></use></svg></a>
+            <a class="wb-btn wb-btn--sm" href="/balanca/avulsas" title="Lista completa de pesagens avulsas" aria-label="Lista completa de pesagens avulsas"><svg class="wb-i" aria-hidden="true" focusable="false"><use href="/icons/wb.svg#i-list"></use></svg><svg class="wb-i" aria-hidden="true" focusable="false"><use href="/icons/wb.svg#i-avulsa"></use></svg></a>
           </div>
-        </section>
+        </div>
+        <div class="wb-table-wrap">
+          <table class="wb-table" id="recent-table">
+            <thead>
+          {{RECENT_HEAD}}
+            </thead>
+            <tbody>{{RECENT_ROWS}}</tbody>
+          </table>
+        </div>
       </section>
     </main>
-    <script src="/js/weighbridge-input-copy.js"></script>
+    <script src="/js/weighbridge-ui.js"></script>
   </body>
 </html>

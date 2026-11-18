@@ -396,7 +396,7 @@ test('first weight form keeps typed values, escapes them and never expands place
   assert.match(html, /name="produto" type="text" value="&lt;b&gt;Areia&lt;\/b&gt;"/);
   assert.match(html, />\{\{WEIGHBRIDGE_HOME_HREF\}\} ok<\/textarea>/);
   assert.match(html, new RegExp(`name="foto_captura_id" value="${CAPTURE_ID}"`));
-  assert.match(html, /href="\/balanca">← Voltar à balança/);
+  assert.match(html, /href="\/balanca" title="Voltar à balança" aria-label="Voltar à balança"/);
   assert.doesNotMatch(html, /name="(produto|vendedor|comprador|placa_caminhao|nome_motorista|comentario)"[^>]*required/);
   // Fora o texto digitado pelo operador, nenhum placeholder sobra no HTML.
   assert.doesNotMatch(html.replace('{{WEIGHBRIDGE_HOME_HREF}} ok', ''), /{{(?!CSRF_TOKEN)[A-Z_0-9]+}}/);
@@ -405,17 +405,21 @@ test('first weight form keeps typed values, escapes them and never expands place
 test('second weight form shows the first weight and the comment', () => {
   const html = renderPage(renderStandaloneWeighingSecondFormPage, { weighing: pending });
   assert.match(html, /action="\/balanca\/avulsas\/5\/pesagem-2"/);
-  assert.match(html, /Pesagem avulsa #5 · ABC1D23 · Calcário · pesagem 1 15\.320 kg/);
+  assert.match(html, /<h1>Pesagem 2 · Avulsa #5<\/h1>/);
+  assert.match(html, /<a class="wb-plate wb-plate--lg" href="\/balanca\/avulsas\/5">ABC1D23<\/a>/);
+  assert.match(html, /Calcário<\/span>/);
+  assert.match(html, /P1 15\.320 kg<\/span>/);
   assert.match(html, /Linha 1\nLinha &lt;2&gt;/);
   assert.doesNotMatch(html, /{{(?!CSRF_TOKEN)[A-Z_0-9]+}}/);
 });
 
 test('detail page offers the ticket only after the second weight', () => {
   const pendingHtml = renderPage(renderStandaloneWeighingDetailPage, { weighing: pending, photos: [] });
-  assert.match(pendingHtml, /href="\/balanca\/avulsas\/5\/pesagem-2">Adicionar pesagem 2/);
-  assert.match(pendingHtml, /<button class="btn-secondary-action" type="button" disabled>Imprimir ticket<\/button>/);
-  assert.match(pendingHtml, /<dt>Comentário<\/dt><dd><span class="copy-field-value weighbridge-comment">Linha 1\nLinha &lt;2&gt;<\/span>/);
-  assert.match(pendingHtml, /<dt>Motorista<\/dt><dd><span class="copy-field-value">-<\/span>/);
+  assert.match(pendingHtml, /href="\/balanca\/avulsas\/5\/pesagem-2"[^>]*aria-label="Adicionar pesagem 2"/);
+  assert.match(pendingHtml, /disabled title="Imprimir ticket \(falta a pesagem 2\)"/);
+  assert.doesNotMatch(pendingHtml, /avulsas\/5\/ticket\.pdf/);
+  assert.match(pendingHtml, /data-copy="Linha 1&#10;Linha &lt;2&gt;" aria-label="Copiar Comentário"><span class="wb-copy-label">Comentário<\/span><span class="wb-copy-value">Linha 1\nLinha &lt;2&gt;<\/span>/);
+  assert.match(pendingHtml, /<button class="wb-copy wb-copy--empty" type="button" data-copy="" aria-label="Copiar Motorista">/);
   assert.match(pendingHtml, /action="\/balanca\/avulsas\/5\/deletar"/);
   assert.doesNotMatch(pendingHtml, /{{(?!CSRF_TOKEN)[A-Z_0-9]+}}/);
 
@@ -423,8 +427,8 @@ test('detail page offers the ticket only after the second weight', () => {
     weighing: complete,
     photos: [{ id: PHOTO_ID, tipo_peso: 'pesagem_2', peso_kg: 41000, capturada_em: complete.pesagem_2_em, status: 'vinculada' }],
   });
-  assert.match(completeHtml, /href="\/balanca\/avulsas\/5\/ticket\.pdf" target="_blank" rel="noopener">Imprimir ticket/);
-  assert.match(completeHtml, /<dt>Peso líquido<\/dt><dd><span class="copy-field-value">25680<\/span>/);
+  assert.match(completeHtml, /href="\/balanca\/avulsas\/5\/ticket\.pdf"[^>]*aria-label="Imprimir ticket" target="_blank" rel="noopener"/);
+  assert.match(completeHtml, /<span class="wb-weight-label">Líquido<\/span>\s*<button class="wb-weight-value" type="button" data-copy="25680"/);
   assert.match(completeHtml, /Pesagem 2 · 41\.000 kg/);
   assert.match(completeHtml, /name="pesagem_2_kg" type="number"[^>]*value="41000\.000"/);
 });
@@ -433,7 +437,7 @@ test('list and home show standalone weighings separately; pending ones go to the
   const list = renderPage(renderStandaloneWeighingsListPage, { weighings: [complete, { ...pending, placa_caminhao: null, produto: null }] });
   assert.match(list, /href="\/balanca\/avulsas\.csv"/);
   assert.match(list, /href="\/balanca\/avulsas\/5\/ticket\.pdf"/);
-  assert.match(list, /href="\/balanca\/avulsas\/5\/pesagem-2">Adicionar pesagem 2/);
+  assert.match(list, /href="\/balanca\/avulsas\/5\/pesagem-2"[^>]*aria-label="Adicionar pesagem 2"/);
   assert.match(renderPage(renderStandaloneWeighingsListPage, { weighings: [] }), /Nenhuma pesagem avulsa cadastrada/);
 
   const home = renderPage(renderWeighbridgeHomePage, {
@@ -441,16 +445,16 @@ test('list and home show standalone weighings separately; pending ones go to the
     yardStandaloneWeighings: [{ ...pending, placa_caminhao: null, produto: '<i>Areia</i>' }, complete],
   });
   assert.match(home, /href="\/balanca\/avulsas\/nova"/);
-  assert.match(home, /Últimas 10 pesagens avulsas/);
+  assert.match(home, /<tr data-movement-type="avulsa">/);
   const yard = home.split('aria-labelledby="yard-title"')[1].split('</section>')[0];
-  assert.match(yard, /<td>Avulsa<\/td>/);
+  assert.match(yard, /<span class="wb-type wb-type--avulsa" title="Avulsa"/);
   assert.match(yard, /Sem placa/);
   assert.match(yard, /&lt;i&gt;Areia&lt;\/i&gt;/);
-  assert.match(yard, /<td colspan="2">Pesagem 1: 15\.320 kg<\/td>/);
-  assert.equal((yard.match(/Adicionar pesagem 2/g) || []).length, 1, 'pesagem completa não fica no pátio');
+  assert.match(yard, /<span class="wb-tag">P1<\/span>15\.320/);
+  assert.equal((yard.match(/aria-label="Adicionar pesagem 2"/g) || []).length, 1, 'pesagem completa não fica no pátio');
 
   const empty = renderPage(renderWeighbridgeHomePage, {});
-  assert.match(empty, /Nenhuma pesagem avulsa recente/);
+  assert.match(empty, /Nenhuma movimentação recente/);
   assert.doesNotMatch(empty, /yard-title|{{STANDALONE_ROWS}}/);
 });
 
@@ -494,7 +498,7 @@ test('saving the second weight links pesagem_2 and returns to the home page', as
     _csrf: csrf, pesagem_2_em: '2026-11-14T11:30', pesagem_2_kg: '41000', foto_captura_id: CAPTURE_ID,
   });
   assert.equal(response.statusCode, 302);
-  assert.equal(response.headers.location, '/balanca?avulsa_pesagem_2_adicionada=1');
+  assert.equal(response.headers.location, '/balanca?avulsa_pesagem_2_adicionada=1&avulsa_id=5');
   const link = calls.find((call) => /UPDATE balanca_fotos/.test(call.sql));
   assert.deepEqual(link.values, [CAPTURE_ID, user.id, null, null, 'pesagem_2', '41000', '5']);
 });
@@ -531,8 +535,8 @@ test('home keeps working before the standalone weighings migration is applied', 
 
   const response = await request(server, { path: '/balanca', headers: { Cookie: cookie } });
   assert.equal(response.statusCode, 200);
-  assert.match(response.text, /Últimas 10 saídas/);
-  assert.match(response.text, /Nenhuma pesagem avulsa recente/);
+  assert.match(response.text, /id="recent-title">Recentes/);
+  assert.match(response.text, /Nenhuma movimentação recente/);
 });
 
 test('automatic photo picker describes uses in standalone weighings', async (t) => {
