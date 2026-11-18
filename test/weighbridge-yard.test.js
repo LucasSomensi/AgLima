@@ -30,10 +30,10 @@ test('yard shows pending movements independently of recent lists, oldest first',
   assert.match(html, /Pátio/);
   assert.match(html, /ABC1234/);
   assert.ok(html.indexOf('DEF5678') < html.indexOf('ABC1234'));
-  assert.match(html, /href="\/balanca\/entradas\/1\/tara">Adicionar tara/);
-  assert.match(html, /href="\/balanca\/entradas\/1\/classificacao">Adicionar classificação/);
-  assert.match(html, /href="\/balanca\/saidas\/2\/bruto">Adicionar bruto/);
-  assert.match(html, /href="\/balanca\/saidas\/2\/associar">Associar contrato/);
+  assert.match(html, /href="\/balanca\/entradas\/1\/tara"[^>]*aria-label="Adicionar tara"/);
+  assert.match(html, /href="\/balanca\/entradas\/1\/classificacao"[^>]*aria-label="Adicionar classificação"/);
+  assert.match(html, /href="\/balanca\/saidas\/2\/bruto"[^>]*aria-label="Adicionar bruto"/);
+  assert.match(html, /href="\/balanca\/saidas\/2\/associar"[^>]*aria-label="Associar contrato"/);
   assert.doesNotMatch(html, /Movimentações com pesagem/);
 });
 
@@ -63,14 +63,14 @@ test('yard does not offer association for an already associated output', () => {
 test('complete output without contract does not keep the yard section visible', () => {
   const html = renderPage({ yardOutputs: [{ ...output, peso_bruto_kg: 30000, contrato_id: null }] });
   assert.doesNotMatch(html, /yard-title|Associar contrato|YARD_ROWS/);
-  assert.match(html, /Últimas 10 entradas/);
-  assert.match(html, /Últimas 10 saídas/);
+  assert.match(html, /id="recent-title">Recentes/);
+  assert.match(html, /Nenhuma movimentação recente/);
 });
 
 test('yard also offers edit forms for missing input gross or output tare', () => {
   const html = render({ yardInputs: [{ ...input, peso_bruto_kg: null }], yardOutputs: [{ ...output, peso_tara_kg: null }] });
-  assert.match(html, /href="\/balanca\/entradas\/1">Adicionar bruto/);
-  assert.match(html, /href="\/balanca\/saidas\/2">Adicionar tara/);
+  assert.match(html, /href="\/balanca\/entradas\/1"[^>]*aria-label="Adicionar bruto"/);
+  assert.match(html, /href="\/balanca\/saidas\/2"[^>]*aria-label="Adicionar tara"/);
 });
 
 test('pending queries filter at database level without recent limit; normal queries unchanged', async (t) => {
@@ -103,7 +103,6 @@ test('home route loads yard separately from the ten recent movements', async (t)
   });
   assert.match(html, /ABC1234/);
   assert.match(html, /DEF5678/);
-  assert.match(html, /Nenhuma entrada recente/);
-  assert.match(html, /Nenhuma saída recente/);
+  assert.match(html, /Nenhuma movimentação recente/);
   assert.doesNotMatch(html, /{{YARD_ROWS}}/);
 });

@@ -40,7 +40,7 @@ Campos centrais:
 
 ## Rotas implementadas
 
-- `GET /balanca`: lista as 10 últimas entradas e as 10 últimas saídas. Nas entradas, a coluna de data/hora navega para detalhes e a coluna Tara concentra a ação de adicionar tara quando pendente.
+- `GET /balanca`: mostra o pátio e as 10 últimas entradas, saídas e avulsas numa tabela só. Layout descrito em [balanca-interface.md](balanca-interface.md).
 - `GET /balanca/entradas`: lista todas as entradas em ordem cronológica reversa.
 - `GET /balanca/entradas/nova`: abre formulário de nova entrada.
 - `POST /balanca/entradas`: cria entrada.
@@ -63,11 +63,11 @@ Campos centrais:
 
 ### Navegação e telas
 
-A página inicial `/balanca` continua mostrando apenas as 10 entradas mais recentes, mas agora possui um botão “Ver lista completa” que aponta para `/balanca/entradas`. A lista completa usa a mesma renderização de linhas e a mesma ordenação (`ORDER BY data_entrada DESC, id DESC`) sem limite.
+A página inicial `/balanca` mostra apenas as 10 entradas mais recentes, misturadas às saídas e avulsas recentes, com um ícone de lista que aponta para `/balanca/entradas`. A lista completa usa a mesma renderização de linhas e a mesma ordenação (`ORDER BY data_entrada DESC, id DESC`), paginada.
 
-Nas tabelas de entradas, o texto de data/hora é link para `/balanca/entradas/:id`. Essa tela de detalhes exibe os dados operacionais principais e permite editar data/hora, placa, produto e peso bruto. Ela também possui uma ação de exclusão com confirmação no navegador.
+Nas tabelas de entradas, a data/hora e a placa são links para `/balanca/entradas/:id`. Essa tela de detalhes exibe os dados operacionais principais e permite editar data/hora, placa, produto e peso bruto. Ela também possui uma ação de exclusão com confirmação no navegador.
 
-A ação “Adicionar tara” deve aparecer na coluna Tara, e não na coluna de ação geral. Quando a entrada já possui tara, a coluna exibe o valor ou a indicação de tara anterior; a coluna de ação fica reservada para classificação.
+O botão “Tara” (Adicionar tara) aparece na própria coluna Tara. Quando a entrada já possui tara, a coluna exibe o valor, com a marca `ANT` quando é tara anterior. Origem e classificação ficam na coluna de detalhes, como texto ou como botão quando pendentes. Com origem, tara e classificação completas, a linha ganha o botão de copiar o relatório da entrada.
 
 ### Produto padrão
 
@@ -97,7 +97,7 @@ A ação “Adicionar tara” aparece na coluna Tara apenas quando `peso_tara_kg
 
 ### Ticket de pesagem
 
-Na tela de detalhes, “Imprimir ticket” fica habilitado quando tara e peso líquido estão preenchidos. Origem e classificação não são obrigatórias; quando pendentes, aparecem como `-`. O PDF é aberto inline em `/balanca/entradas/:id/ticket.pdf`, com nome `ticket-entrada-:id.pdf`, e usa o mesmo layout A4 com duas vias (fazenda e motorista) do ticket de saída, incluindo as fotos da balança de bruto e tara quando existirem. Veja a descrição do layout em [saidas.md](saidas.md#7-emitir-ticket-de-pesagem-da-saída).
+Na tela de detalhes, o botão “Ticket” fica habilitado quando tara e peso líquido estão preenchidos. Depois de salvar a tara, a mensagem da página inicial já traz o botão de imprimir o ticket. Origem e classificação não são obrigatórias; quando pendentes, aparecem como `-`. O PDF é aberto inline em `/balanca/entradas/:id/ticket.pdf`, com nome `ticket-entrada-:id.pdf`, e usa o mesmo layout A4 com duas vias (fazenda e motorista) do ticket de saída, incluindo as fotos da balança de bruto e tara quando existirem. Veja a descrição do layout em [saidas.md](saidas.md#7-emitir-ticket-de-pesagem-da-saída).
 
 O ticket identifica entrada, operador, placa, produto e origem; mostra bruto, tara e líquido, além da classificação. Para tara manual, usa `tara_adicionada_em`; para tara anterior, identifica a reutilização ("Tara anterior") e usa a data da medição original quando disponível. A classificação aparece como umidade, impureza e avariados. O rodapé possui linhas de assinatura para motorista e operador.
 

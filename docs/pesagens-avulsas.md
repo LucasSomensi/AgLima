@@ -108,14 +108,14 @@ Todas exigem perfil `weighbridge_operator` ou `admin`.
 
 ### 1. Página inicial
 
-Em `/balanca` há o cartão **Pesagem avulsa**, ao lado de adicionar entrada, adicionar
-saída e contratos. Abaixo das últimas saídas fica a seção **Últimas 10 pesagens
-avulsas**, com link para a lista completa.
+Em `/balanca` há o botão **Avulsa** (atalho `A`), ao lado de Entrada e Saída. As 10
+últimas pesagens avulsas aparecem na tabela **Recentes**, junto com entradas e
+saídas (filtro pelo ícone da avulsa), e o ícone de lista leva à lista completa.
 
-Pesagens avulsas sem a pesagem 2 aparecem no **Pátio** com a movimentação "Avulsa",
+Pesagens avulsas sem a pesagem 2 aparecem no **Pátio** com o ícone de avulsa,
 ordenadas por data junto com entradas e saídas pendentes. Como não há bruto e tara,
-a pesagem 1 ocupa as duas colunas de peso. Sem placa, a linha mostra "Sem placa". A
-ação é **Adicionar pesagem 2**.
+a pesagem 1 aparece na coluna Bruto com a marca `P1`. Sem placa, a linha mostra "Sem
+placa". O botão é **Pesagem 2** (Adicionar pesagem 2).
 
 Administradores acessam a lista pelo botão **Ver pesagens avulsas** no painel
 "Entradas e saídas" de `/admin`.
@@ -141,8 +141,7 @@ Normalização feita por `buildStandaloneWeighingPayload`:
 - qualquer campo de texto em branco é gravado como `NULL`.
 
 Com erro, o formulário volta com os valores digitados e a foto escolhida. Com
-sucesso, o operador volta para `/balanca` com "Pesagem avulsa adicionada com
-sucesso."
+sucesso, o operador volta para `/balanca` com "Pesagem avulsa adicionada."
 
 ### 3. Pesagem 2
 
@@ -153,17 +152,16 @@ O operador informa data/hora e peso (com os mesmos dois botões de balança e fo
 A pesagem 2 pode ser maior, menor ou igual à pesagem 1. O serviço só grava se a
 pesagem ainda não tiver a pesagem 2 (`WHERE pesagem_2_kg IS NULL`, em transação com
 bloqueio da linha). Depois de salvar, o operador volta para `/balanca` com "Pesagem 2
-adicionada à pesagem avulsa com sucesso." O ticket fica disponível no link
-**Imprimir ticket** da seção de últimas pesagens avulsas, na lista completa e no
-detalhe.
+adicionada.", já com o botão **Imprimir ticket**. O ticket também fica na tabela de
+recentes, na lista completa e no detalhe.
 
 ### 4. Detalhes, edição e deleção
 
-`/balanca/avulsas/:id` mostra todos os campos com botão **Copiar**, as fotos
-vinculadas e:
+`/balanca/avulsas/:id` mostra as duas pesagens e o líquido em destaque, os campos
+que copiam com um clique, as fotos vinculadas e:
 
-- **Adicionar pesagem 2** e **Imprimir ticket** desabilitado, enquanto pendente;
-- **Imprimir ticket**, depois da pesagem 2.
+- **Adicionar pesagem 2** e o **Ticket** desabilitado, enquanto pendente;
+- **Ticket**, depois da pesagem 2.
 
 O formulário **Editar pesagem avulsa** permite corrigir todos os campos, inclusive
 as duas pesagens e suas datas. Apagar o peso da pesagem 2 devolve a pesagem para o

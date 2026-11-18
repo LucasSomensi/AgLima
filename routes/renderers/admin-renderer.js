@@ -24,7 +24,7 @@ const {
   renderEmptyRow,
   renderTemplate,
 } = require('./template-utils');
-const { buildScaleInputRows, buildScaleOutputRows } = require('./weighbridge-renderer');
+const { buildMovementTableHead, buildScaleInputRows, buildScaleOutputRows } = require('./weighbridge-renderer');
 
 function renderAdminUsersPage(res, { users, message, error }) {
   const adminPath = path.join(__dirname, '../../views/admin-users.html');
@@ -679,14 +679,14 @@ function renderAdminWeighbridgePanel({ inputs = [], outputs = [] } = {}) {
               <h3 id="admin-recent-inputs-title">Últimas 10 entradas</h3>
               <a class="btn-secondary-action" href="/balanca/entradas">Ver lista completa</a>
             </div>
-            <div class="admin-table-wrapper"><table class="admin-table weighbridge-table weighbridge-input-table"><thead><tr><th>Data/hora</th><th>Placa</th><th>Produto</th><th>Bruto</th><th>Tara</th><th>Líquido</th><th>Origem</th><th>Classificação</th></tr></thead><tbody>${buildScaleInputRows(inputs)}</tbody></table></div>
+            <div class="wb-table-wrap"><table class="wb-table"><thead>${buildMovementTableHead({ info: 'Origem · Classificação' })}</thead><tbody>${buildScaleInputRows(inputs)}</tbody></table></div>
           </section>
           <section class="admin-section" aria-labelledby="admin-recent-outputs-title">
             <div class="admin-section-header">
               <h3 id="admin-recent-outputs-title">Últimas 10 saídas</h3>
               <a class="btn-secondary-action" href="/balanca/saidas">Ver lista completa</a>
             </div>
-            <div class="admin-table-wrapper"><table class="admin-table weighbridge-table"><thead><tr><th>Data/hora</th><th>Placa</th><th>Produto</th><th>Bruto</th><th>Tara</th><th>Líquido</th><th>Contrato</th><th>Ação</th></tr></thead><tbody>${buildScaleOutputRows(outputs)}</tbody></table></div>
+            <div class="wb-table-wrap"><table class="wb-table"><thead>${buildMovementTableHead({ info: 'Contrato' })}</thead><tbody>${buildScaleOutputRows(outputs)}</tbody></table></div>
           </section>
         </section>
       `;

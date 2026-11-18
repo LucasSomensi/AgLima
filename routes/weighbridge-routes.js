@@ -22,6 +22,7 @@ const {
   deleteScaleOutput,
   getContractDetailForWeighbridge,
   getPreviousTareForPlate,
+  getScaleDaySummary,
   getScaleInputById,
   getScaleInputDetailInfo,
   getScaleOutputById,
@@ -103,20 +104,78 @@ async function loadStandaloneWeighingsForHome(options) {
   }
 }
 
+// O resumo do dia é um extra: se falhar, a página inicial continua.
+async function loadDaySummaryForHome() {
+  try {
+    return await getScaleDaySummary();
+  } catch (error) {
+    console.error('Error loading weighbridge day summary:', error.code || error.message);
+    return null;
+  }
+}
+
+const HOME_MESSAGES = [
+  ['avulsa_criada', 'Pesagem avulsa adicionada.'],
+  ['avulsa_pesagem_2_adicionada', 'Pesagem 2 adicionada.'],
+  ['avulsa_deletada', 'Pesagem avulsa deletada.'],
+  ['entrada_criada', 'Entrada adicionada.'],
+  ['entrada_editada', 'Entrada atualizada.'],
+  ['entrada_deletada', 'Entrada deletada.'],
+  ['entrada_tara_adicionada', 'Tara adicionada à entrada.'],
+  ['entrada_classificada', 'Classificação adicionada à entrada.'],
+  ['entrada_origem_definida', 'Origem definida para a entrada.'],
+  ['saida_criada', 'Saída adicionada.'],
+  ['saida_editada', 'Saída atualizada.'],
+  ['saida_deletada', 'Saída deletada.'],
+  ['saida_dividida', 'Saída dividida.'],
+  ['saida_bruto_adicionado', 'Peso bruto adicionado à saída.'],
+  ['saida_associada', 'Saída associada ao contrato.'],
+  ['contrato_desvinculado', 'Contrato desvinculado da saída.'],
+];
+
+function getRecordIdParam(value) {
+  const id = String(value || '');
+  return /^\d{1,12}$/.test(id) ? id : null;
+}
+
+// Próximo passo natural depois de concluir uma pesagem: imprimir o ticket
+// (ou, numa saída sem contrato, associar o contrato).
+function getHomeMessageAction(query) {
+  const entradaId = getRecordIdParam(query.entrada_id);
+  const saidaId = getRecordIdParam(query.saida_id);
+  const avulsaId = getRecordIdParam(query.avulsa_id);
+
+  if (query.entrada_tara_adicionada && entradaId) {
+    return { href: `/balanca/entradas/${entradaId}/ticket.pdf`, label: 'Imprimir ticket', icon: 'print', newTab: true };
+  }
+
+  if (query.avulsa_pesagem_2_adicionada && avulsaId) {
+    return { href: `/balanca/avulsas/${avulsaId}/ticket.pdf`, label: 'Imprimir ticket', icon: 'print', newTab: true };
+  }
+
+  if (query.saida_bruto_adicionado && saidaId) {
+    return { href: `/balanca/saidas/${saidaId}/associar`, label: 'Associar contrato', icon: 'link' };
+  }
+
+  return null;
+}
+
 router.get('/balanca', canAccessWeighbridge, async (req, res) => {
   if (req.sessionUser.role === ROLES.ADMIN) {
     return res.redirect('/admin');
   }
 
   try {
-    const [inputs, outputs, yardInputs, yardOutputs, standaloneWeighings, yardStandaloneWeighings] = await Promise.all([
+    const [inputs, outputs, yardInputs, yardOutputs, standaloneWeighings, yardStandaloneWeighings, daySummary] = await Promise.all([
       listScaleInputs({ limit: 10 }),
       listScaleOutputs({ limit: 10 }),
       listScaleInputs({ pendingOnly: true, order: 'asc' }),
       listScaleOutputs({ pendingOnly: true, order: 'asc' }),
       loadStandaloneWeighingsForHome({ limit: 10 }),
       loadStandaloneWeighingsForHome({ pendingOnly: true, order: 'asc' }),
+      loadDaySummaryForHome(),
     ]);
+    const messageEntry = HOME_MESSAGES.find(([param]) => req.query[param]);
 
     return renderWeighbridgeHomePage(res, {
       inputs,
@@ -125,39 +184,9 @@ router.get('/balanca', canAccessWeighbridge, async (req, res) => {
       yardOutputs,
       standaloneWeighings,
       yardStandaloneWeighings,
-      message: req.query.avulsa_criada
-        ? 'Pesagem avulsa adicionada com sucesso.'
-        : req.query.avulsa_pesagem_2_adicionada
-          ? 'Pesagem 2 adicionada à pesagem avulsa com sucesso.'
-          : req.query.avulsa_deletada
-          ? 'Pesagem avulsa deletada com sucesso.'
-          : req.query.entrada_criada
-        ? 'Entrada adicionada com sucesso.'
-        : req.query.entrada_editada
-          ? 'Entrada atualizada com sucesso.'
-          : req.query.entrada_deletada
-            ? 'Entrada deletada com sucesso.'
-            : req.query.entrada_tara_adicionada
-              ? 'Tara adicionada à entrada com sucesso.'
-              : req.query.entrada_classificada
-                ? 'Classificação adicionada à entrada com sucesso.'
-                : req.query.entrada_origem_definida
-                  ? 'Origem definida para a entrada com sucesso.'
-                  : req.query.saida_criada
-                    ? 'Saída adicionada com sucesso.'
-                    : req.query.saida_editada
-                      ? 'Saída atualizada com sucesso.'
-                      : req.query.saida_deletada
-                      ? 'Saída deletada com sucesso.'
-                      : req.query.saida_dividida
-                        ? 'Saída dividida com sucesso.'
-                        : req.query.saida_bruto_adicionado
-                          ? 'Peso bruto adicionado à saída com sucesso.'
-                          : req.query.saida_associada
-                          ? 'Saída associada ao contrato com sucesso.'
-                          : req.query.contrato_desvinculado
-                            ? 'Contrato desvinculado da saída com sucesso.'
-                            : '',
+      daySummary,
+      message: messageEntry ? messageEntry[1] : '',
+      messageAction: messageEntry ? getHomeMessageAction(req.query) : null,
       error: req.query.error || '',
     });
   } catch (error) {
@@ -631,7 +660,7 @@ router.post('/balanca/entradas/:id/tara', canAccessWeighbridge, async (req, res)
     }
 
     await linkWeightPhoto(req, { entradaId: updatedInput.id, tipoPeso: 'tara', pesoKg: payload.pesoTaraKg });
-    return res.redirect(buildWeighbridgeRedirect({ entrada_tara_adicionada: '1' }));
+    return res.redirect(buildWeighbridgeRedirect({ entrada_tara_adicionada: '1', entrada_id: updatedInput.id }));
   } catch (error) {
     console.error('Error adding input tare:', error.message);
     return renderScaleInputTareFormPage(res, {
@@ -915,7 +944,7 @@ router.post('/balanca/saidas/:id/bruto', canAccessWeighbridge, async (req, res) 
     }
 
     await linkWeightPhoto(req, { saidaId: updatedOutput.id, tipoPeso: 'bruto', pesoKg: payload.pesoBrutoKg });
-    return res.redirect(await buildOutputCompletionRedirect(req.params.id, { saida_bruto_adicionado: '1' }));
+    return res.redirect(await buildOutputCompletionRedirect(req.params.id, { saida_bruto_adicionado: '1', saida_id: req.params.id }));
   } catch (error) {
     console.error('Error adding scale output gross:', error.message);
     return res.redirect(buildWeighbridgeRedirect({

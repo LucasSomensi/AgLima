@@ -63,7 +63,7 @@ Restrições relevantes:
 
 ## Rotas implementadas
 
-- `GET /balanca`: lista as 10 últimas entradas e as 10 últimas saídas. A seção de saídas mostra data/hora, placa, produto, peso bruto, tara, peso líquido, contrato e ação.
+- `GET /balanca`: mostra o pátio e as 10 últimas entradas, saídas e avulsas numa tabela só. Nas saídas, a coluna de detalhes traz contrato e motorista, e as ações são NF e ticket. Layout em [balanca-interface.md](balanca-interface.md).
 - `GET /balanca/saidas`: lista todas as saídas em ordem cronológica reversa.
 - `GET /balanca/saidas/nova`: abre o formulário de nova saída.
 - `POST /balanca/saidas`: valida e cria uma saída com tara e sem peso bruto.
@@ -85,12 +85,11 @@ Restrições relevantes:
 
 O usuário com perfil `weighbridge_operator` acessa `/balanca`. A tela inicial mostra:
 
-- Atalhos para adicionar entrada, adicionar saída e consultar contratos.
-- As 10 entradas mais recentes.
-- As 10 saídas mais recentes.
-- Link “Ver lista completa” na seção de saídas, apontando para `/balanca/saidas`.
+- Botões Entrada, Saída e Avulsa (atalhos `E`, `S`, `A`), o resumo do dia e, na barra, contratos e fotos.
+- O pátio com as pendências.
+- As 10 entradas, saídas e avulsas mais recentes numa tabela só, com ícone de lista para `/balanca/saidas`.
 
-Na lista de saídas, a data/hora é link para `/balanca/saidas/:id`. A coluna “Contrato” mostra `Pendente` quando ainda não há associação, ou link para o contrato quando `contrato_id` existe. A coluna “Ação” mostra “Associar contrato” para saídas pendentes e “Informações NF” para saídas já associadas.
+Na lista de saídas, a data/hora e a placa são links para `/balanca/saidas/:id`. A coluna de detalhes mostra o link para o contrato quando `contrato_id` existe, ou o botão “Contrato” (Associar contrato) quando ainda não há associação. As ações da linha são “Informações NF” e “Imprimir ticket” para saídas associadas.
 
 ### 2. Registrar uma nova saída
 
@@ -141,7 +140,7 @@ Em `/balanca/saidas/:id`, a tela mostra os dados operacionais principais:
 - Peso bruto.
 - Peso líquido.
 
-Cada campo exibido possui botão “Copiar”, útil para conferência ou transcrição. A tela também mostra um link contextual:
+Data/hora, placa, motorista e produto são campos que copiam com um clique, e clicar em qualquer peso copia o número. A barra da tela mostra as ações contextuais:
 
 - “Associar contrato”, se a saída ainda não possui contrato, mesmo antes do peso bruto.
 - “Ver informações NF”, se a saída já possui contrato.
@@ -153,7 +152,7 @@ Na mesma tela ficam as ações de divisão e deleção quando já há peso líqu
 
 Uma saída recém-criada fica pendente de peso bruto e de contrato. O operador pode iniciar a associação pela lista ou pelo detalhe da saída, em `/balanca/saidas/:id/associar`, mesmo antes de adicionar o bruto. O peso bruto pode ser adicionado pela lista ou pelo detalhe da saída quando o caminhão retornar à balança. A tela `/balanca/saidas/:id/bruto` também possui o campo `Data e hora do peso bruto`, com o mesmo padrão de `datetime-local` usado na criação da saída: o valor inicial é a data/hora atual e o operador pode ajustar antes de salvar. Ao confirmar, o backend grava `peso_bruto_kg`, `peso_bruto_adicionado_em` e `atualizado_em`.
 
-Depois de adicionar o bruto ou associar um contrato, o servidor confere os dados gravados. Se tara, bruto, peso líquido e contrato estiverem preenchidos, redireciona automaticamente para `/balanca/saidas/:id/nf`. A ordem do preenchimento não importa. Enquanto faltar algum desses dados, a operação retorna à página inicial. Salvar pela edição em `/balanca/saidas/:id` sempre retorna aos detalhes da saída, mesmo que os dados fiquem completos. A página de NF continua oferecendo o botão **Voltar** para a página inicial correspondente ao perfil.
+Depois de adicionar o bruto ou associar um contrato, o servidor confere os dados gravados. Se o bruto foi adicionado a uma saída sem contrato, a mensagem da página inicial traz o botão “Associar contrato”. Se tara, bruto, peso líquido e contrato estiverem preenchidos, redireciona automaticamente para `/balanca/saidas/:id/nf`. A ordem do preenchimento não importa. Enquanto faltar algum desses dados, a operação retorna à página inicial. Salvar pela edição em `/balanca/saidas/:id` sempre retorna aos detalhes da saída, mesmo que os dados fiquem completos. A página de NF tem o botão de voltar na barra superior, que leva à página inicial correspondente ao perfil.
 
 A tela de associação funciona em duas etapas:
 
@@ -197,7 +196,7 @@ Se houver contrato, a tela exibe:
 - Dados da transportadora: CNPJ, inscrição estadual, razão social, UF e placa.
 - Observações do contrato.
 
-Todos os campos relevantes possuem botão “Copiar”. O preço por kg é calculado na query com `round(preco_por_saca / 60, 10)` e o preço por ton com `round(preco_por_saca / 60 * 1000, 10)`, limitando ambos a no máximo 10 casas decimais.
+Todos os campos ficam numa grade e o campo inteiro copia o valor com um clique. O preço por kg é calculado na query com `round(preco_por_saca / 60, 10)` e o preço por ton com `round(preco_por_saca / 60 * 1000, 10)`, limitando ambos a no máximo 10 casas decimais.
 
 ### 7. Emitir ticket de pesagem da saída
 

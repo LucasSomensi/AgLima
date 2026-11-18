@@ -5,73 +5,65 @@
       <meta name="author" content="Lucas">
       <meta name="description" content="Adicionar pesagem avulsa da balança AgroLima">
       <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-      <title>Adicionar pesagem avulsa | AgroLima</title>
+      <title>Nova pesagem avulsa | AgroLima</title>
       <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" integrity="sha384-xOolHFLEh07PJGoPkLv1IbcEPTNtaed2xpHsD9ESMhqIYd0nLMwNLD69Npy4HI+N" crossorigin="anonymous">
       <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:400,500,700&display=swap">
       <link rel="stylesheet" href="/css/styles.css">
       <link rel="icon" href="/favicon.ico" type="image/x-icon">
   </head>
-  <body>
-    <main class="page-shell admin-shell weighbridge-shell">
-      <section class="content-card admin-card weighbridge-card" aria-labelledby="standalone-form-title">
-        <div class="admin-header">
-          <div>
-            <span class="eyebrow">Área da balança</span>
-            <h1 id="standalone-form-title" class="page-title">Adicionar pesagem avulsa</h1>
-            <a class="back-link admin-back-link" href="{{WEIGHBRIDGE_HOME_HREF}}">{{WEIGHBRIDGE_HOME_LABEL}}</a>
-          </div>
-        </div>
-
-        {{STANDALONE_ERROR}}
-
-        <p class="admin-muted">Use para pesar qualquer coisa que não seja entrada ou saída de soja e milho. Só a pesagem 1 é obrigatória; os demais campos são livres.</p>
-
-        <form class="contact-form contracts-form" action="/balanca/avulsas" method="post">
-            <input type="hidden" name="_csrf" value="{{CSRF_TOKEN}}">
-          <div class="contracts-form-grid contracts-form-grid-two">
-            <label>Data e hora da pesagem 1
-              <input class="form-control" name="pesagem_1_em" type="datetime-local" value="{{PESAGEM_1_EM}}" required data-scale-photo-datetime>
-            </label>
-            <label>Pesagem 1 (kg)
+  <body class="wb-body">
+    <main class="wb-shell">
+      {{WB_TOPBAR}}
+      {{STANDALONE_ERROR}}
+      <section class="wb-panel">
+        <form class="wb-form" action="/balanca/avulsas" method="post">
+          <input type="hidden" name="_csrf" value="{{CSRF_TOKEN}}">
+          <div class="wb-form-grid">
+            <label class="wb-weight-field">Pesagem 1 (kg)
               <span class="weighbridge-weight-input-group">
-                <input class="form-control" id="pesagem_1_kg" name="pesagem_1_kg" type="number" min="0.001" step="0.001" value="{{PESAGEM_1_KG}}" inputmode="decimal" required>
+                <input class="form-control" id="pesagem_1_kg" name="pesagem_1_kg" type="number" min="0.001" step="0.001" value="{{PESAGEM_1_KG}}" inputmode="decimal" required autofocus>
                 <button class="weighbridge-weight-fetch" type="button" data-scale-weight-target="pesagem_1_kg" aria-label="Preencher pesagem 1 com o peso da balança 1" title="Usar peso da balança 1">
-                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20h14M7 20l1-10h8l1 10M9 10a3 3 0 0 1 6 0M12 10l2-2"/></svg>
+                  <svg class="wb-i" aria-hidden="true" focusable="false"><use href="/icons/wb.svg#i-scale"></use></svg>
                 </button>
                 <button class="weighbridge-weight-fetch" type="button" data-scale-photo-pick-target="pesagem_1_kg" aria-label="Preencher pesagem 1 com uma foto automática da balança 1" title="Usar foto automática da balança 1">
-                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 2.64-6.36L3 8.3M3 3v5.3h5.3M12 7v5l3.5 2"/></svg>
+                  <svg class="wb-i" aria-hidden="true" focusable="false"><use href="/icons/wb.svg#i-photo"></use></svg>
                 </button>
               </span>
               <span class="weighbridge-weight-feedback" aria-live="polite"></span>
               <input type="hidden" name="foto_captura_id" value="{{FOTO_CAPTURA_ID}}" data-scale-photo-capture>
               <span class="weighbridge-weight-photo" data-scale-photo-preview hidden></span>
             </label>
-            <label>Placa (opcional)
+            <label>Data/hora
+              <input class="form-control" name="pesagem_1_em" type="datetime-local" value="{{PESAGEM_1_EM}}" required data-scale-photo-datetime>
+            </label>
+            <label>Placa
               <input class="form-control" name="placa_caminhao" type="text" value="{{PLACA_CAMINHAO}}" maxlength="12" autocomplete="off">
             </label>
-            <label>Nome do motorista (opcional)
-              <input class="form-control" name="nome_motorista" type="text" value="{{NOME_MOTORISTA}}" maxlength="120" autocomplete="off">
-            </label>
-            <label>Produto (opcional)
+            <label>Produto
               <input class="form-control" name="produto" type="text" value="{{PRODUTO}}" maxlength="120" autocomplete="off">
             </label>
-            <label>Vendedor (opcional)
+            <label>Motorista
+              <input class="form-control" name="nome_motorista" type="text" value="{{NOME_MOTORISTA}}" maxlength="120" autocomplete="off">
+            </label>
+            <label>Vendedor
               <input class="form-control" name="vendedor" type="text" value="{{VENDEDOR}}" maxlength="120" autocomplete="off">
             </label>
-            <label>Comprador (opcional)
+            <label>Comprador
               <input class="form-control" name="comprador" type="text" value="{{COMPRADOR}}" maxlength="120" autocomplete="off">
             </label>
-            <label class="weighbridge-form-full">Comentário (opcional)
-              <textarea class="form-control" name="comentario" rows="4" maxlength="1000" placeholder="Anote o que achar relevante sobre esta pesagem.">{{COMENTARIO}}</textarea>
+            <label class="wb-field-full">Comentário
+              <textarea class="form-control" name="comentario" rows="2" maxlength="1000">{{COMENTARIO}}</textarea>
             </label>
           </div>
-          <div class="contracts-form-actions">
-            <button class="btn-primary-action" type="submit">Confirmar pesagem 1</button>
-            <a class="btn-secondary-action" href="{{WEIGHBRIDGE_HOME_HREF}}">Cancelar</a>
+          <p class="wb-hint">Só a pesagem 1 é obrigatória.</p>
+          <div class="wb-form-actions">
+            <button class="wb-btn wb-btn--primary" type="submit"><svg class="wb-i" aria-hidden="true" focusable="false"><use href="/icons/wb.svg#i-check"></use></svg><span>Confirmar pesagem 1</span></button>
+            <a class="wb-btn" href="{{WEIGHBRIDGE_HOME_HREF}}">Cancelar</a>
           </div>
         </form>
       </section>
     </main>
     <script src="/js/weighbridge-scale-weight.js"></script>
+    <script src="/js/weighbridge-ui.js"></script>
   </body>
 </html>

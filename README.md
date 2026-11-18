@@ -62,6 +62,8 @@ Depois de alterar variáveis no Railway, faça redeploy ou reinicie o serviço p
 - [API operacional v1](docs/api-balanca-operacional.md): todas as ações do operador,
   autenticação por usuário, exemplos, implantação e regras de repetição.
 - [OpenAPI](docs/api-balanca.openapi.json): contrato importável em clientes de API.
+- [Interface da balança](docs/balanca-interface.md): layout das telas do operador, ícones, atalhos e
+  peso ao vivo.
 - [Fotos no AutoWeight](docs/autoweight-fotos.md): o que o programa da balança precisa
   implementar para enviar peso com foto e as fotos automáticas.
 
