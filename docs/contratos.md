@@ -28,7 +28,7 @@ Os campos de edição e criação ficam fora da página principal para reduzir o
 
 - Criação: `/admin/contratos/compradores/novo`.
 - Edição: `/admin/contratos/compradores/:id/editar`.
-- Campos: nome, nome completo, endereço, número, CEP, inscrição estadual e CPF/CNPJ.
+- Campos: nome, nome completo, endereço, número, CEP, inscrição estadual, CPF/CNPJ e e-mail. O e-mail fica no comprador (e não no contrato) e é exibido nas informações de NF de todas as saídas dos contratos desse comprador.
 
 Ao salvar com sucesso, o administrador volta para `/admin/contratos` com uma mensagem de confirmação. Em caso de erro de validação ou duplicidade, o formulário é reaberto com a mensagem de erro.
 
@@ -46,7 +46,7 @@ Ao salvar com sucesso, o administrador volta para `/admin/contratos` com uma men
 - Edição: `/admin/contratos/contratos/:id/editar`.
 - Campos principais: data do contrato, produto, preço por saca, comprador, vendedor, quantidade em kg, data prevista de recebimento, desconto de SENAR, corretor e percentual de corretagem.
 - Marcadores: contrato embarcado e corretagem paga. Na edição, o administrador também pode marcar ou desmarcar contrato recebido. Esse estado ainda pode ser marcado pela notificação administrativa ou no detalhe `/balanca/contratos/:id`.
-- Campos avançados: inscrição estadual do vendedor, natureza da operação, CFOP, dados da transportadora, e-mail, informações de interesse do contribuinte e observações.
+- Campos avançados: inscrição estadual do vendedor, natureza da operação, CFOP, dados da transportadora, informações de interesse do contribuinte e observações.
 
 Ao salvar com sucesso, o administrador volta para `/admin/contratos` com uma mensagem de confirmação. Em caso de erro, o formulário é reaberto para correção.
 

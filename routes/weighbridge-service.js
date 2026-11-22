@@ -1549,7 +1549,6 @@ async function getScaleOutputDetailInfo(outputId) {
              c.quantidade_kg,
              c.quantidade_kg - COALESCE(SUM(s2.peso_liquido_kg) FILTER (WHERE s2.id IS NOT NULL), 0) AS contrato_saldo_kg,
              c.observacoes,
-             c.email,
              c.inscricao_estadual_vendedor,
              c.natureza_operacao,
              c.cfop,
@@ -1564,7 +1563,8 @@ async function getScaleOutputDetailInfo(outputId) {
              comp.inscricao_estadual AS comprador_inscricao_estadual,
              comp.endereco AS comprador_endereco,
              comp.numero AS comprador_numero,
-             comp.cep AS comprador_cep
+             comp.cep AS comprador_cep,
+             comp.email
       FROM saidas_balanca s
       LEFT JOIN users u ON u.id = s.criado_por_user_id
       LEFT JOIN contratos c ON c.id = s.contrato_id
@@ -1589,7 +1589,8 @@ async function getScaleOutputDetailInfo(outputId) {
                comp.inscricao_estadual,
                comp.endereco,
                comp.numero,
-               comp.cep
+               comp.cep,
+               comp.email
       LIMIT 1
     `,
     [outputId]

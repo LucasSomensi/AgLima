@@ -47,6 +47,7 @@
  compradores                 | compradores_atualizado_em_not_null                             | CHECK           |                               | compradores                 | atualizado_em
  compradores                 | compradores_cep_formato_check                                  | CHECK           |                               | compradores                 | cep
  compradores                 | compradores_cpf_cnpj_check                                     | CHECK           |                               | compradores                 | cpf_cnpj
+ compradores                 | compradores_email_preenchido_check                             | CHECK           |                               | compradores                 | email
  compradores                 | compradores_criado_em_not_null                                 | CHECK           |                               | compradores                 | criado_em
  compradores                 | compradores_id_not_null                                        | CHECK           |                               | compradores                 | id
  compradores                 | compradores_inscricao_estadual_check                           | CHECK           |                               | compradores                 | inscricao_estadual

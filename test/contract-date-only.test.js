@@ -65,7 +65,6 @@ test('contract payload converts blank fiscal fields and observations to null', (
     cnpj_transportadora: '',
     inscricao_estadual_transportadora: '',
     uf_transportadora: '',
-    email: '',
     observacoes: '',
   });
 
@@ -78,6 +77,6 @@ test('contract payload converts blank fiscal fields and observations to null', (
   assert.equal(payload.cnpjTransportadora, null);
   assert.equal(payload.inscricaoEstadualTransportadora, null);
   assert.equal(payload.ufTransportadora, null);
-  assert.equal(payload.email, null);
+  assert.equal('email' in payload, false);
   assert.equal(payload.observacoes, null);
 });

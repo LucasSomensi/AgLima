@@ -40,6 +40,7 @@
  public       | compradores                 |                8 | cpf_cnpj                                                  | character varying           | YES         |
  public       | compradores                 |                9 | criado_em                                                 | timestamp without time zone | NO          | now()
  public       | compradores                 |               10 | atualizado_em                                             | timestamp without time zone | NO          | now()
+ public       | compradores                 |               11 | email                                                     | text                        | YES         |
  public       | contrato_recebimentos       |                1 | id                                                        | bigint                      | NO          |
  public       | contrato_recebimentos       |                2 | contrato_id                                               | bigint                      | NO          |
  public       | contrato_recebimentos       |                3 | data_recebimento                                          | date                        | NO          |
@@ -71,7 +72,6 @@
  public       | contratos                   |               22 | cnpj_transportadora                                       | text                        | YES         |
  public       | contratos                   |               23 | inscricao_estadual_transportadora                         | text                        | YES         |
  public       | contratos                   |               24 | uf_transportadora                                         | text                        | YES         |
- public       | contratos                   |               25 | email                                                     | text                        | YES         |
  public       | contratos                   |               26 | desconta_senar                                            | boolean                     | NO          | true
  public       | dryer_batches               |                1 | id                                                        | uuid                        | NO          | gen_random_uuid()
  public       | dryer_batches               |                2 | grain_type                                                | text                        | NO          | 'corn'::text

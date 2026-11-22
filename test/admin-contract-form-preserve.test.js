@@ -20,6 +20,7 @@ test('buyer form keeps submitted values when rendering validation errors', () =>
       cep: '85800-000',
       inscricao_estadual: '12345',
       cpf_cnpj: '12.345.678/0001-90',
+      email: 'nf@comprador.example',
     },
     error: 'Informe uma inscrição estadual com 10 dígitos ou mais.',
   });
@@ -31,6 +32,7 @@ test('buyer form keeps submitted values when rendering validation errors', () =>
   assert.match(html, /value="85800-000"/);
   assert.match(html, /value="12345"/);
   assert.match(html, /value="12\.345\.678\/0001-90"/);
+  assert.match(html, /name="email" type="text" inputmode="email" value="nf@comprador\.example"/);
   assert.match(html, /Informe uma inscrição estadual com 10 dígitos ou mais\./);
 });
 
@@ -43,6 +45,7 @@ test('buyer payload accepts only name and stores blank optional fields as null',
     cep: '',
     inscricao_estadual: '',
     cpf_cnpj: '',
+    email: ' ',
   });
 
   assert.equal(error, undefined);
@@ -54,7 +57,15 @@ test('buyer payload accepts only name and stores blank optional fields as null',
     cep: null,
     inscricaoEstadual: null,
     cpfCnpj: null,
+    email: null,
   });
+});
+
+test('buyer payload trims the e-mail', () => {
+  const { payload, error } = buildBuyerPayload({ nome: 'Comprador', email: ' nf@comprador.example ' });
+
+  assert.equal(error, undefined);
+  assert.equal(payload.email, 'nf@comprador.example');
 });
 
 test('buyer payload normalizes an alphanumeric CNPJ issued by Receita Federal', () => {
@@ -116,7 +127,6 @@ test('contract form keeps submitted values when rendering validation errors', ()
       cnpj_transportadora: '12345678000190',
       inscricao_estadual_transportadora: 'ISENTO',
       uf_transportadora: 'PR',
-      email: 'teste@example.com',
       informacoes_interesse_contribuinte: 'Info fiscal',
       observacoes: 'Observação',
     },
@@ -143,7 +153,7 @@ test('contract form keeps submitted values when rendering validation errors', ()
   assert.match(html, /name="cnpj_transportadora" type="text" value="12345678000190"/);
   assert.match(html, /name="inscricao_estadual_transportadora" type="text" value="ISENTO"/);
   assert.match(html, /name="uf_transportadora" type="text" maxlength="2" value="PR"/);
-  assert.match(html, /name="email" type="text" value="teste@example.com"/);
+  assert.doesNotMatch(html, /name="email"/);
   assert.match(html, />Info fiscal<\/textarea>/);
   assert.match(html, />Observação<\/textarea>/);
   assert.match(html, /Informe um preço por saca válido\./);
