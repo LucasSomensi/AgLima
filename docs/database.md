@@ -157,6 +157,7 @@ Armazena os compradores usados no cadastro de contratos.
 | `cep` | `character` | Não | — | CEP do comprador. A aplicação valida 8 dígitos. |
 | `inscricao_estadual` | `character varying` | Não | — | Inscrição estadual. A aplicação valida 10 ou mais dígitos. |
 | `cpf_cnpj` | `character varying` | Não | — | CPF ou CNPJ. A aplicação remove a pontuação, converte letras para maiúsculas e aceita sequências alfanuméricas de 11 ou 14 caracteres. |
+| `email` | `text` | Sim | — | E-mail do comprador para apoio à emissão da nota fiscal. NULL quando não informado. |
 | `criado_em` | `timestamp without time zone` | Não | `now()` | Data/hora de criação do registro. |
 | `atualizado_em` | `timestamp without time zone` | Não | `now()` | Data/hora da última atualização. |
 
@@ -169,12 +170,18 @@ Armazena os compradores usados no cadastro de contratos.
 | Check | `compradores_cep_formato_check` | `cep` |
 | Check | `compradores_cpf_cnpj_check` | `cpf_cnpj` |
 | Check | `compradores_inscricao_estadual_check` | `inscricao_estadual` |
+| Check | `compradores_email_preenchido_check` | `email` |
 | Check / not null | demais constraints `compradores_*_not_null` | `id`, `nome`, `nome_completo`, `endereco`, `numero`, `cep`, `inscricao_estadual`, `cpf_cnpj`, `criado_em`, `atualizado_em` |
 
 O constraint `compradores_cpf_cnpj_check` permite valores nulos ou sequências de
 11 ou 14 caracteres entre `A-Z` e `0-9`. A migration
 `20260802_allow_alphanumeric_buyer_cpf_cnpj.sql` substitui a validação anterior,
 que aceitava somente dígitos, para acompanhar o formato alfanumérico do CNPJ.
+
+O constraint `compradores_email_preenchido_check` rejeita e-mails vazios ou
+compostos apenas por espaços. A migration `20261122_move_contract_email_to_buyer.sql`
+criou a coluna, copiou para cada comprador o e-mail do contrato atualizado por
+último (desempate pelo maior `id`) e removeu `contratos.email`.
 
 ---
 
@@ -237,7 +244,6 @@ A migration `migrations/20261009_add_contract_receipts.sql` cria `contrato_receb
 | `cnpj_transportadora` | `text` | Sim | — | CNPJ da transportadora usada na nota fiscal. |
 | `inscricao_estadual_transportadora` | `text` | Sim | — | Inscrição estadual da transportadora usada na nota fiscal. |
 | `uf_transportadora` | `text` | Sim | — | UF da transportadora usada na nota fiscal. |
-| `email` | `text` | Sim | — | E-mail relacionado ao contrato para apoio à emissão da nota fiscal. |
 
 ### Restrições
 

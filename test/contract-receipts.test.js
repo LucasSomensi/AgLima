@@ -40,8 +40,8 @@ test('contract persistence stores and checks the SENAR choice', async (t) => {
   await updateContract(7, payload);
   assert.match(inserted.sql, /desconta_senar/);
   assert.equal(inserted.parameters.at(-1), false);
-  assert.match(updated.sql, /desconta_senar = \$24/);
-  assert.match(updated.sql, /CASE WHEN \$24::boolean THEN/);
+  assert.match(updated.sql, /desconta_senar = \$23/);
+  assert.match(updated.sql, /CASE WHEN \$23::boolean THEN/);
   assert.match(updated.sql, /contrato_recebido\s*=\s*\$9/);
   assert.equal(updated.parameters[8], payload.contratoRecebido);
   assert.equal(updated.parameters.at(-1), false);

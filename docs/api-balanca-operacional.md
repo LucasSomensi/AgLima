@@ -329,7 +329,7 @@ automaticamente; essa finalização continua manual e administrativa.
 comprador, vendedor e transportadora. Inclui `preco_por_saca`, `preco_por_kg`,
 `preco_por_ton`, `peso_liquido_kg`, `peso_liquido_ton`, `nome_nf`, `cfop`,
 `natureza_operacao`, inscrições estaduais, CPF/CNPJ, endereço, CEP, e-mail e
-observações. Valores ausentes podem ser null. Os padrões são `natureza_operacao`
+observações. O campo `email` vem do cadastro do comprador. Valores ausentes podem ser null. Os padrões são `natureza_operacao`
 igual a `Venda` e `cfop` igual a `5101`, como na tela. `nome_nf` usa
 `YYYY-MM-DD PLACA PRODUTO ID`. Não são incluídos recebimentos financeiros privados.
 

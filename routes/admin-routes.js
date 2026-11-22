@@ -228,6 +228,7 @@ function buildSubmittedBuyer(body, id) {
     cep: body.cep || '',
     inscricao_estadual: body.inscricao_estadual || '',
     cpf_cnpj: body.cpf_cnpj || '',
+    email: body.email || '',
   };
 }
 
@@ -262,7 +263,6 @@ function buildSubmittedContract(body, id) {
     cnpj_transportadora: body.cnpj_transportadora || '',
     inscricao_estadual_transportadora: body.inscricao_estadual_transportadora || '',
     uf_transportadora: body.uf_transportadora || '',
-    email: body.email || '',
     informacoes_interesse_contribuinte: body.informacoes_interesse_contribuinte || '',
     observacoes: body.observacoes || '',
   };

@@ -61,6 +61,7 @@ function buildBuyerPayload(body) {
     cep: cep || null,
     inscricaoEstadual: inscricaoEstadual || null,
     cpfCnpj: cpfCnpj || null,
+    email: normalizeText(body.email) || null,
   };
 
   if (!payload.nome) {
@@ -167,7 +168,6 @@ function buildContractPayload(body) {
       cnpjTransportadora: normalizeText(body.cnpj_transportadora) || null,
       inscricaoEstadualTransportadora: normalizeText(body.inscricao_estadual_transportadora) || null,
       ufTransportadora: normalizeText(body.uf_transportadora) || null,
-      email: normalizeText(body.email) || null,
     },
   };
 }
@@ -177,7 +177,7 @@ async function listBuyers() {
 
   const result = await pool.query(
     `
-      SELECT id, nome, nome_completo, endereco, numero, cep, inscricao_estadual, cpf_cnpj, criado_em, atualizado_em
+      SELECT id, nome, nome_completo, endereco, numero, cep, inscricao_estadual, cpf_cnpj, email, criado_em, atualizado_em
       FROM compradores
       ORDER BY nome ASC
     `
@@ -191,7 +191,7 @@ async function getBuyerById(id) {
 
   const result = await pool.query(
     `
-      SELECT id, nome, nome_completo, endereco, numero, cep, inscricao_estadual, cpf_cnpj
+      SELECT id, nome, nome_completo, endereco, numero, cep, inscricao_estadual, cpf_cnpj, email
       FROM compradores
       WHERE id = $1
       LIMIT 1
@@ -207,10 +207,10 @@ async function createBuyer(payload) {
 
   await pool.query(
     `
-      INSERT INTO compradores (nome, nome_completo, endereco, numero, cep, inscricao_estadual, cpf_cnpj)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      INSERT INTO compradores (nome, nome_completo, endereco, numero, cep, inscricao_estadual, cpf_cnpj, email)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
     `,
-    [payload.nome, payload.nomeCompleto, payload.endereco, payload.numero, payload.cep, payload.inscricaoEstadual, payload.cpfCnpj]
+    [payload.nome, payload.nomeCompleto, payload.endereco, payload.numero, payload.cep, payload.inscricaoEstadual, payload.cpfCnpj, payload.email]
   );
 }
 
@@ -227,10 +227,11 @@ async function updateBuyer(id, payload) {
           cep = $5,
           inscricao_estadual = $6,
           cpf_cnpj = $7,
+          email = $8,
           atualizado_em = now()
-      WHERE id = $8
+      WHERE id = $9
     `,
-    [payload.nome, payload.nomeCompleto, payload.endereco, payload.numero, payload.cep, payload.inscricaoEstadual, payload.cpfCnpj, id]
+    [payload.nome, payload.nomeCompleto, payload.endereco, payload.numero, payload.cep, payload.inscricaoEstadual, payload.cpfCnpj, payload.email, id]
   );
 }
 
@@ -324,7 +325,6 @@ async function listContracts(options = {}) {
              c.cnpj_transportadora,
              c.inscricao_estadual_transportadora,
              c.uf_transportadora,
-             c.email,
              comp.nome AS comprador_nome,
              vend.nome AS vendedor_nome,
              ${contractNetValueSql('c')} AS valor_contrato,
@@ -522,8 +522,7 @@ async function getContractById(id) {
              razao_social_transportadora,
              cnpj_transportadora,
              inscricao_estadual_transportadora,
-             uf_transportadora,
-             email
+             uf_transportadora
       FROM contratos
       WHERE id = $1
       LIMIT 1
@@ -561,10 +560,9 @@ async function createContract(payload) {
         cnpj_transportadora,
         inscricao_estadual_transportadora,
         uf_transportadora,
-        email,
         desconta_senar
       )
-      VALUES ($1::date, $2, $3, $4, $5, $6, $7, $8::date, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23)
+      VALUES ($1::date, $2, $3, $4, $5, $6, $7, $8::date, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
     `,
     [
       payload.dataContrato,
@@ -588,7 +586,6 @@ async function createContract(payload) {
       payload.cnpjTransportadora,
       payload.inscricaoEstadualTransportadora,
       payload.ufTransportadora,
-      payload.email,
       payload.descontaSenar,
     ]
   );
@@ -669,7 +666,7 @@ async function updateContract(id, payload) {
           contrato_embarcado = $7,
           data_recebimento = $8::date,
           contrato_recebido = $9,
-          desconta_senar = $24,
+          desconta_senar = $23,
           corretor = $10,
           valor_corretagem_percentual = $11,
           corretagem_paga = $12,
@@ -682,10 +679,9 @@ async function updateContract(id, payload) {
           cnpj_transportadora = $19,
           inscricao_estadual_transportadora = $20,
           uf_transportadora = $21,
-          email = $22,
           atualizado_em = now()
-      WHERE id = $23
-        AND ${netValueSql('$6::numeric', '$3::numeric', '$24::boolean')} >= COALESCE((SELECT SUM(valor) FROM contrato_recebimentos WHERE contrato_id = $23), 0)
+      WHERE id = $22
+        AND ${netValueSql('$6::numeric', '$3::numeric', '$23::boolean')} >= COALESCE((SELECT SUM(valor) FROM contrato_recebimentos WHERE contrato_id = $22), 0)
     `,
     [
       payload.dataContrato,
@@ -709,7 +705,6 @@ async function updateContract(id, payload) {
       payload.cnpjTransportadora,
       payload.inscricaoEstadualTransportadora,
       payload.ufTransportadora,
-      payload.email,
       id,
       payload.descontaSenar,
     ]
